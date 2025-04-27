@@ -7,9 +7,9 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.fragment.app.Fragment
-import com.electroboys.lightsnap.ui.main.DocumentFragment
-import com.electroboys.lightsnap.ui.main.MessageFragment
-import com.electroboys.lightsnap.ui.main.SettingsFragment
+import com.electroboys.lightsnap.ui.main.fragment.DocumentFragment
+import com.electroboys.lightsnap.ui.main.fragment.MessageFragment
+import com.electroboys.lightsnap.ui.main.fragment.SettingsFragment
 
 class MainActivity : AppCompatActivity() {
 

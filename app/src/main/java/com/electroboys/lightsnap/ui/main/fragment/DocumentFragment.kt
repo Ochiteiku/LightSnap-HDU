@@ -1,6 +1,5 @@
-package com.electroboys.lightsnap.ui.main
+package com.electroboys.lightsnap.ui.main.fragment
 
-import android.os.Bundle
 import androidx.fragment.app.Fragment
 import com.electroboys.lightsnap.R
 
