@@ -15,6 +15,7 @@ import android.view.KeyEvent
 import android.widget.Toast
 import androidx.activity.viewModels
 import androidx.lifecycle.Observer
+import com.electroboys.lightsnap.ui.main.activity.ScreenshotActivity
 import com.electroboys.lightsnap.ui.main.viewmodel.MainViewModel
 
 
@@ -23,6 +24,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var navMessage: View
     private lateinit var navDocument: View
     private lateinit var navSettings: View
+    private lateinit var screenshotHelper: ScreenshotActivity
     private val viewModel: MainViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -40,6 +42,9 @@ class MainActivity : AppCompatActivity() {
         navMessage = findViewById(R.id.navMessage)
         navDocument = findViewById(R.id.navDocument)
         navSettings = findViewById(R.id.navSettings)
+
+        //初始化截图
+        screenshotHelper = ScreenshotActivity(this)
 
         // 默认加载消息Fragment，并高亮
         replaceFragment(MessageFragment())
@@ -95,8 +100,14 @@ class MainActivity : AppCompatActivity() {
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
         if (event.action == KeyEvent.ACTION_DOWN) {
             if (event.isShiftPressed && event.keyCode == KeyEvent.KEYCODE_A) {
-                // 通知 ViewModel 快捷键按下了
-                viewModel.onShortcutPressed("Shift + A")
+                screenshotHelper.enableBoxSelectOnce { bitmap ->
+                    if (bitmap != null) {
+                        Toast.makeText(this, "截图成功", Toast.LENGTH_SHORT).show()
+                        // 你可以在这里显示到某个 ImageView 或保存文件
+                    } else {
+                        Toast.makeText(this, "截图取消或失败", Toast.LENGTH_SHORT).show()
+                    }
+                }
                 return true
             }
         }

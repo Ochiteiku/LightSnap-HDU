@@ -1,6 +1,5 @@
 package com.electroboys.lightsnap.domain.screenshot
 
-
 import android.annotation.SuppressLint
 import android.app.Activity
 import android.content.Context
@@ -8,7 +7,7 @@ import android.graphics.Bitmap
 import android.graphics.Canvas
 import androidx.core.graphics.createBitmap
 
-object ScreenshotUtils {
+object ScreenshotUtil {
 
     fun captureWithStatusBar(activity: Activity): Bitmap {
         // 获取视图

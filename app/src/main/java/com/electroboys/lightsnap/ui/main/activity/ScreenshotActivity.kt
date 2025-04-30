@@ -6,7 +6,7 @@ import android.view.MotionEvent
 import android.view.View
 import android.widget.FrameLayout
 import androidx.appcompat.app.AppCompatActivity
-import com.electroboys.lightsnap.domain.screenshot.ScreenshotUtils
+import com.electroboys.lightsnap.domain.screenshot.ScreenshotUtil
 import com.electroboys.lightsnap.domain.screenshot.SelectView
 
 class ScreenshotActivity(private val activity: AppCompatActivity) {
@@ -49,7 +49,7 @@ class ScreenshotActivity(private val activity: AppCompatActivity) {
                         return@OnTouchListener true
                     }
 
-                    val bitmap = ScreenshotUtils.captureWithStatusBar(activity)
+                    val bitmap = ScreenshotUtil.captureWithStatusBar(activity)
                     val selectedRect = selectionOverlayView.getSelectedRect()
 
                     val croppedBitmap = if (selectedRect != null && selectedRect.width() > 0 && selectedRect.height() > 0) {
