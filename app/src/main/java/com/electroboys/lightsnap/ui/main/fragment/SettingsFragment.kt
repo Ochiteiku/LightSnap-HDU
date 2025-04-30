@@ -2,6 +2,7 @@ package com.electroboys.lightsnap.ui.main.fragment
 
 import android.content.Context
 import android.content.Intent
+import android.net.Uri
 import androidx.fragment.app.Fragment
 import com.electroboys.lightsnap.R
 import android.os.Bundle
@@ -10,14 +11,13 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
-import android.widget.ImageView
 import android.widget.TextView
-import androidx.appcompat.app.AppCompatActivity
-import com.electroboys.lightsnap.ui.main.activity.ScreenshotActivity
 import com.electroboys.lightsnap.ui.main.activity.VideoPlayActivity
 import com.electroboys.lightsnap.utils.KeyEventUtil
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.android.material.switchmaterial.SwitchMaterial
+import androidx.core.net.toUri
+import com.electroboys.lightsnap.utils.UriUtil
 
 
 class SettingsFragment : Fragment(R.layout.fragment_settings){
@@ -26,8 +26,14 @@ class SettingsFragment : Fragment(R.layout.fragment_settings){
     private lateinit var buttonReset: Button
     private lateinit var buttonVideoTest: Button
 
+    //快捷键设置
     private lateinit var shortcutKeyContainer: View
     private lateinit var shortcutKeyDisplay: TextView
+
+    //截图默认保存路径设置
+    private lateinit var savePathDisplay: TextView
+    private lateinit var savePathContainer: View
+    private lateinit var folderPickerLauncher: androidx.activity.result.ActivityResultLauncher<Intent>
 
 
     override fun onCreateView(
@@ -45,11 +51,36 @@ class SettingsFragment : Fragment(R.layout.fragment_settings){
         buttonVideoTest = view.findViewById(R.id.button_videoTest)
         shortcutKeyDisplay = view.findViewById<TextView>(R.id.shortcutKeyDisplay)
         shortcutKeyContainer = view.findViewById<View>(R.id.shortcutKeyContainer)
+        savePathContainer = view.findViewById(R.id.savePathContainer)
+        savePathDisplay = view.findViewById(R.id.savePathDisplay)
 
         // 从 SharedPreferences 获取值来设置开关状态
         val sharedPreferences = requireActivity().getSharedPreferences("settings", Context.MODE_PRIVATE)
         val screenshotEnabled = sharedPreferences.getBoolean("screenshot_enabled", false)
         switchScreenshot.isChecked = screenshotEnabled
+
+        // 显示已保存路径
+        folderPickerLauncher = registerForActivityResult(
+            androidx.activity.result.contract.ActivityResultContracts.StartActivityForResult()
+        ) { result ->
+            if (result.resultCode == android.app.Activity.RESULT_OK) {
+                val uri = result.data?.data ?: return@registerForActivityResult
+
+                // 授权长期访问权限（关键）
+                requireContext().contentResolver.takePersistableUriPermission(
+                    uri,
+                    Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION
+                )
+
+                // 保存 Uri.toString() 到 SharedPreferences
+                val pathStr = uri.toString()
+                val prefs = requireActivity().getSharedPreferences("settings", Context.MODE_PRIVATE)
+                prefs.edit().putString("screenshot_save_uri", pathStr).apply()
+
+                // 显示路径（你可以自定义显示格式）
+                savePathDisplay.text = UriUtil.getPathFromUri(requireContext(), uri) ?: pathStr
+            }
+        }
 
         setupUI()
     }
@@ -91,20 +122,22 @@ class SettingsFragment : Fragment(R.layout.fragment_settings){
             setupShortcutKey()
         }
 
-        // 截图测试按钮逻辑
-        val screenshotTestImageView = view?.findViewById<ImageView>(R.id.screenshot_test)
-
-        val activity = requireActivity() as AppCompatActivity
-        val screenshotHelper = ScreenshotActivity(activity)
-
-        view?.findViewById<Button>(R.id.btnCapture)?.setOnClickListener {
-            screenshotHelper.enableBoxSelectOnce { bitmap ->
-                if (bitmap != null) {
-                    screenshotTestImageView?.setImageBitmap(bitmap)
-                } else {
-                    screenshotTestImageView?.setImageResource(R.drawable.ic_launcher_foreground)
-                }
+        // 设置保存路径
+        savePathContainer.setOnClickListener {
+            val intent = Intent(Intent.ACTION_OPEN_DOCUMENT_TREE).apply {
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or
+                        Intent.FLAG_GRANT_WRITE_URI_PERMISSION or
+                        Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION)
             }
+            folderPickerLauncher.launch(intent)
+        }
+
+        val savedUriStr = sharedPreferences.getString("screenshot_save_uri", null)
+        if (savedUriStr != null) {
+            val uri = savedUriStr.toUri()
+            savePathDisplay.text = UriUtil.getPathFromUri(requireContext(), uri) ?: "已保存路径"
+        } else {
+            savePathDisplay.text = "未设置"
         }
 
     }
