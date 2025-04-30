@@ -10,7 +10,10 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
+import android.widget.ImageView
 import android.widget.TextView
+import androidx.appcompat.app.AppCompatActivity
+import com.electroboys.lightsnap.ui.main.activity.ScreenshotActivity
 import com.electroboys.lightsnap.ui.main.activity.VideoPlayActivity
 import com.electroboys.lightsnap.utils.KeyEventUtil
 import com.google.android.material.bottomsheet.BottomSheetDialog
@@ -53,14 +56,16 @@ class SettingsFragment : Fragment(R.layout.fragment_settings){
 
     private fun setupUI() {
         switchScreenshot.setOnCheckedChangeListener { _, isChecked ->
-            val sharedPreferences = requireActivity().getSharedPreferences("settings", Context.MODE_PRIVATE)
+            val sharedPreferences =
+                requireActivity().getSharedPreferences("settings", Context.MODE_PRIVATE)
             val editor = sharedPreferences.edit()
             editor.putBoolean("screenshot_enabled", isChecked)
             editor.apply()
         }
 
         buttonReset.setOnClickListener {
-            val sharedPreferences = requireActivity().getSharedPreferences("settings", Context.MODE_PRIVATE)
+            val sharedPreferences =
+                requireActivity().getSharedPreferences("settings", Context.MODE_PRIVATE)
             val editor = sharedPreferences.edit()
             editor.putBoolean("screenshot_enabled", false)
             editor.apply()
@@ -75,7 +80,8 @@ class SettingsFragment : Fragment(R.layout.fragment_settings){
         }
 
         // 每次界面显示时，读取保存的快捷键
-        val sharedPreferences = requireActivity().getSharedPreferences("settings", Context.MODE_PRIVATE)
+        val sharedPreferences =
+            requireActivity().getSharedPreferences("settings", Context.MODE_PRIVATE)
         val savedShortcut = sharedPreferences.getString("screenshot_shortcut", "未设置")
 
         shortcutKeyDisplay.text = savedShortcut ?: "未设置"
@@ -84,6 +90,23 @@ class SettingsFragment : Fragment(R.layout.fragment_settings){
         shortcutKeyContainer.setOnClickListener {
             setupShortcutKey()
         }
+
+        // 截图测试按钮逻辑
+        val screenshotTestImageView = view?.findViewById<ImageView>(R.id.screenshot_test)
+
+        val activity = requireActivity() as AppCompatActivity
+        val screenshotHelper = ScreenshotActivity(activity)
+
+        view?.findViewById<Button>(R.id.btnCapture)?.setOnClickListener {
+            screenshotHelper.enableBoxSelectOnce { bitmap ->
+                if (bitmap != null) {
+                    screenshotTestImageView?.setImageBitmap(bitmap)
+                } else {
+                    screenshotTestImageView?.setImageResource(R.drawable.ic_launcher_foreground)
+                }
+            }
+        }
+
     }
 
     private fun setupShortcutKey() {
