@@ -11,6 +11,7 @@ import androidx.fragment.app.Fragment
 import com.electroboys.lightsnap.ui.main.fragment.DocumentFragment
 import com.electroboys.lightsnap.ui.main.fragment.MessageFragment
 import com.electroboys.lightsnap.ui.main.fragment.SettingsFragment
+import com.electroboys.lightsnap.ui.main.fragment.LibraryFragment
 import android.view.KeyEvent
 import android.widget.Toast
 import androidx.activity.viewModels
@@ -24,6 +25,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var navMessage: View
     private lateinit var navDocument: View
     private lateinit var navSettings: View
+    private lateinit var navLibrary: View
     private lateinit var screenshotHelper: ScreenshotActivity
     private val viewModel: MainViewModel by viewModels()
 
@@ -42,6 +44,7 @@ class MainActivity : AppCompatActivity() {
         navMessage = findViewById(R.id.navMessage)
         navDocument = findViewById(R.id.navDocument)
         navSettings = findViewById(R.id.navSettings)
+        navLibrary = findViewById(R.id.navLibrary)
 
         //初始化截图
         screenshotHelper = ScreenshotActivity(this)
@@ -62,6 +65,10 @@ class MainActivity : AppCompatActivity() {
         navSettings.setOnClickListener {
             replaceFragment(SettingsFragment())
             highlightNavItem(navSettings)
+        }
+        navLibrary.setOnClickListener {
+            replaceFragment(LibraryFragment())
+            highlightNavItem(navLibrary)
         }
 
         // 监听 ViewModel 中的快捷键事件
@@ -90,6 +97,7 @@ class MainActivity : AppCompatActivity() {
         navMessage.setBackgroundResource(R.drawable.bg_nav_normal)
         navDocument.setBackgroundResource(R.drawable.bg_nav_normal)
         navSettings.setBackgroundResource(R.drawable.bg_nav_normal)
+        navLibrary.setBackgroundResource(R.drawable.bg_nav_normal)
 
         // 给选中的那个设置选中背景
         selectedView.setBackgroundResource(R.drawable.bg_nav_selected)
