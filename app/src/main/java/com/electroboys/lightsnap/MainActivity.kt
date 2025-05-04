@@ -15,7 +15,6 @@ import com.electroboys.lightsnap.ui.main.fragment.LibraryFragment
 import android.view.KeyEvent
 import android.widget.Toast
 import androidx.activity.viewModels
-import androidx.lifecycle.Observer
 import com.electroboys.lightsnap.ui.main.activity.ScreenshotActivity
 import com.electroboys.lightsnap.ui.main.viewmodel.MainViewModel
 
@@ -72,16 +71,24 @@ class MainActivity : AppCompatActivity() {
         }
 
         // 监听 ViewModel 中的快捷键事件
-        viewModel.shortcutEvent.observe(this, Observer { shortcut ->
+        viewModel.shortcutEvent.observe(this) { shortcut ->
             // 获取保存的设置
             val sharedPreferences = getSharedPreferences("settings", Context.MODE_PRIVATE)
             val screenshotEnabled = sharedPreferences.getBoolean("screenshot_enabled", false)
             if(screenshotEnabled){
                 Toast.makeText(this, "监听到快捷键：$shortcut", Toast.LENGTH_SHORT).show()
+                screenshotHelper.enableBoxSelectOnce { bitmap ->
+                    if (bitmap != null) {
+                        Toast.makeText(this, "截图成功", Toast.LENGTH_SHORT).show()
+                        // 你可以在这里显示到某个 ImageView 或保存文件
+                    } else {
+                        Toast.makeText(this, "截图取消或失败", Toast.LENGTH_SHORT).show()
+                    }
+                }
             }else{
                 Toast.makeText(this, "灵截功能未启用", Toast.LENGTH_SHORT).show()
             }
-        })
+        }
     }
 
 
@@ -108,14 +115,8 @@ class MainActivity : AppCompatActivity() {
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
         if (event.action == KeyEvent.ACTION_DOWN) {
             if (event.isShiftPressed && event.keyCode == KeyEvent.KEYCODE_A) {
-                screenshotHelper.enableBoxSelectOnce { bitmap ->
-                    if (bitmap != null) {
-                        Toast.makeText(this, "截图成功", Toast.LENGTH_SHORT).show()
-                        // 你可以在这里显示到某个 ImageView 或保存文件
-                    } else {
-                        Toast.makeText(this, "截图取消或失败", Toast.LENGTH_SHORT).show()
-                    }
-                }
+                // 通知 ViewModel 快捷键按下了
+                viewModel.onShortcutPressed("Shift + A")
                 return true
             }
         }
