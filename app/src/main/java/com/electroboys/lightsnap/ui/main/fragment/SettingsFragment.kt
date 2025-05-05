@@ -113,9 +113,9 @@ class SettingsFragment : Fragment(R.layout.fragment_settings){
         // 每次界面显示时，读取保存的快捷键
         val sharedPreferences =
             requireActivity().getSharedPreferences("settings", Context.MODE_PRIVATE)
-        val savedShortcut = sharedPreferences.getString("screenshot_shortcut", "未设置")
+        val savedShortcut = sharedPreferences.getString("screenshot_shortcut", "Ctrl+Shift+A")
 
-        shortcutKeyDisplay.text = savedShortcut ?: "未设置"
+        shortcutKeyDisplay.text = savedShortcut ?: "Ctrl+Shift+A"
 
         // 点击进入设置模式
         shortcutKeyContainer.setOnClickListener {
