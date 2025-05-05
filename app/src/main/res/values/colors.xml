@@ -2,4 +2,10 @@
 <resources>
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
+
+    <!-- msg -->
+    <color name="contact_default_text">#696969</color>
+    <color name="msg_option_default_text">#9E9E9E</color>
+    <color name="msg_option_selected_text">#4285F4</color>
+    <color name="unread_message_name">#FF0000</color>
 </resources>
