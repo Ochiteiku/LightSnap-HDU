@@ -1,0 +1,20 @@
+[
+  {
+    "name": "Alice",
+    "avatar": "ic_contact_1",
+    "lastMessage": "你好！",
+    "unread": 2
+  },
+  {
+    "name": "Bob",
+    "avatar": "ic_contact_2",
+    "lastMessage": "项目进展如何？",
+    "unread": 0
+  },
+  {
+    "name": "Charlie",
+    "avatar": "ic_contact_3",
+    "lastMessage": "会议取消了",
+    "unread": 1
+  }
+]
