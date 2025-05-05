@@ -11,7 +11,7 @@ object ScreenshotUtil {
 
     fun captureWithStatusBar(activity: Activity): Bitmap {
         // 获取视图
-        val view = activity.window.decorView
+        val view = activity.window.decorView.rootView
 
         // 创建一个与视图大小相同的 Bitmap
         val bitmap = createBitmap(view.width, view.height)
