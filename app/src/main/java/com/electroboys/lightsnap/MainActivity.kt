@@ -17,6 +17,7 @@ import android.widget.Toast
 import androidx.activity.viewModels
 import com.electroboys.lightsnap.ui.main.activity.ScreenshotActivity
 import com.electroboys.lightsnap.ui.main.viewmodel.MainViewModel
+import com.electroboys.lightsnap.utils.KeyEventUtil
 
 
 class MainActivity : AppCompatActivity() {
@@ -114,12 +115,16 @@ class MainActivity : AppCompatActivity() {
     //快捷键监听事件
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
         if (event.action == KeyEvent.ACTION_DOWN) {
-            if (event.isShiftPressed && event.keyCode == KeyEvent.KEYCODE_A) {
-                // 通知 ViewModel 快捷键按下了
-                viewModel.onShortcutPressed("Shift + A")
-                return true
+            val prefs = getSharedPreferences("settings", Context.MODE_PRIVATE)
+            val savedShortcut = prefs.getString("screenshot_shortcut", null)
+            if (!savedShortcut.isNullOrEmpty()) {
+                if (KeyEventUtil.matchShortcut(event, savedShortcut)) {
+                    viewModel.onShortcutPressed(savedShortcut)
+                    return true
+                }
             }
         }
+
         return super.dispatchKeyEvent(event)
     }
 
