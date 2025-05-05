@@ -1,11 +1,19 @@
 package com.electroboys.lightsnap.ui.main.activity
 
 import android.graphics.Bitmap
+import android.graphics.Canvas
+import android.graphics.Color
+import android.graphics.Paint
 import android.graphics.PointF
+import android.graphics.Rect
 import android.view.MotionEvent
 import android.view.View
 import android.widget.FrameLayout
+import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.graphics.createBitmap
+import androidx.core.graphics.toColorInt
+import com.electroboys.lightsnap.domain.screenshot.ScreenshotPreviewDialog
 import com.electroboys.lightsnap.domain.screenshot.ScreenshotUtil
 import com.electroboys.lightsnap.domain.screenshot.SelectView
 
@@ -30,6 +38,8 @@ class ScreenshotActivity(private val activity: AppCompatActivity) {
             container.addView(selectionOverlayView)
         }
 
+        Toast.makeText(activity, "按住屏幕进行拖动框选区域", Toast.LENGTH_SHORT).show()
+
         val touchListener = View.OnTouchListener { v, event ->
             when (event.action) {
                 MotionEvent.ACTION_DOWN -> {
@@ -49,8 +59,15 @@ class ScreenshotActivity(private val activity: AppCompatActivity) {
                         return@OnTouchListener true
                     }
 
+                    val container = activity.findViewById<FrameLayout>(android.R.id.content)
+
+                    // 移除 SelectView，防止红框被截进去
+                    container.removeView(selectionOverlayView)
+
                     val bitmap = ScreenshotUtil.captureWithStatusBar(activity)
                     val selectedRect = selectionOverlayView.getSelectedRect()
+
+                    container.addView(selectionOverlayView)
 
                     val croppedBitmap = if (selectedRect != null && selectedRect.width() > 0 && selectedRect.height() > 0) {
                         Bitmap.createBitmap(bitmap, selectedRect.left, selectedRect.top, selectedRect.width(), selectedRect.height())
@@ -59,15 +76,38 @@ class ScreenshotActivity(private val activity: AppCompatActivity) {
                     }
 
                     onCaptureListener?.invoke(croppedBitmap)
-                    isBoxSelectEnabled = false
-                    selectionOverlayView.clearSelection()
-                    container.removeView(selectionOverlayView)
+
+
+                    showPreviewDialog(croppedBitmap, container)
+                    cleanup(container)
                 }
+
             }
             true
         }
 
-
         selectionOverlayView.setOnTouchListener(touchListener)
     }
+
+    private fun showPreviewDialog(bitmap: Bitmap?, container: FrameLayout) {
+        if (bitmap == null) return
+
+        val fragmentManager = activity.supportFragmentManager
+        val previewDialog = ScreenshotPreviewDialog(bitmap)
+        previewDialog.show(fragmentManager, "screenshot_preview")
+    }
+
+    private fun cleanup(container: FrameLayout) {
+        selectionOverlayView.clearSelection()
+        selectionOverlayView.setOnTouchListener(null)
+
+        if (selectionOverlayView.parent != null) {
+            container.removeView(selectionOverlayView)
+        }
+
+        isBoxSelectEnabled = false
+        onCaptureListener = null
+    }
+
+
 }

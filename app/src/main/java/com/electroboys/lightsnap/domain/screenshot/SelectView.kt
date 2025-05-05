@@ -1,6 +1,5 @@
 package com.electroboys.lightsnap.domain.screenshot
 
-
 import android.content.Context
 import android.graphics.Canvas
 import android.graphics.Color
@@ -9,13 +8,19 @@ import android.graphics.PointF
 import android.graphics.Rect
 import android.view.View
 
-class SelectView (context: Context) : View(context){
+class SelectView(context: Context) : View(context) {
     private var startPoint = PointF(0f, 0f)
     private var endPoint = PointF(0f, 0f)
+
     private val paint = Paint().apply {
         color = Color.RED
         style = Paint.Style.STROKE
         strokeWidth = 4f
+    }
+
+    private val maskPaint = Paint().apply {
+        color = 0xAA000000.toInt() // 半透明黑色
+        style = Paint.Style.FILL
     }
 
     fun setSelection(start: PointF, end: PointF) {
@@ -24,7 +29,6 @@ class SelectView (context: Context) : View(context){
         invalidate()
     }
 
-    // 获取用户选择的矩形区域
     fun getSelectedRect(): Rect? {
         if (startPoint == endPoint) return null
         return Rect(
@@ -35,28 +39,34 @@ class SelectView (context: Context) : View(context){
         )
     }
 
-    fun clearSelection() {
-        startPoint.set(0f, 0f)
-        endPoint.set(0f, 0f)
-        invalidate()
-    }
-
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
-        if (startPoint != endPoint) {
+
+        val selectedRect = getSelectedRect()
+        if (selectedRect != null) {
+            val width = width.toFloat()
+            val height = height.toFloat()
+
+            // 绘制遮罩层（四个方向）
+            canvas.drawRect(0f, 0f, width, selectedRect.top.toFloat(), maskPaint)
+            canvas.drawRect(0f, selectedRect.top.toFloat(), selectedRect.left.toFloat(), selectedRect.bottom.toFloat(), maskPaint)
+            canvas.drawRect(selectedRect.right.toFloat(), selectedRect.top.toFloat(), width, selectedRect.bottom.toFloat(), maskPaint)
+            canvas.drawRect(0f, selectedRect.bottom.toFloat(), width, height, maskPaint)
+
+            // 绘制选框边框
             canvas.drawRect(
-                minOf(startPoint.x, endPoint.x),
-                minOf(startPoint.y, endPoint.y),
-                maxOf(startPoint.x, endPoint.x),
-                maxOf(startPoint.y, endPoint.y),
+                selectedRect.left.toFloat(),
+                selectedRect.top.toFloat(),
+                selectedRect.right.toFloat(),
+                selectedRect.bottom.toFloat(),
                 paint
             )
         }
     }
 
-    override fun performClick(): Boolean {
-        super.performClick()
-        // 可在这里触发额外逻辑，例如回调给 Activity
-        return true
+    fun clearSelection() {
+        startPoint.set(0f, 0f)
+        endPoint.set(0f, 0f)
+        invalidate()
     }
 }
