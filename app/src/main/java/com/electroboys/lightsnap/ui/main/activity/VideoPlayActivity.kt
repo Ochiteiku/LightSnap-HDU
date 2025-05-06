@@ -8,9 +8,11 @@ import android.widget.VideoView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.Toolbar
 import com.electroboys.lightsnap.R
+import androidx.core.net.toUri
+import com.electroboys.lightsnap.ui.main.activity.BaseActivity.BaseActivity
 
 
-class VideoPlayActivity : AppCompatActivity(){
+class VideoPlayActivity : BaseActivity(){
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_videoplay)
@@ -23,7 +25,7 @@ class VideoPlayActivity : AppCompatActivity(){
 
         val videoView = findViewById<VideoView>(R.id.videoView)
 
-        val videoUri = Uri.parse("android.resource://${packageName}/${R.raw.test_video}")
+        val videoUri = "android.resource://${packageName}/${R.raw.test_video}".toUri()
         videoView.setVideoURI(videoUri)
 
         videoView.setOnPreparedListener {
