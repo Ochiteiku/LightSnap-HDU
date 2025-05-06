@@ -8,8 +8,9 @@ import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.ui.PlayerView
 import com.electroboys.lightsnap.R
 import androidx.core.net.toUri
+import com.electroboys.lightsnap.ui.main.activity.BaseActivity.BaseActivity
 
-class VideoPlayActivity2 : AppCompatActivity() {
+class VideoPlayActivity2 : BaseActivity() {
     private lateinit var player: ExoPlayer
     private lateinit var playerView: PlayerView
 
