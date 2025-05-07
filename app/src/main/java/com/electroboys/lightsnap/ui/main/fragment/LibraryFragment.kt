@@ -5,6 +5,7 @@ import android.app.AlertDialog
 import android.content.Context
 import android.content.pm.PackageManager
 import android.graphics.Color
+import android.graphics.Rect
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
@@ -20,11 +21,14 @@ import com.electroboys.lightsnap.R
 import com.electroboys.lightsnap.ui.main.adapter.LibraryPictureAdapter
 import androidx.documentfile.provider.DocumentFile
 import androidx.core.net.toUri
+import androidx.recyclerview.widget.DividerItemDecoration
+import androidx.recyclerview.widget.RecyclerView.ItemDecoration
+import com.github.chrisbanes.photoview.PhotoView
 
 class LibraryFragment : Fragment(R.layout.fragment_library){
     private lateinit var libraryFragment: RecyclerView
+    private lateinit var photoView: PhotoView
     private val imageUris = mutableListOf<Uri>()
-    private val REQUEST_CODE_PERMISSIONS = 101
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -38,17 +42,24 @@ class LibraryFragment : Fragment(R.layout.fragment_library){
         super.onViewCreated(view, savedInstanceState)
 
         libraryFragment = view.findViewById(R.id.library_picture)
-
-        // recyclerView中垂直方向上显示2列图片
+        photoView = view.findViewById<PhotoView>(R.id.photoView)
+        
+        // 初始状态下隐藏
+        photoView.visibility = View.GONE
+        // photoView点击关闭大图
+        photoView.setOnClickListener{
+            photoView.animate().alpha(0f).setDuration(300).withEndAction{
+                    photoView.visibility = View.GONE
+                }.start()
+        }
+        
+        // recyclerView中垂直方向上显示3列图片
         libraryFragment.layoutManager = GridLayoutManager(context, 3)
-
-        // 检查权限
-        checkAndRequestPermissions()
 
         // 设置adapter
         val adapter = LibraryPictureAdapter(imageUris).apply {
             // 实现长按监听逻辑
-            onItemLongClickListener = { position: Int ->
+            onImageViewLongClickListener = { position: Int ->
                 val uri = imageUris[position]
                 val documentFile = DocumentFile.fromSingleUri(requireContext(), uri)
 
@@ -60,7 +71,7 @@ class LibraryFragment : Fragment(R.layout.fragment_library){
                             if (documentFile.delete()) {
                                 imageUris.removeAt(position)
                                 notifyItemRemoved(position)
-                                Toast.makeText(context, "已删除", Toast.LENGTH_SHORT).show()
+                                Toast.makeText(context, "删除成功", Toast.LENGTH_SHORT).show()
                             } else {
                                 Toast.makeText(context, "删除失败", Toast.LENGTH_SHORT).show()
                             }
@@ -73,67 +84,19 @@ class LibraryFragment : Fragment(R.layout.fragment_library){
                         getButton(AlertDialog.BUTTON_NEGATIVE)?.setTextColor(Color.GRAY)
                     }
             }
+            onImageViewClickListener = { position: Int ->
+                val uri = imageUris[position]
 
+                // 设置图片在photoview中显示
+                photoView.setImageURI(uri)
+                photoView.visibility = view.visibility
+                photoView.animate().alpha(1f).setDuration(300).start()
+            }
         }
 
+        loadImages()
         libraryFragment.adapter = adapter
     }
-
-    private fun checkAndRequestPermissions() {
-        val requiredPermissions = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            arrayOf(Manifest.permission.READ_MEDIA_IMAGES)
-        } else {
-            arrayOf(Manifest.permission.READ_EXTERNAL_STORAGE)
-        }
-
-        if (requiredPermissions.all {
-                ContextCompat.checkSelfPermission(
-                    requireContext(),
-                    it
-                ) == PackageManager.PERMISSION_GRANTED
-            }) {
-            loadImages()
-        } else {
-            requestPermissions(requiredPermissions, REQUEST_CODE_PERMISSIONS)
-        }
-    }
-
-    override fun onRequestPermissionsResult(
-        requestCode: Int,
-        permissions: Array<String>,
-        grantResults: IntArray
-    ) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-        if (requestCode == REQUEST_CODE_PERMISSIONS &&
-            grantResults.isNotEmpty() &&
-            grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-            loadImages()
-        } else {
-            showPermissionDeniedMessage()
-        }
-    }
-
-    private fun showPermissionDeniedMessage() {
-        if (shouldShowRequestPermissionRationale(Manifest.permission.READ_MEDIA_IMAGES) ||
-            shouldShowRequestPermissionRationale(Manifest.permission.READ_EXTERNAL_STORAGE)) {
-
-            AlertDialog.Builder(requireContext())
-                .setTitle("需要权限")
-                .setMessage("需要访问照片权限来显示您的图片")
-                .setPositiveButton("确定") { _, _ ->
-                    checkAndRequestPermissions()
-                }
-                .setNegativeButton("取消", null)
-                .show()
-        } else {
-            Toast.makeText(
-                requireContext(),
-                "请在设置中授予权限",
-                Toast.LENGTH_LONG
-            ).show()
-        }
-    }
-
 
     private fun loadImages() {
         imageUris.clear()
@@ -161,7 +124,6 @@ class LibraryFragment : Fragment(R.layout.fragment_library){
                 imageUris.add(file.uri)
             }
         }
-
         libraryFragment.adapter?.notifyDataSetChanged()
     }
 }
