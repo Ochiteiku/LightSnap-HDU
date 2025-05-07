@@ -1,7 +1,5 @@
 package com.electroboys.lightsnap.ui.main.activity
 
-import android.net.Uri
-import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import androidx.media3.common.MediaItem
 import androidx.media3.exoplayer.ExoPlayer
