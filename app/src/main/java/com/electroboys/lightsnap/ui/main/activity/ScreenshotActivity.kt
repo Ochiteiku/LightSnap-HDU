@@ -20,7 +20,7 @@ import com.electroboys.lightsnap.domain.screenshot.BitmapCache
 import com.electroboys.lightsnap.domain.screenshot.ImageHistory
 import com.electroboys.lightsnap.domain.screenshot.SelectView
 
-class ScreenshotActivityRealDo : AppCompatActivity() {
+class ScreenshotActivity : AppCompatActivity() {
 
     private lateinit var selectView: SelectView
     private lateinit var imageView: ImageView
@@ -37,7 +37,7 @@ class ScreenshotActivityRealDo : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_screenshot_example)
+        setContentView(R.layout.activity_screenshot)
 
         imageView = findViewById(R.id.imageViewScreenshot)
         selectView = findViewById(R.id.selectView)
