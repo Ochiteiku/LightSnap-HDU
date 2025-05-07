@@ -1,5 +1,6 @@
 package com.electroboys.lightsnap.ui.main.activity.BaseActivity
 
+import android.app.ActivityOptions
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
@@ -7,6 +8,7 @@ import android.view.KeyEvent
 import android.widget.Toast
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
+import com.electroboys.lightsnap.R
 import com.electroboys.lightsnap.domain.screenshot.BitmapCache
 import com.electroboys.lightsnap.domain.screenshot.ScreenshotUtil
 import com.electroboys.lightsnap.ui.main.activity.ScreenshotActivityRealDo
@@ -51,7 +53,16 @@ open class BaseActivity: AppCompatActivity() {
                 val intent = Intent(this, ScreenshotActivityRealDo::class.java).apply {
                     putExtra(ScreenshotActivityRealDo.EXTRA_SCREENSHOT_KEY, bitmapKey)
                 }
-                startActivity(intent)
+
+                //设定动画过渡用
+                val options = ActivityOptions.makeCustomAnimation(
+                    this,
+                    R.anim.shot_enter, // 进入动画
+                    R.anim.shot_exit  // 退出动画
+                )
+                startActivity(intent,options.toBundle())
+
+
             } else {
                 Toast.makeText(this, "灵截功能未启用", Toast.LENGTH_SHORT).show()
             }
