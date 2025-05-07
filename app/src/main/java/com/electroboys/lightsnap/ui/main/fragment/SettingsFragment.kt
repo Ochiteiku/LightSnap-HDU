@@ -17,6 +17,7 @@ import com.electroboys.lightsnap.utils.KeyEventUtil
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.android.material.switchmaterial.SwitchMaterial
 import androidx.core.net.toUri
+import com.electroboys.lightsnap.ui.main.activity.VideoPlayActivity2
 import com.electroboys.lightsnap.utils.UriUtil
 
 
@@ -25,6 +26,7 @@ class SettingsFragment : Fragment(R.layout.fragment_settings){
     private lateinit var switchScreenshot: SwitchMaterial
     private lateinit var buttonReset: Button
     private lateinit var buttonVideoTest: Button
+    private lateinit var buttonVideoTest2: Button
 
     //快捷键设置
     private lateinit var shortcutKeyContainer: View
@@ -49,6 +51,7 @@ class SettingsFragment : Fragment(R.layout.fragment_settings){
         switchScreenshot = view.findViewById(R.id.switch_screenshot)
         buttonReset = view.findViewById(R.id.button_reset)
         buttonVideoTest = view.findViewById(R.id.button_videoTest)
+        buttonVideoTest2 = view.findViewById(R.id.button_videoTest2)
         shortcutKeyDisplay = view.findViewById<TextView>(R.id.shortcutKeyDisplay)
         shortcutKeyContainer = view.findViewById<View>(R.id.shortcutKeyContainer)
         savePathContainer = view.findViewById(R.id.savePathContainer)
@@ -109,13 +112,18 @@ class SettingsFragment : Fragment(R.layout.fragment_settings){
             val intent = Intent(requireContext(), VideoPlayActivity::class.java)
             startActivity(intent)
         }
+        //视频播放测试2
+        buttonVideoTest2.setOnClickListener {
+            val intent = Intent(requireContext(), VideoPlayActivity2::class.java)
+            startActivity(intent)
+        }
 
         // 每次界面显示时，读取保存的快捷键
         val sharedPreferences =
             requireActivity().getSharedPreferences("settings", Context.MODE_PRIVATE)
-        val savedShortcut = sharedPreferences.getString("screenshot_shortcut", "未设置")
+        val savedShortcut = sharedPreferences.getString("screenshot_shortcut", "Ctrl+Shift+A")
 
-        shortcutKeyDisplay.text = savedShortcut ?: "未设置"
+        shortcutKeyDisplay.text = savedShortcut ?: "Ctrl+Shift+A"
 
         // 点击进入设置模式
         shortcutKeyContainer.setOnClickListener {

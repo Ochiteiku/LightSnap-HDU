@@ -32,4 +32,27 @@ object KeyEventUtil {
             keyName
         }
     }
+
+    fun cleanKeyName(rawKeyName: String): String {
+        return rawKeyName.removePrefix("KEYCODE_")
+    }
+
+
+
+    //适用于MainActivity中的监听快捷键事件，expectedShortcut为从SharePreferences中获取的自定义快捷键
+    fun matchShortcut(event: KeyEvent, expectedShortcut: String): Boolean {
+        val currentModifiers = getPressedModifiers(event) //["Ctrl", "Shift"]
+        val currentKey = cleanKeyName(KeyEvent.keyCodeToString(event.keyCode)) // "A"
+
+        val expectedParts = expectedShortcut.split(" + ").map { it.trim() }
+
+        val expectedKey = expectedParts.lastOrNull() ?: return false
+        val expectedModifiers = expectedParts.dropLast(1)
+
+        // 比较主键
+        if (!currentKey.equals(expectedKey, ignoreCase = true)) return false
+
+        // 比较修饰键（忽略顺序）
+        return currentModifiers.toSet() == expectedModifiers.toSet()
+    }
 }
