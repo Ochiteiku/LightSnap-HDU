@@ -12,7 +12,6 @@ import com.electroboys.lightsnap.ui.main.fragment.SettingsFragment
 import com.electroboys.lightsnap.ui.main.fragment.LibraryFragment
 import androidx.activity.viewModels
 import com.electroboys.lightsnap.ui.main.activity.BaseActivity.BaseActivity
-import com.electroboys.lightsnap.ui.main.activity.ScreenshotActivity
 import com.electroboys.lightsnap.ui.main.viewmodel.MainViewModel
 
 
@@ -22,7 +21,6 @@ class MainActivity : BaseActivity() {
     private lateinit var navDocument: View
     private lateinit var navSettings: View
     private lateinit var navLibrary: View
-    private lateinit var screenshotHelper: ScreenshotActivity
     private val viewModel: MainViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -43,7 +41,7 @@ class MainActivity : BaseActivity() {
         navLibrary = findViewById(R.id.navLibrary)
 
         //初始化截图
-        screenshotHelper = ScreenshotActivity(this)
+//        screenshotHelper = ScreenshotActivity(this)
 
         // 默认加载消息Fragment，并高亮
         replaceFragment(MessageFragment())

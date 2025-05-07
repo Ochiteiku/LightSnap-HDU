@@ -6,9 +6,26 @@ import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.PointF
 import android.graphics.Rect
+import android.util.AttributeSet
+import android.util.Log
+import android.view.MotionEvent
 import android.view.View
 
-class SelectView(context: Context) : View(context) {
+class SelectView @JvmOverloads constructor(
+    context: Context,
+    attrs: AttributeSet? = null
+) : View(context, attrs) {
+
+    init {
+        isClickable = false
+        isFocusable = false
+        isFocusableInTouchMode = false
+    }
+
+//    init {
+//        setBackgroundColor(Color.argb(128, 255, 0, 0))  // 半透明红色背景，确认视图位置
+//    }
+
     private var startPoint = PointF(0f, 0f)
     private var endPoint = PointF(0f, 0f)
 
@@ -24,36 +41,41 @@ class SelectView(context: Context) : View(context) {
     }
 
     fun setSelection(start: PointF, end: PointF) {
-        startPoint.set(start)
-        endPoint.set(end)
+        Log.d("SelectView", "【调试】传入 setSelection 的起点: $start，终点: $end")
+        startPoint.set(start.x, start.y)
+        endPoint.set(end.x, end.y)
+        Log.d("SelectView", "更新后的 startPoint: $startPoint，endPoint: $endPoint")
         invalidate()
     }
 
+
     fun getSelectedRect(): Rect? {
-        if (startPoint == endPoint) return null
-        return Rect(
-            minOf(startPoint.x, endPoint.x).toInt(),
-            minOf(startPoint.y, endPoint.y).toInt(),
-            maxOf(startPoint.x, endPoint.x).toInt(),
-            maxOf(startPoint.y, endPoint.y).toInt()
-        )
+        val left = minOf(startPoint.x, endPoint.x).toInt()
+        val top = minOf(startPoint.y, endPoint.y).toInt()
+        val right = maxOf(startPoint.x, endPoint.x).toInt()
+        val bottom = maxOf(startPoint.y, endPoint.y).toInt()
+
+        val rect = Rect(left, top, right, bottom)
+
+        Log.d("SelectView", "有效选区: $rect")
+        return rect
     }
+
 
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
 
+        Log.d("SelectView", "onDraw called")
         val selectedRect = getSelectedRect()
-        if (selectedRect != null) {
+        if (selectedRect != null && selectedRect.width() > 0 && selectedRect.height() > 0) {
             val width = width.toFloat()
             val height = height.toFloat()
 
-            // 绘制遮罩层（四个方向）
             canvas.drawRect(0f, 0f, width, selectedRect.top.toFloat(), maskPaint)
             canvas.drawRect(0f, selectedRect.top.toFloat(), selectedRect.left.toFloat(), selectedRect.bottom.toFloat(), maskPaint)
             canvas.drawRect(selectedRect.right.toFloat(), selectedRect.top.toFloat(), width, selectedRect.bottom.toFloat(), maskPaint)
             canvas.drawRect(0f, selectedRect.bottom.toFloat(), width, height, maskPaint)
 
-            // 绘制选框边框
             canvas.drawRect(
                 selectedRect.left.toFloat(),
                 selectedRect.top.toFloat(),
@@ -64,9 +86,20 @@ class SelectView(context: Context) : View(context) {
         }
     }
 
+
+    override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
+        super.onSizeChanged(w, h, oldw, oldh)
+        Log.d("SelectView", "onSizeChanged w=$w h=$h")
+    }
+
     fun clearSelection() {
         startPoint.set(0f, 0f)
         endPoint.set(0f, 0f)
         invalidate()
+    }
+
+    override fun onTouchEvent(event: MotionEvent): Boolean {
+        // 明确返回 false，表示不消费事件，允许事件继续传递给父容器
+        return false
     }
 }
