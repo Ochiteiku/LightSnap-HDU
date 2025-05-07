@@ -2,13 +2,12 @@ package com.electroboys.lightsnap.ui.main.fragment
 
 import android.Manifest
 import android.app.AlertDialog
-import android.content.ContentUris
+import android.content.Context
 import android.content.pm.PackageManager
 import android.graphics.Color
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
-import android.provider.MediaStore
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -19,6 +18,8 @@ import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.electroboys.lightsnap.R
 import com.electroboys.lightsnap.ui.main.adapter.LibraryPictureAdapter
+import androidx.documentfile.provider.DocumentFile
+import androidx.core.net.toUri
 
 class LibraryFragment : Fragment(R.layout.fragment_library){
     private lateinit var libraryFragment: RecyclerView
@@ -47,21 +48,32 @@ class LibraryFragment : Fragment(R.layout.fragment_library){
         // 设置adapter
         val adapter = LibraryPictureAdapter(imageUris).apply {
             // 实现长按监听逻辑
-            onItemLongClickListener = {
-                position: Int ->
+            onItemLongClickListener = { position: Int ->
+                val uri = imageUris[position]
+                val documentFile = DocumentFile.fromSingleUri(requireContext(), uri)
+
                 AlertDialog.Builder(context)
                     .setTitle("删除截图")
-                    .setMessage("确定删除截图吗？")
-                    .setPositiveButton("删除"){
-                        _, _ ->
-                        imageUris.removeAt(position)
-                        notifyItemRemoved(position)
+                    .setMessage("确定删除该截图吗？")
+                    .setPositiveButton("删除") { _, _ ->
+                        if (documentFile != null && documentFile.exists()) {
+                            if (documentFile.delete()) {
+                                imageUris.removeAt(position)
+                                notifyItemRemoved(position)
+                                Toast.makeText(context, "已删除", Toast.LENGTH_SHORT).show()
+                            } else {
+                                Toast.makeText(context, "删除失败", Toast.LENGTH_SHORT).show()
+                            }
+                        } else {
+                            Toast.makeText(context, "文件不存在或无访问权限", Toast.LENGTH_SHORT).show()
+                        }
                     }
                     .setNegativeButton("取消", null)
                     .show().apply {
                         getButton(AlertDialog.BUTTON_NEGATIVE)?.setTextColor(Color.GRAY)
                     }
             }
+
         }
 
         libraryFragment.adapter = adapter
@@ -122,32 +134,34 @@ class LibraryFragment : Fragment(R.layout.fragment_library){
         }
     }
 
+
     private fun loadImages() {
-        val projection = arrayOf(
-            MediaStore.Images.Media._ID,
-            MediaStore.Images.Media.DISPLAY_NAME,
-            MediaStore.Images.Media.DATE_ADDED
-        )
+        imageUris.clear()
 
-        val sortOrder = "${MediaStore.Images.Media.DATE_ADDED} DESC"
+        val sharedPreferences = requireContext().getSharedPreferences("settings", Context.MODE_PRIVATE)
+        val savedUriStr = sharedPreferences.getString("screenshot_save_uri", null)
 
-        requireContext().contentResolver.query(
-            MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
-            projection,
-            null,
-            null,
-            sortOrder
-        )?.use { cursor ->
-            val idColumn = cursor.getColumnIndexOrThrow(MediaStore.Images.Media._ID)
+        if (savedUriStr == null) {
+            Toast.makeText(requireContext(), "未设置自定义文件夹路径", Toast.LENGTH_SHORT).show()
+            return
+        }
 
-            while (cursor.moveToNext()) {
-                val id = cursor.getLong(idColumn)
-                val imageUri = ContentUris.withAppendedId(
-                    MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
-                    id
-                )
-                imageUris.add(imageUri)
+        val uri = savedUriStr.toUri()
+        val pickedDir = DocumentFile.fromTreeUri(requireContext(), uri)
+
+        if (pickedDir == null || !pickedDir.isDirectory) {
+            Toast.makeText(requireContext(), "文件夹无效或无法访问", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        val imageMimeTypes = listOf("image/png", "image/jpeg", "image/jpg", "image/webp")
+
+        for (file in pickedDir.listFiles()) {
+            if (file.isFile && file.type in imageMimeTypes) {
+                imageUris.add(file.uri)
             }
         }
+
+        libraryFragment.adapter?.notifyDataSetChanged()
     }
 }
