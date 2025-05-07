@@ -10,7 +10,7 @@ import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import com.electroboys.lightsnap.R
 import com.electroboys.lightsnap.domain.screenshot.BitmapCache
-import com.electroboys.lightsnap.domain.screenshot.ScreenshotUtil
+import com.electroboys.lightsnap.utils.ScreenshotUtil
 import com.electroboys.lightsnap.ui.main.activity.ScreenshotActivity
 import com.electroboys.lightsnap.ui.main.viewmodel.MainViewModel
 import com.electroboys.lightsnap.utils.KeyEventUtil

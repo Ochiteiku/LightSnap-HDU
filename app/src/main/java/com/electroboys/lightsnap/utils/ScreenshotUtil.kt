@@ -1,4 +1,4 @@
-package com.electroboys.lightsnap.domain.screenshot
+package com.electroboys.lightsnap.utils
 
 import android.annotation.SuppressLint
 import android.app.Activity

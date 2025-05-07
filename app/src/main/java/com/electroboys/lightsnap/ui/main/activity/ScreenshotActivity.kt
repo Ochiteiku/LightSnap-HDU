@@ -12,10 +12,12 @@ import android.widget.ImageView
 import android.widget.Toast
 import android.graphics.PointF
 import android.graphics.Rect
+import android.graphics.drawable.BitmapDrawable
 import android.net.Uri
 import android.view.Gravity
 import android.view.View
 import android.widget.Button
+import android.widget.EditText
 import android.widget.FrameLayout
 import android.widget.ImageButton
 import android.widget.TextView
@@ -68,7 +70,9 @@ class ScreenshotActivity : AppCompatActivity() {
                         )
                     }
 
-                    saveBitmapToUri(bitmap, treeUri)
+                    showFileNameInputDialog { userInput ->
+                        saveBitmapToUri(bitmap, treeUri, userInput)
+                    }
                 } else {
                     Toast.makeText(this, "图片数据不可用", Toast.LENGTH_SHORT).show()
                 }
@@ -296,68 +300,78 @@ class ScreenshotActivity : AppCompatActivity() {
 
     private fun saveCurrentImage() {
         val imageView = findViewById<ImageView>(R.id.imageViewScreenshot)
-        val bitmap = (imageView.drawable as? android.graphics.drawable.BitmapDrawable)?.bitmap
+        val bitmap = (imageView.drawable as? BitmapDrawable)?.bitmap
             ?: run {
                 Toast.makeText(this, "无法获取图片", Toast.LENGTH_SHORT).show()
                 return
             }
 
-        // 获取用户设置的保存路径 URI 字符串
+//        // Test：清除文件路径缓存
+//        getSharedPreferences("settings", Context.MODE_PRIVATE)
+//            .edit() {
+//                remove("screenshot_save_uri")
+//            }
+
         val sharedPreferences = getSharedPreferences("settings", Context.MODE_PRIVATE)
 
-//        // Test：删除已有保存路径
-//        sharedPreferences.edit() { remove("screenshot_save_uri") }
-
         val uriString = sharedPreferences.getString("screenshot_save_uri", null) ?: run {
-            // 如果用户没有设置保存路径，则进行快捷设置路径
             showSetPathDialog { confirmed ->
                 if (confirmed) {
-                    // 直接启动路径选择器
-                    val intent = Intent(Intent.ACTION_OPEN_DOCUMENT_TREE).apply {
-                        addFlags(
-                            Intent.FLAG_GRANT_READ_URI_PERMISSION or
-                                    Intent.FLAG_GRANT_WRITE_URI_PERMISSION or
-                                    Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION
-                        )
-                    }
-                    folderLauncher.launch(intent)
+                    // 启动路径选择器
+                    folderLauncher.launch(
+                        Intent(Intent.ACTION_OPEN_DOCUMENT_TREE).apply {
+                            addFlags(
+                                Intent.FLAG_GRANT_READ_URI_PERMISSION or
+                                        Intent.FLAG_GRANT_WRITE_URI_PERMISSION or
+                                        Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION
+                            )
+                        }
+                    )
                 } else {
-                    // 用户点击取消
                     Toast.makeText(this, "保存已取消", Toast.LENGTH_SHORT).show()
                 }
             }
             return
         }
 
-
         val treeUri = uriString.toUri()
 
-        try {
-            // 使用 DocumentFile 在该目录下创建文件
-            val documentFile = DocumentFile.fromTreeUri(this, treeUri)
-            val fileName = "screenshot_${System.currentTimeMillis()}.png"
-            val newFile = documentFile?.createFile("image/png", fileName)
-                ?: throw IOException("无法创建文件")
+        // 弹出命名对话框，并在用户确认后保存
+        showFileNameInputDialog { userInput ->
+            try {
+                val documentFile = DocumentFile.fromTreeUri(this, treeUri)
+                val newFile = documentFile?.createFile("image/png", "$userInput.png")
+                    ?: throw IOException("无法创建文件")
 
-            // 打开输出流并写入图片
-            contentResolver.openOutputStream(newFile.uri, "w")?.use { outputStream ->
-                if (bitmap.compress(Bitmap.CompressFormat.PNG, 100, outputStream)) {
-                    Toast.makeText(this, "图片已保存到 $fileName", Toast.LENGTH_SHORT).show()
-                    finish()
-                } else {
-                    Toast.makeText(this, "图片保存失败", Toast.LENGTH_SHORT).show()
+                contentResolver.openOutputStream(newFile.uri, "w")?.use { outputStream ->
+                    if (bitmap.compress(Bitmap.CompressFormat.PNG, 100, outputStream)) {
+                        Toast.makeText(this, "图片已保存为 $userInput.png", Toast.LENGTH_SHORT).show()
+                        finish()
+                    } else {
+                        Toast.makeText(this, "图片保存失败", Toast.LENGTH_SHORT).show()
+                    }
                 }
+            } catch (e: Exception) {
+                e.printStackTrace()
+                Toast.makeText(this, "保存出错：${e.message}", Toast.LENGTH_LONG).show()
             }
-        } catch (e: Exception) {
-            e.printStackTrace()
-            Toast.makeText(this, "保存出错：${e.message}", Toast.LENGTH_LONG).show()
         }
     }
+
 
     private fun showSetPathDialog(onConfirm: (Boolean) -> Unit) {
         val dialog = BottomSheetDialog(this)
         val view = layoutInflater.inflate(R.layout.dialog_confirm_set_path, null)
         dialog.setContentView(view)
+
+        // 设置默认展开高度
+        dialog.setOnShowListener { dialogInterface ->
+            val bottomSheet = (dialogInterface as BottomSheetDialog).findViewById<View>(com.google.android.material.R.id.design_bottom_sheet)
+            bottomSheet?.let {
+                val behavior = com.google.android.material.bottomsheet.BottomSheetBehavior.from(it)
+                behavior.state = com.google.android.material.bottomsheet.BottomSheetBehavior.STATE_EXPANDED
+            }
+        }
 
         val btnConfirm = view.findViewById<Button>(R.id.btnConfirm)
         val btnCancel = view.findViewById<Button>(R.id.btnCancel)
@@ -375,16 +389,15 @@ class ScreenshotActivity : AppCompatActivity() {
         dialog.show()
     }
 
-    private fun saveBitmapToUri(bitmap: Bitmap, treeUri: Uri) {
+    private fun saveBitmapToUri(bitmap: Bitmap, treeUri: Uri, fileName: String = "screenshot_${System.currentTimeMillis()}") {
         try {
             val documentFile = DocumentFile.fromTreeUri(this, treeUri)
-            val fileName = "screenshot_${System.currentTimeMillis()}.png"
-            val newFile = documentFile?.createFile("image/png", fileName)
+            val newFile = documentFile?.createFile("image/png", "$fileName.png")
                 ?: throw IOException("无法创建文件")
 
             contentResolver.openOutputStream(newFile.uri, "w")?.use { outputStream ->
                 if (bitmap.compress(Bitmap.CompressFormat.PNG, 100, outputStream)) {
-                    Toast.makeText(this, "图片已保存到 $fileName", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this, "图片已保存为 $fileName.png", Toast.LENGTH_SHORT).show()
                     finish()
                 } else {
                     Toast.makeText(this, "图片保存失败", Toast.LENGTH_SHORT).show()
@@ -397,6 +410,46 @@ class ScreenshotActivity : AppCompatActivity() {
     }
 
 
+    private fun showFileNameInputDialog(onConfirmed: (String) -> Unit) {
+        val dialog = BottomSheetDialog(this)
+        val view = layoutInflater.inflate(R.layout.dialog_custom_filename, null)
+        dialog.setContentView(view)
 
+        // 设置默认展开高度
+        dialog.setOnShowListener { dialogInterface ->
+            val bottomSheet = (dialogInterface as BottomSheetDialog).findViewById<View>(com.google.android.material.R.id.design_bottom_sheet)
+            bottomSheet?.let {
+                val behavior = com.google.android.material.bottomsheet.BottomSheetBehavior.from(it)
+                behavior.state = com.google.android.material.bottomsheet.BottomSheetBehavior.STATE_EXPANDED
+            }
+        }
+
+        val etFileName = view.findViewById<EditText>(R.id.etFileName)
+        val btnConfirm = view.findViewById<Button>(R.id.btnConfirm)
+        val btnCancel = view.findViewById<Button>(R.id.btnCancel)
+        val btnUseDefault = view.findViewById<Button>(R.id.btnUseDefault)
+
+        btnConfirm.setOnClickListener {
+            val input = etFileName.text.toString().trim()
+            if (input.isEmpty()) {
+                Toast.makeText(this, "文件名不能为空", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+            dialog.dismiss()
+            onConfirmed(input)
+        }
+
+        btnCancel.setOnClickListener {
+            dialog.dismiss()
+        }
+
+        btnUseDefault.setOnClickListener {
+            val defaultName = "screenshot_${System.currentTimeMillis()}"
+            dialog.dismiss()
+            onConfirmed(defaultName)
+        }
+
+        dialog.show()
+    }
 
 }
