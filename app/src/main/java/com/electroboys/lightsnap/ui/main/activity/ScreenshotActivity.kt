@@ -1,5 +1,8 @@
 package com.electroboys.lightsnap.ui.main.activity
 
+import android.annotation.SuppressLint
+import android.content.Context
+import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.Matrix
 import android.os.Bundle
@@ -9,22 +12,33 @@ import android.widget.ImageView
 import android.widget.Toast
 import android.graphics.PointF
 import android.graphics.Rect
+import android.net.Uri
 import android.view.Gravity
 import android.view.View
+import android.widget.Button
 import android.widget.FrameLayout
 import android.widget.ImageButton
 import android.widget.TextView
+import androidx.activity.result.ActivityResultLauncher
 import androidx.appcompat.app.AppCompatActivity
 import com.electroboys.lightsnap.R
 import com.electroboys.lightsnap.domain.screenshot.BitmapCache
 import com.electroboys.lightsnap.domain.screenshot.ImageHistory
 import com.electroboys.lightsnap.domain.screenshot.SelectView
+import androidx.core.net.toUri
+import androidx.documentfile.provider.DocumentFile
+import com.google.android.material.bottomsheet.BottomSheetDialog
+import java.io.IOException
+import androidx.core.content.edit
+import com.electroboys.lightsnap.utils.PathPickerUtil
 
 class ScreenshotActivity : AppCompatActivity() {
 
     private lateinit var selectView: SelectView
     private lateinit var imageView: ImageView
     private lateinit var btnConfirmSelection: ImageButton
+    private lateinit var folderLauncher: ActivityResultLauncher<Intent>
+
 
     companion object {
         const val EXTRA_SCREENSHOT_KEY = "screenshot_key"
@@ -39,14 +53,43 @@ class ScreenshotActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_screenshot)
 
+        // 初始化路径选择 launcher
+        folderLauncher = PathPickerUtil.pickFolder(this) { treeUri ->
+            if (treeUri != null) {
+                val currentKey = intent.getStringExtra(EXTRA_SCREENSHOT_KEY)
+                val bitmap = currentKey?.let { BitmapCache.getBitmap(it) }
+
+                if (bitmap != null) {
+                    val sharedPreferences = getSharedPreferences("settings", Context.MODE_PRIVATE)
+                    sharedPreferences.edit() {
+                        putString(
+                            "screenshot_save_uri",
+                            treeUri.toString()
+                        )
+                    }
+
+                    saveBitmapToUri(bitmap, treeUri)
+                } else {
+                    Toast.makeText(this, "图片数据不可用", Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
+
         imageView = findViewById(R.id.imageViewScreenshot)
         selectView = findViewById(R.id.selectView)
         btnConfirmSelection = findViewById(R.id.btnConfirmSelection)
 
+        // 撤销键逻辑
         val btnBack = findViewById<ImageButton>(R.id.btnBack)
         btnBack.setOnClickListener {
             // 执行撤销操作
             undoToLastImage()
+        }
+
+        // 保存键逻辑
+        val btnSave = findViewById<ImageButton>(R.id.btnSave)
+        btnSave.setOnClickListener {
+            saveCurrentImage()
         }
 
         // 获取传入的 key
@@ -250,5 +293,110 @@ class ScreenshotActivity : AppCompatActivity() {
 
         return Rect(validLeft, validTop, validRight, validBottom)
     }
+
+    private fun saveCurrentImage() {
+        val imageView = findViewById<ImageView>(R.id.imageViewScreenshot)
+        val bitmap = (imageView.drawable as? android.graphics.drawable.BitmapDrawable)?.bitmap
+            ?: run {
+                Toast.makeText(this, "无法获取图片", Toast.LENGTH_SHORT).show()
+                return
+            }
+
+        // 获取用户设置的保存路径 URI 字符串
+        val sharedPreferences = getSharedPreferences("settings", Context.MODE_PRIVATE)
+
+//        // Test：删除已有保存路径
+//        sharedPreferences.edit() { remove("screenshot_save_uri") }
+
+        val uriString = sharedPreferences.getString("screenshot_save_uri", null) ?: run {
+            // 如果用户没有设置保存路径，则进行快捷设置路径
+            showSetPathDialog { confirmed ->
+                if (confirmed) {
+                    // 直接启动路径选择器
+                    val intent = Intent(Intent.ACTION_OPEN_DOCUMENT_TREE).apply {
+                        addFlags(
+                            Intent.FLAG_GRANT_READ_URI_PERMISSION or
+                                    Intent.FLAG_GRANT_WRITE_URI_PERMISSION or
+                                    Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION
+                        )
+                    }
+                    folderLauncher.launch(intent)
+                } else {
+                    // 用户点击取消
+                    Toast.makeText(this, "保存已取消", Toast.LENGTH_SHORT).show()
+                }
+            }
+            return
+        }
+
+
+        val treeUri = uriString.toUri()
+
+        try {
+            // 使用 DocumentFile 在该目录下创建文件
+            val documentFile = DocumentFile.fromTreeUri(this, treeUri)
+            val fileName = "screenshot_${System.currentTimeMillis()}.png"
+            val newFile = documentFile?.createFile("image/png", fileName)
+                ?: throw IOException("无法创建文件")
+
+            // 打开输出流并写入图片
+            contentResolver.openOutputStream(newFile.uri, "w")?.use { outputStream ->
+                if (bitmap.compress(Bitmap.CompressFormat.PNG, 100, outputStream)) {
+                    Toast.makeText(this, "图片已保存到 $fileName", Toast.LENGTH_SHORT).show()
+                    finish()
+                } else {
+                    Toast.makeText(this, "图片保存失败", Toast.LENGTH_SHORT).show()
+                }
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+            Toast.makeText(this, "保存出错：${e.message}", Toast.LENGTH_LONG).show()
+        }
+    }
+
+    private fun showSetPathDialog(onConfirm: (Boolean) -> Unit) {
+        val dialog = BottomSheetDialog(this)
+        val view = layoutInflater.inflate(R.layout.dialog_confirm_set_path, null)
+        dialog.setContentView(view)
+
+        val btnConfirm = view.findViewById<Button>(R.id.btnConfirm)
+        val btnCancel = view.findViewById<Button>(R.id.btnCancel)
+
+        btnConfirm.setOnClickListener {
+            dialog.dismiss()
+            onConfirm(true)
+        }
+
+        btnCancel.setOnClickListener {
+            dialog.dismiss()
+            onConfirm(false)
+        }
+
+        dialog.show()
+    }
+
+    private fun saveBitmapToUri(bitmap: Bitmap, treeUri: Uri) {
+        try {
+            val documentFile = DocumentFile.fromTreeUri(this, treeUri)
+            val fileName = "screenshot_${System.currentTimeMillis()}.png"
+            val newFile = documentFile?.createFile("image/png", fileName)
+                ?: throw IOException("无法创建文件")
+
+            contentResolver.openOutputStream(newFile.uri, "w")?.use { outputStream ->
+                if (bitmap.compress(Bitmap.CompressFormat.PNG, 100, outputStream)) {
+                    Toast.makeText(this, "图片已保存到 $fileName", Toast.LENGTH_SHORT).show()
+                    finish()
+                } else {
+                    Toast.makeText(this, "图片保存失败", Toast.LENGTH_SHORT).show()
+                }
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+            Toast.makeText(this, "保存出错：${e.message}", Toast.LENGTH_LONG).show()
+        }
+    }
+
+
+
 
 }
