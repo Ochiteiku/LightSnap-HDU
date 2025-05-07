@@ -100,14 +100,14 @@
             android:focusable="false"
             android:contentDescription="截图" />
 
-        <!-- 灰色遮罩 -->
-        <View
-            android:id="@+id/imageOverlay"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:clickable="false"
-            android:focusable="false"
-            android:background="#66000000" /> <!-- 半透明黑灰色 -->
+<!--        &lt;!&ndash; 灰色遮罩 &ndash;&gt;-->
+<!--        <View-->
+<!--            android:id="@+id/imageOverlay"-->
+<!--            android:layout_width="match_parent"-->
+<!--            android:layout_height="match_parent"-->
+<!--            android:clickable="false"-->
+<!--            android:focusable="false"-->
+<!--            android:background="#66000000" /> &lt;!&ndash; 半透明黑灰色 &ndash;&gt;-->
 
         <!-- 提示文字 -->
         <TextView
