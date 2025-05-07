@@ -9,7 +9,7 @@ import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import com.electroboys.lightsnap.domain.screenshot.BitmapCache
 import com.electroboys.lightsnap.domain.screenshot.ScreenshotUtil
-import com.electroboys.lightsnap.ui.main.activity.ScreenshotActivityRealDo
+import com.electroboys.lightsnap.ui.main.activity.ScreenshotActivity
 import com.electroboys.lightsnap.ui.main.viewmodel.MainViewModel
 import com.electroboys.lightsnap.utils.KeyEventUtil
 import kotlin.getValue
@@ -48,8 +48,8 @@ open class BaseActivity: AppCompatActivity() {
                 val bitmap = ScreenshotUtil.captureWithStatusBar(this)
                 val bitmapKey = BitmapCache.cacheBitmap(bitmap)
 
-                val intent = Intent(this, ScreenshotActivityRealDo::class.java).apply {
-                    putExtra(ScreenshotActivityRealDo.EXTRA_SCREENSHOT_KEY, bitmapKey)
+                val intent = Intent(this, ScreenshotActivity::class.java).apply {
+                    putExtra(ScreenshotActivity.EXTRA_SCREENSHOT_KEY, bitmapKey)
                 }
                 startActivity(intent)
             } else {
