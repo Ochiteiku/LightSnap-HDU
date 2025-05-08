@@ -95,7 +95,7 @@ class ScreenshotActivity : AppCompatActivity() {
         btnConfirmSelection = findViewById(R.id.btnConfirmSelection)
 
         // 撤销键逻辑
-        val btnBack = findViewById<ImageButton>(R.id.btnBack)
+        val btnBack = findViewById<ImageButton>(R.id.btnUndo)
         btnBack.setOnClickListener {
             // 执行撤销操作
             undoToLastImage()
@@ -117,19 +117,19 @@ class ScreenshotActivity : AppCompatActivity() {
         // 从缓存中取出 Bitmap
         val bitmap = key?.let { BitmapCache.getBitmap(it) }
 
-        // 编辑键逻辑 跳转到编辑Activity
-        val btnEditWrapper = findViewById<LinearLayout>(R.id.btnEditWrapper)
-        btnEditWrapper.setOnClickListener{
-            // 通过缓存实现数据传递
-            val tmpFile = File(cacheDir, "tmp_img.jpeg")
-            bitmap?.compress(Bitmap.CompressFormat.JPEG, 90, FileOutputStream(tmpFile))
-
-            val intent = Intent(this, EditScreenshotActivity::class.java).apply {
-                putExtra("image_path", tmpFile.absoluteFile)
-            }
-
-            startActivity(intent)
-        }
+//        // 编辑键逻辑 跳转到编辑Activity
+//        val btnEditWrapper = findViewById<LinearLayout>(R.id.btnEditWrapper)
+//        btnEditWrapper.setOnClickListener{
+//            // 通过缓存实现数据传递
+//            val tmpFile = File(cacheDir, "tmp_img.jpeg")
+//            bitmap?.compress(Bitmap.CompressFormat.JPEG, 90, FileOutputStream(tmpFile))
+//
+//            val intent = Intent(this, EditScreenshotActivity::class.java).apply {
+//                putExtra("image_path", tmpFile.absoluteFile)
+//            }
+//
+//            startActivity(intent)
+//        }
 
         Log.d("ScreenshotExampleActivity", "Test：this  is called")
         if (bitmap != null) {

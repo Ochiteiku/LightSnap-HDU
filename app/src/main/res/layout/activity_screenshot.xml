@@ -7,109 +7,26 @@
     android:layout_height="match_parent"
     android:background="#000000">
 
-    <!-- 顶部操作栏 -->
-    <LinearLayout
-        android:id="@+id/topBar"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:padding="5dp"
-        android:gravity="center_vertical"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        android:background="#000000">
-
-        <ImageButton
-            android:id="@+id/btnBack"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:background="?attr/selectableItemBackgroundBorderless"
-            android:src="@android:drawable/ic_menu_revert"
-            android:contentDescription="返回"
-            app:tint="#FFFFFF" />
-
-        <View
-            android:layout_width="0dp"
-            android:layout_height="1dp"
-            android:layout_weight="1" />
-
-        <LinearLayout
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:gravity="center_vertical">
-
-            <!-- 复制按钮 -->
-            <ImageButton
-                android:id="@+id/btnCopy"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="15dp"
-                android:background="?attr/selectableItemBackgroundBorderless"
-                android:src="@android:drawable/ic_menu_share"
-                android:contentDescription="复制"
-                app:tint="#FFFFFF"/>
-
-            <!-- 转发按钮 -->
-            <ImageButton
-                android:id="@+id/btnShare"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="15dp"
-                android:background="?attr/selectableItemBackgroundBorderless"
-                android:src="@android:drawable/ic_menu_share"
-                android:contentDescription="转发"
-                app:tint="#FFFFFF"/>
-
-            <!-- 保存按钮 -->
-            <ImageButton
-                android:id="@+id/btnSave"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="15dp"
-                android:background="?attr/selectableItemBackgroundBorderless"
-                android:src="@android:drawable/ic_menu_save"
-                android:contentDescription="保存"
-                app:tint="#FFFFFF"/>
-
-
-        </LinearLayout>
-    </LinearLayout>
-
+    <!-- 图像显示区域占据整个屏幕 -->
     <FrameLayout
         android:id="@+id/imageContainer"
         android:layout_width="0dp"
         android:layout_height="0dp"
-        android:layout_margin="8dp"
         android:clickable="true"
         android:focusable="true"
-        app:layout_constraintTop_toBottomOf="@id/topBar"
-        app:layout_constraintBottom_toTopOf="@id/bottomBar"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toTopOf="@+id/bottomBar"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent">
 
-        <!-- 显示截图的图像 -->
         <ImageView
             android:id="@+id/imageViewScreenshot"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:scaleType="fitCenter"
             android:adjustViewBounds="true"
-            android:clickable="false"
-            android:focusable="false"
             android:contentDescription="截图" />
 
-<!--        &lt;!&ndash; 灰色遮罩 &ndash;&gt;-->
-<!--        <View-->
-<!--            android:id="@+id/imageOverlay"-->
-<!--            android:layout_width="match_parent"-->
-<!--            android:layout_height="match_parent"-->
-<!--            android:clickable="false"-->
-<!--            android:focusable="false"-->
-<!--            android:background="#66000000" /> &lt;!&ndash; 半透明黑灰色 &ndash;&gt;-->
-
-        <!-- 提示文字 -->
         <TextView
             android:id="@+id/selectionHint"
             android:layout_width="wrap_content"
@@ -119,21 +36,18 @@
             android:textSize="16sp"
             android:background="#66000000"
             android:padding="8dp"
-            android:clickable="false"
-            android:focusable="false"
             android:layout_gravity="top|center_horizontal"
             android:layout_marginTop="20dp" />
-        <!-- 自定义 SelectView 层 -->
+
         <com.electroboys.lightsnap.domain.screenshot.SelectView
             android:id="@+id/selectView"
-            android:clickable="false"
-            android:focusable="false"
             android:layout_width="match_parent"
             android:layout_height="match_parent" />
+
         <ImageButton
             android:id="@+id/btnConfirmSelection"
-            android:layout_width="50dp"
-            android:layout_height="50dp"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
             android:scaleType="centerInside"
             android:src="@drawable/ic_cut_save"
             android:background="?attr/selectableItemBackgroundBorderless"
@@ -142,93 +56,164 @@
             android:contentDescription="确认选区" />
     </FrameLayout>
 
+    <!-- 返回按钮单独放置 -->
+    <ImageButton
+        android:id="@+id/btnBack"
+        android:layout_width="42dp"
+        android:layout_height="42dp"
+        android:layout_margin="15dp"
+        android:scaleType="centerInside"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:src="@drawable/ic_exit"
+        android:contentDescription="返回"
+        app:tint="#FFFFFF"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintStart_toStartOf="parent" />
+
     <!-- 底部操作栏 -->
     <LinearLayout
         android:id="@+id/bottomBar"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
-        android:padding="5dp"
+        android:padding="8dp"
         android:gravity="center"
         android:background="#66000000"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent">
 
-        <!-- 编辑 -->
+        <!-- 区域1：绘图相关 -->
         <LinearLayout
-            android:layout_width="0dp"
-            android:layout_weight="1"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:gravity="center"
-            android:clickable="true"
-            android:focusable="true"
-            android:id="@+id/btnEditWrapper">
+            android:orientation="horizontal"
+            android:gravity="center_vertical">
 
-            <ImageView
-                android:layout_width="32dp"
-                android:layout_height="32dp"
-                android:src="@android:drawable/ic_menu_crop"
-                app:tint="#FFFFFF" />
+            <ImageButton
+                android:id="@+id/btnDraw"
+                style="@style/ToolButtonStyle"
+                android:contentDescription="涂鸦"
+                android:src="@drawable/ic_draw" />
 
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="编辑"
-                android:textColor="#FFFFFF"
-                android:textSize="12sp"/>
+            <ImageButton
+                android:id="@+id/btnText"
+                style="@style/ToolButtonStyle"
+                android:src="@drawable/ic_text"
+                android:contentDescription="文字" />
+
+            <ImageButton
+                android:id="@+id/btnMosaic"
+                style="@style/ToolButtonStyle"
+                android:src="@drawable/ic_mask"
+                android:contentDescription="马赛克" />
+
+            <ImageButton
+                android:id="@+id/btnBox"
+                style="@style/ToolButtonStyle"
+                android:src="@drawable/ic_box"
+                android:contentDescription="框选" />
+
+            <ImageButton
+                android:id="@+id/btnLine"
+                style="@style/ToolButtonStyle"
+                android:src="@drawable/ic_line"
+                android:contentDescription="横线" />
+
+            <ImageButton
+                android:id="@+id/btnArrow"
+                style="@style/ToolButtonStyle"
+                android:src="@drawable/ic_arrow"
+                android:contentDescription="箭头" />
         </LinearLayout>
 
-        <!-- 文字识别 -->
+        <!-- 分隔线 -->
+        <View
+            android:layout_width="2dp"
+            android:layout_height="match_parent"
+            android:layout_marginHorizontal="12dp"
+            android:background="#CCCCCC" />
+
+        <!-- 区域2：识别与摘要 -->
         <LinearLayout
-            android:id="@+id/btnOcrWrapper"
-            android:layout_width="0dp"
-            android:layout_weight="1"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:gravity="center"
-            android:clickable="true"
-            android:focusable="true">
+            android:orientation="horizontal"
+            android:gravity="center_vertical">
 
-            <ImageView
-                android:layout_width="32dp"
-                android:layout_height="32dp"
-                android:src="@android:drawable/ic_menu_search"
-                app:tint="#FFFFFF" />
+            <ImageButton
+                android:id="@+id/btnOcr"
+                style="@style/ToolButtonStyle"
+                android:src="@drawable/ic_scan"
+                android:contentDescription="OCR识别" />
 
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="识别文字"
-                android:textColor="#FFFFFF"
-                android:textSize="12sp"/>
+            <ImageButton
+                android:id="@+id/btnSummary"
+                style="@style/ToolButtonStyle"
+                android:src="@drawable/ic_detail"
+                android:contentDescription="AI摘要" />
         </LinearLayout>
 
-        <!-- 内容摘要 -->
+        <!-- 分隔线 -->
+        <View
+            android:layout_width="2dp"
+            android:layout_height="match_parent"
+            android:layout_marginHorizontal="12dp"
+            android:background="#CCCCCC" />
+
+        <!-- 区域3：撤销与重做 -->
         <LinearLayout
-            android:id="@+id/btnSummaryWrapper"
-            android:layout_width="0dp"
-            android:layout_weight="1"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:gravity="center"
-            android:clickable="true"
-            android:focusable="true">
+            android:orientation="horizontal"
+            android:gravity="center_vertical">
 
-            <ImageView
-                android:layout_width="32dp"
-                android:layout_height="32dp"
-                android:src="@android:drawable/ic_menu_info_details"
-                app:tint="#FFFFFF" />
+            <ImageButton
+                android:id="@+id/btnUndo"
+                style="@style/ToolButtonStyle"
+                android:src="@drawable/ic_revert"
+                android:contentDescription="撤销" />
 
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="内容摘要"
-                android:textColor="#FFFFFF"
-                android:textSize="12sp"/>
+            <ImageButton
+                android:id="@+id/btnRedo"
+                style="@style/ToolButtonStyle"
+                android:src="@drawable/ic_rotate"
+                android:contentDescription="重做" />
+        </LinearLayout>
+
+        <!-- 分隔线 -->
+        <View
+            android:layout_width="2dp"
+            android:layout_height="match_parent"
+            android:layout_marginHorizontal="12dp"
+            android:background="#CCCCCC" />
+
+        <!-- 区域4：分享复制保存 -->
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical">
+
+            <ImageButton
+                android:id="@+id/btnShare"
+                style="@style/ToolButtonStyle"
+                android:src="@drawable/ic_share"
+                android:contentDescription="转发" />
+
+            <ImageButton
+                android:id="@+id/btnCopy"
+                style="@style/ToolButtonStyle"
+                android:src="@drawable/ic_copy"
+                android:contentDescription="复制" />
+
+            <ImageButton
+                android:id="@+id/btnSave"
+                style="@style/ToolButtonStyle"
+                android:src="@drawable/ic_save"
+                android:contentDescription="保存" />
         </LinearLayout>
     </LinearLayout>
+
 
 </androidx.constraintlayout.widget.ConstraintLayout>

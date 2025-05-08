@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
+
     <!-- msg -->
     <style name="OptionItem">
         <item name="android:layout_width">0dp</item>
@@ -11,4 +12,14 @@
         <item name="android:textColor">#9E9E9E</item>
         <item name="android:padding">8dp</item>
     </style>
+
+    <style name="ToolButtonStyle">
+        <item name="android:layout_width">36dp</item>
+        <item name="android:layout_height">36dp</item>
+        <item name="android:scaleType">centerInside</item>
+        <item name="android:layout_marginStart">10dp</item>
+        <item name="android:layout_marginEnd">10dp</item>
+        <item name="android:background">?attr/selectableItemBackgroundBorderless</item>
+    </style>
+
 </resources>
