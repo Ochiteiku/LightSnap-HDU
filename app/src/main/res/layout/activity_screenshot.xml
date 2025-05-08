@@ -56,16 +56,15 @@
             android:contentDescription="确认选区" />
     </FrameLayout>
 
-    <!-- 返回按钮单独放置 -->
     <ImageButton
         android:id="@+id/btnBack"
         android:layout_width="42dp"
         android:layout_height="42dp"
         android:layout_margin="15dp"
-        android:scaleType="centerInside"
-        android:background="?attr/selectableItemBackgroundBorderless"
+        android:background="@drawable/bg_icon_button_round"
         android:src="@drawable/ic_exit"
         android:contentDescription="返回"
+        android:scaleType="centerInside"
         app:tint="#FFFFFF"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintStart_toStartOf="parent" />
