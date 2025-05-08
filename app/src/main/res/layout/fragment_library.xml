@@ -8,6 +8,7 @@
         android:id="@+id/library_picture"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        app:layout_constraintBaseline_toBottomOf="parent"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"/>
@@ -16,6 +17,7 @@
         android:id="@+id/photoView"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
+        app:layout_constraintBaseline_toBottomOf="parent"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"/>

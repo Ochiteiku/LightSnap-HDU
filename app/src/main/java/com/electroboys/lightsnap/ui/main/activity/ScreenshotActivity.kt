@@ -20,6 +20,7 @@ import android.widget.Button
 import android.widget.EditText
 import android.widget.FrameLayout
 import android.widget.ImageButton
+import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.activity.result.ActivityResultLauncher
 import androidx.appcompat.app.AppCompatActivity
@@ -34,6 +35,8 @@ import java.io.IOException
 import androidx.core.content.edit
 import com.electroboys.lightsnap.utils.ImageSaveUtil
 import com.electroboys.lightsnap.utils.PathPickerUtil
+import java.io.File
+import java.io.FileOutputStream
 
 class ScreenshotActivity : AppCompatActivity() {
 
@@ -113,6 +116,20 @@ class ScreenshotActivity : AppCompatActivity() {
 
         // 从缓存中取出 Bitmap
         val bitmap = key?.let { BitmapCache.getBitmap(it) }
+
+        // 编辑键逻辑 跳转到编辑Activity
+        val btnEditWrapper = findViewById<LinearLayout>(R.id.btnEditWrapper)
+        btnEditWrapper.setOnClickListener{
+            // 通过缓存实现数据传递
+            val tmpFile = File(cacheDir, "tmp_img.jpeg")
+            bitmap?.compress(Bitmap.CompressFormat.JPEG, 90, FileOutputStream(tmpFile))
+
+            val intent = Intent(this, EditScreenshotActivity::class.java).apply {
+                putExtra("image_path", tmpFile.absoluteFile)
+            }
+
+            startActivity(intent)
+        }
 
         Log.d("ScreenshotExampleActivity", "Test：this  is called")
         if (bitmap != null) {
