@@ -27,4 +27,15 @@ object BitmapCache {
     fun clear() {
         cache.clear()
     }
+
+    //清空所有缓存，除了指定的key
+    fun clearExcept(keepKey: String?) {
+        keepKey?.let { key ->
+            val toKeep = cache[key]
+            cache.clear()
+            if (toKeep != null) {
+                cache[key] = toKeep
+            }
+        }
+    }
 }

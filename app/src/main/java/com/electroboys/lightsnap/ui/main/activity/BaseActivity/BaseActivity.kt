@@ -4,26 +4,32 @@ import android.app.ActivityOptions
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
+import android.util.Log
 import android.view.KeyEvent
 import android.widget.FrameLayout
 import android.widget.Toast
+import androidx.activity.result.ActivityResultLauncher
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.net.toUri
 import com.electroboys.lightsnap.R
 import com.electroboys.lightsnap.domain.screenshot.BitmapCache
 import com.electroboys.lightsnap.ui.main.activity.ScreenshotActivity
 import com.electroboys.lightsnap.ui.main.activity.ScreenshotActivityForBase
 import com.electroboys.lightsnap.ui.main.viewmodel.MainViewModel
+import com.electroboys.lightsnap.utils.ImageSaveUtil
 import com.electroboys.lightsnap.utils.KeyEventUtil
 
 open class BaseActivity : AppCompatActivity() {
 
     private val viewModel: MainViewModel by viewModels()
 
+    private lateinit var screenshotResultLauncher: ActivityResultLauncher<Intent>
+
     // 标志：是否处于截图模式
     private var isTakingScreenshot = false
     private var currentScreenshotHelper: ScreenshotActivityForBase? = null
-
     // 快捷键监听事件
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
         if (event.action == KeyEvent.ACTION_DOWN) {
@@ -42,6 +48,40 @@ open class BaseActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         observeShortcutEvents()
+
+        screenshotResultLauncher = registerForActivityResult(
+            ActivityResultContracts.StartActivityForResult()
+        ) { result ->
+            Log.d("BaseActivity", "接收到 onActivityResult")
+            if (result.resultCode == RESULT_OK) {
+                val data = result.data
+                val bitmapKey = data?.getStringExtra("bitmap_key")
+                Log.d("BaseActivity", "接收到 bitmapKey: $bitmapKey")
+
+                if (bitmapKey != null) {
+                    val sharedPreferences = getSharedPreferences("settings", Context.MODE_PRIVATE)
+                    val uriString = sharedPreferences.getString("screenshot_save_uri", null)
+
+                    if (uriString != null) {
+                        val treeUri = uriString.toUri()
+                        val bitmap = BitmapCache.getBitmap(bitmapKey)
+                        if (bitmap != null) {
+                            ImageSaveUtil.saveBitmapWithName(this, bitmap, treeUri) { success ->
+                                if (success) {
+//                                    Toast.makeText(this, "图片已保存", Toast.LENGTH_SHORT).show()
+                                }
+                            }
+                        } else {
+                            Toast.makeText(this, "缓存图片不存在", Toast.LENGTH_SHORT).show()
+                        }
+                    } else {
+                        Toast.makeText(this, "未设置保存路径", Toast.LENGTH_SHORT).show()
+                    }
+                }
+            }
+        }
+
+
     }
 
     private fun observeShortcutEvents() {
@@ -72,7 +112,7 @@ open class BaseActivity : AppCompatActivity() {
                                 R.anim.shot_enter, // 进入动画
                                 R.anim.shot_exit   // 退出动画
                             )
-                            startActivity(intent, options.toBundle())
+                            screenshotResultLauncher.launch(intent)
                         } else {
                             Toast.makeText(this, "截图已取消", Toast.LENGTH_SHORT).show()
                         }

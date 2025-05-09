@@ -30,6 +30,9 @@ import com.google.android.material.bottomsheet.BottomSheetDialog
 import androidx.core.content.edit
 import com.electroboys.lightsnap.utils.ImageSaveUtil
 import com.electroboys.lightsnap.utils.PathPickerUtil
+import java.io.File
+import java.io.FileOutputStream
+import java.io.IOException
 
 class ScreenshotActivity : AppCompatActivity() {
 
@@ -41,6 +44,7 @@ class ScreenshotActivity : AppCompatActivity() {
 
     companion object {
         const val EXTRA_SCREENSHOT_KEY = "screenshot_key"
+        var onBitmapSaveRequested: ((String) -> Unit)? = null
     }
 
     private var isDragging = false
@@ -155,7 +159,13 @@ class ScreenshotActivity : AppCompatActivity() {
     override fun onDestroy() {
         super.onDestroy()
         // 清理 Bitmap 缓存
-        BitmapCache.clear()
+        val currentKey = intent.getStringExtra(ScreenshotActivity.EXTRA_SCREENSHOT_KEY)
+        BitmapCache.clearExcept(currentKey)
+    }
+
+    override fun finish() {
+        super.finish()
+        overridePendingTransition(R.anim.fade_out, R.anim.fade_out)
     }
 
     private fun undoToLastImage() {
@@ -409,18 +419,29 @@ class ScreenshotActivity : AppCompatActivity() {
             return
         }
 
-        val treeUri = uriString.toUri()
-
-        // 保存图片到指定路径
-        ImageSaveUtil.saveBitmapWithName(
-            context = this,
-            bitmap = bitmap,
-            treeUri = treeUri
-        ) { success ->
-            if (success) {
-                finish()
+//        val treeUri = uriString.toUri()
+//
+//        // 保存图片到指定路径
+//        ImageSaveUtil.saveBitmapWithName(
+//            context = this,
+//            bitmap = bitmap,
+//            treeUri = treeUri
+//        ) { success ->
+//            if (success) {
+//                finish()
+//            }
+//        }
+        val currentKey = intent.getStringExtra(EXTRA_SCREENSHOT_KEY)
+            ?: run {
+                Toast.makeText(this, "图片数据不可用", Toast.LENGTH_SHORT).show()
+                return
             }
+
+        val resultIntent = Intent().apply {
+            putExtra("bitmap_key", currentKey)
         }
+        setResult(RESULT_OK, resultIntent)
+        finish()
     }
 
 
