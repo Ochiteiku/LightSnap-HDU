@@ -3,6 +3,7 @@ package com.electroboys.lightsnap.domain.screenshot
 import android.content.Context
 import android.graphics.Canvas
 import android.graphics.Color
+import android.graphics.DashPathEffect
 import android.graphics.Paint
 import android.graphics.PointF
 import android.graphics.Rect
@@ -30,9 +31,10 @@ class SelectView @JvmOverloads constructor(
     private var endPoint = PointF(0f, 0f)
 
     private val paint = Paint().apply {
-        color = Color.RED
+        color = Color.BLUE
         style = Paint.Style.STROKE
         strokeWidth = 4f
+        pathEffect = DashPathEffect(floatArrayOf(10f, 5f),0f)
     }
 
     private val maskPaint = Paint().apply {
@@ -41,10 +43,10 @@ class SelectView @JvmOverloads constructor(
     }
 
     fun setSelection(start: PointF, end: PointF) {
-        Log.d("SelectView", "【调试】传入 setSelection 的起点: $start，终点: $end")
+//        Log.d("SelectView", "【调试】传入 setSelection 的起点: $start，终点: $end")
         startPoint.set(start.x, start.y)
         endPoint.set(end.x, end.y)
-        Log.d("SelectView", "更新后的 startPoint: $startPoint，endPoint: $endPoint")
+//        Log.d("SelectView", "更新后的 startPoint: $startPoint，endPoint: $endPoint")
         invalidate()
     }
 
