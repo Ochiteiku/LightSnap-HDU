@@ -18,6 +18,7 @@ class ScreenshotActivityForBase(private val activity: AppCompatActivity) {
     private val endTouch = PointF()
     private var isBoxSelectEnabled = false
     private var onCaptureListener: ((Bitmap?) -> Unit)? = null
+    private var maskView: View? = null// 灰幕
 
     @SuppressLint("ClickableViewAccessibility")
     fun enableBoxSelectOnce(onCapture: (Bitmap?) -> Unit) {
@@ -27,9 +28,15 @@ class ScreenshotActivityForBase(private val activity: AppCompatActivity) {
         isBoxSelectEnabled = true
         selectionOverlayView.clearSelection()
 
+        // 创建灰幕 View
+        maskView = View(activity).apply {
+            setBackgroundColor(0xAA000000.toInt()) // 半透明黑色
+        }
+
         // 添加 overlay 到根布局
         val container = activity.findViewById<FrameLayout>(android.R.id.content)
         if (selectionOverlayView.parent == null) {
+            container.addView(maskView) // 先添加灰幕
             container.addView(selectionOverlayView)
         }
 
@@ -42,6 +49,7 @@ class ScreenshotActivityForBase(private val activity: AppCompatActivity) {
                     endTouch.set(event.x, event.y)
                 }
                 MotionEvent.ACTION_MOVE -> {
+                    hideMask()
                     endTouch.set(event.x, event.y)
                     selectionOverlayView.setSelection(startTouch, endTouch)
                 }
@@ -83,12 +91,26 @@ class ScreenshotActivityForBase(private val activity: AppCompatActivity) {
         selectionOverlayView.setOnTouchListener(touchListener)
     }
 
+    private fun showMask() {
+        maskView?.visibility = View.VISIBLE
+    }
+
+    private fun hideMask() {
+        maskView?.visibility = View.INVISIBLE
+    }
+
     fun cleanup(container: FrameLayout) {
         selectionOverlayView.clearSelection()
         selectionOverlayView.setOnTouchListener(null)
 
         if (selectionOverlayView.parent != null) {
             container.removeView(selectionOverlayView)
+        }
+
+        // 移除灰幕
+        maskView?.let {
+            container.removeView(it)
+            maskView = null
         }
 
         isBoxSelectEnabled = false

@@ -107,6 +107,12 @@ class ScreenshotActivity : AppCompatActivity() {
             saveCurrentImage()
         }
 
+        // 退出键逻辑
+        val btnExit = findViewById<ImageButton>(R.id.btnExit)
+        btnExit.setOnClickListener {
+            finish()
+        }
+
         // 获取传入的 key
         val key = intent.getStringExtra(EXTRA_SCREENSHOT_KEY)
         originalBitmapKey = key
