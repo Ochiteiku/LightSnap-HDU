@@ -67,6 +67,7 @@ class MessageFragment : Fragment(R.layout.fragment_message) {
 
                 // 设置头像
                 imageView.apply {
+
                     setImageResource(contact.avatarRes)
                     contentDescription = contact.name
                     foreground =
@@ -186,6 +187,7 @@ class MessageFragment : Fragment(R.layout.fragment_message) {
             messageItem.isSelected = contact == selectedContact
 
             messageItem.findViewById<ImageView>(R.id.messageAvatar).apply {
+
                 setImageResource(contact.avatarRes)
                 setOnClickListener {
                     selectContact(contact)

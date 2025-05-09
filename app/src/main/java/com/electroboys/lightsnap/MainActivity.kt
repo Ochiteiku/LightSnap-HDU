@@ -17,6 +17,16 @@ import com.electroboys.lightsnap.ui.main.viewmodel.MainViewModel
 
 class MainActivity : BaseActivity() {
 
+    // 缓存 Fragment 实例
+    // （原先逻辑是每次切换选项卡都会新建 Fragment，我将他们缓存为一个实例，这样切换的时候不会丢失页面信息）
+    private val fragmentCache = mutableMapOf<Class<*>, Fragment>().apply {
+        // 提前初始化所有 Fragment
+        put(MessageFragment::class.java, MessageFragment())
+        put(DocumentFragment::class.java, DocumentFragment())
+        put(SettingsFragment::class.java, SettingsFragment())
+        put(LibraryFragment::class.java, LibraryFragment())
+    }
+
     private lateinit var navMessage: View
     private lateinit var navDocument: View
     private lateinit var navSettings: View
@@ -43,25 +53,26 @@ class MainActivity : BaseActivity() {
         //初始化截图
 //        screenshotHelper = ScreenshotActivity(this)
 
-        // 默认加载消息Fragment，并高亮
-        replaceFragment(MessageFragment())
+        // 默认显示 MessageFragment
+        replaceFragment(MessageFragment::class.java)
         highlightNavItem(navMessage)
 
         // 点击事件
+        // 设置点击监听
         navMessage.setOnClickListener {
-            replaceFragment(MessageFragment())
+            replaceFragment(MessageFragment::class.java)
             highlightNavItem(navMessage)
         }
         navDocument.setOnClickListener {
-            replaceFragment(DocumentFragment())
+            replaceFragment(DocumentFragment::class.java)
             highlightNavItem(navDocument)
         }
         navSettings.setOnClickListener {
-            replaceFragment(SettingsFragment())
+            replaceFragment(SettingsFragment::class.java)
             highlightNavItem(navSettings)
         }
         navLibrary.setOnClickListener {
-            replaceFragment(LibraryFragment())
+            replaceFragment(LibraryFragment::class.java)
             highlightNavItem(navLibrary)
         }
 
@@ -87,12 +98,28 @@ class MainActivity : BaseActivity() {
     }
 
 
-    //切换Fragment 导航栏
-    private fun replaceFragment(fragment: Fragment) {
-        supportFragmentManager.beginTransaction()
-            .replace(R.id.contentFrame, fragment)
-            .commit()
+    // 切换 Fragment 导航栏
+    private fun replaceFragment(fragmentClass: Class<out Fragment>) {
+        supportFragmentManager.beginTransaction().apply {
+            // 隐藏所有已添加的 Fragment
+            fragmentCache.values.forEach { fragment ->
+                if (fragment.isAdded) {
+                    hide(fragment)
+                }
+            }
+
+            // 获取目标 Fragment（如果未添加则先添加）
+            val targetFragment = fragmentCache[fragmentClass]!!
+            if (!targetFragment.isAdded) {
+                add(R.id.contentFrame, targetFragment)
+            }
+
+            // 显示目标 Fragment
+            show(targetFragment)
+            commit()
+        }
     }
+
 
     private fun highlightNavItem(selectedView: View) {
         // 先全部设为未选中背景

@@ -43,8 +43,8 @@
 
                 <ImageView
                     android:id="@+id/contact1"
-                    android:layout_width="60dp"
-                    android:layout_height="60dp"
+                    android:layout_width="50dp"
+                    android:layout_height="50dp"
                     android:background="@drawable/bg_contact_default"
                     android:clipToOutline="true"
                     android:scaleType="centerCrop" />
@@ -70,8 +70,8 @@
 
                 <ImageView
                     android:id="@+id/contact2"
-                    android:layout_width="60dp"
-                    android:layout_height="60dp"
+                    android:layout_width="50dp"
+                    android:layout_height="50dp"
                     android:background="@drawable/bg_contact_default"
                     android:clipToOutline="true"
                     android:scaleType="centerCrop" />
@@ -97,8 +97,8 @@
 
                 <ImageView
                     android:id="@+id/contact3"
-                    android:layout_width="60dp"
-                    android:layout_height="60dp"
+                    android:layout_width="50dp"
+                    android:layout_height="50dp"
                     android:background="@drawable/bg_contact_default"
                     android:clipToOutline="true"
                     android:scaleType="centerCrop" />
@@ -124,8 +124,8 @@
 
                 <ImageView
                     android:id="@+id/contact4"
-                    android:layout_width="60dp"
-                    android:layout_height="60dp"
+                    android:layout_width="50dp"
+                    android:layout_height="50dp"
                     android:background="@drawable/bg_contact_default"
                     android:clipToOutline="true"
                     android:scaleType="centerCrop" />
@@ -151,8 +151,8 @@
 
                 <ImageView
                     android:id="@+id/contact5"
-                    android:layout_width="60dp"
-                    android:layout_height="60dp"
+                    android:layout_width="50dp"
+                    android:layout_height="50dp"
                     android:background="@drawable/bg_contact_default"
                     android:clipToOutline="true"
                     android:scaleType="centerCrop" />
