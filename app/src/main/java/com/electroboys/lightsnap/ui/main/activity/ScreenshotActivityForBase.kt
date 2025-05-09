@@ -47,9 +47,9 @@ class ScreenshotActivityForBase(private val activity: AppCompatActivity) {
                 MotionEvent.ACTION_DOWN -> {
                     startTouch.set(event.x, event.y)
                     endTouch.set(event.x, event.y)
-                    hideMask()
                 }
                 MotionEvent.ACTION_MOVE -> {
+                    hideMask()
                     endTouch.set(event.x, event.y)
                     selectionOverlayView.setSelection(startTouch, endTouch)
                 }
