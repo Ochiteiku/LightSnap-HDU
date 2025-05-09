@@ -1,6 +1,5 @@
 package com.electroboys.lightsnap.ui.main.activity
 
-import android.annotation.SuppressLint
 import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
@@ -13,14 +12,11 @@ import android.widget.Toast
 import android.graphics.PointF
 import android.graphics.Rect
 import android.graphics.drawable.BitmapDrawable
-import android.net.Uri
 import android.view.Gravity
 import android.view.View
 import android.widget.Button
-import android.widget.EditText
 import android.widget.FrameLayout
 import android.widget.ImageButton
-import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.activity.result.ActivityResultLauncher
 import androidx.appcompat.app.AppCompatActivity
@@ -29,14 +25,10 @@ import com.electroboys.lightsnap.domain.screenshot.BitmapCache
 import com.electroboys.lightsnap.domain.screenshot.ImageHistory
 import com.electroboys.lightsnap.domain.screenshot.SelectView
 import androidx.core.net.toUri
-import androidx.documentfile.provider.DocumentFile
 import com.google.android.material.bottomsheet.BottomSheetDialog
-import java.io.IOException
 import androidx.core.content.edit
 import com.electroboys.lightsnap.utils.ImageSaveUtil
 import com.electroboys.lightsnap.utils.PathPickerUtil
-import java.io.File
-import java.io.FileOutputStream
 
 class ScreenshotActivity : AppCompatActivity() {
 
@@ -414,6 +406,49 @@ class ScreenshotActivity : AppCompatActivity() {
         }
 
         dialog.show()
+    }
+
+
+    override fun dispatchKeyEvent(event: android.view.KeyEvent): Boolean {
+        if (event.action == android.view.KeyEvent.ACTION_DOWN) {
+            val isCtrlPressed = event.isCtrlPressed
+            val isShiftPressed = event.isShiftPressed
+
+            when (event.keyCode) {
+                android.view.KeyEvent.KEYCODE_C -> {
+                    if (isCtrlPressed) {
+                        Toast.makeText(this, "Ctrl+C 被触发：执行复制", Toast.LENGTH_SHORT).show()
+                        // TODO: 执行复制逻辑
+                        return true
+                    }
+                }
+                android.view.KeyEvent.KEYCODE_Z -> {
+                    if (isCtrlPressed && isShiftPressed) {
+                        Toast.makeText(this, "Ctrl+Shift+Z 被触发：执行重做", Toast.LENGTH_SHORT).show()
+                        // TODO: 执行重做逻辑
+                        return true
+                    } else if (isCtrlPressed) {
+                        Toast.makeText(this, "Ctrl+Z 被触发：执行撤销", Toast.LENGTH_SHORT).show()
+                        // TODO: 执行撤销逻辑
+                        return true
+                    }
+                }
+                android.view.KeyEvent.KEYCODE_ESCAPE -> {
+                    Toast.makeText(this, "ESC 被触发：退出页面", Toast.LENGTH_SHORT).show()
+                    // TODO: 可以加确认退出
+                    finish()
+                    return true
+                }
+                android.view.KeyEvent.KEYCODE_ENTER -> {
+                    Toast.makeText(this, "ENTER 被触发：保存图像", Toast.LENGTH_SHORT).show()
+                    // TODO: 调用保存逻辑
+                    saveCurrentImage()
+                    return true
+                }
+            }
+        }
+
+        return super.dispatchKeyEvent(event)
     }
 
 }
