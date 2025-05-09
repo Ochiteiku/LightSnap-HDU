@@ -18,7 +18,7 @@ import com.electroboys.lightsnap.ui.main.viewmodel.MainViewModel
 class MainActivity : BaseActivity() {
 
     // 缓存 Fragment 实例
-    // （原先逻辑是每次切换选项卡都会新建 Fragment，我将他们缓存为一个实例，这样切换的时候不会丢失页面信息）
+    // （原先逻辑是每次切换选项卡都会新建 Fragment，把他们缓存为一个实例，这样切换的时候不会丢失页面信息）
     private val fragmentCache = mutableMapOf<Class<*>, Fragment>().apply {
         // 提前初始化所有 Fragment
         put(MessageFragment::class.java, MessageFragment())
