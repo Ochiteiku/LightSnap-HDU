@@ -49,6 +49,7 @@ class ScreenshotActivity : AppCompatActivity() {
     private val startTouch = PointF()
     private val endTouch = PointF()
     private var originalBitmapKey: String? = null
+    private var isSelectionEnabled = true //框选是否启用,默认开启
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -118,6 +119,14 @@ class ScreenshotActivity : AppCompatActivity() {
         val btnExit = findViewById<ImageButton>(R.id.btnExit)
         btnExit.setOnClickListener {
             finish()
+        }
+
+        //  裁剪开关逻辑
+        val btnIfCanSelect = findViewById<ImageButton>(R.id.btnIsCanSelect)
+        btnIfCanSelect.setOnClickListener {
+            toggleSelectionMode()
+
+            // Todo: 改变 btnIfCanSelect 的图标
         }
 
         // 获取传入的 key
@@ -233,6 +242,7 @@ class ScreenshotActivity : AppCompatActivity() {
             Log.d("ScreenshotExampleActivity", "imageContainer size after layout: ${imageContainer.width} x ${imageContainer.height}")
 
             imageContainer.setOnTouchListener { v, event ->
+                if (!isSelectionEnabled) return@setOnTouchListener false
                 Log.d("ScreenshotExampleActivity", "触摸事件发生")
                 when (event.action) {
                     MotionEvent.ACTION_DOWN -> {
@@ -502,6 +512,22 @@ class ScreenshotActivity : AppCompatActivity() {
 
         dialog.show()
     }
+
+    private fun toggleSelectionMode() {
+        isSelectionEnabled = !isSelectionEnabled
+
+        if (!isSelectionEnabled) {
+            // 关闭时清空当前选区和 UI 状态
+            selectView.clearSelection()
+            btnConfirmSelection.visibility = View.GONE
+            findViewById<TextView>(R.id.selectionHint).visibility = View.GONE
+            Toast.makeText(this, "裁剪功能已关闭", Toast.LENGTH_SHORT).show()
+        } else {
+            btnConfirmSelection.visibility = View.VISIBLE
+            Toast.makeText(this, "裁剪功能已开启", Toast.LENGTH_SHORT).show()
+        }
+    }
+
 
 
     override fun dispatchKeyEvent(event: android.view.KeyEvent): Boolean {
