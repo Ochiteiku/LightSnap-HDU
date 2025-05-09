@@ -89,7 +89,7 @@ class DocumentFragment : Fragment(R.layout.fragment_document) {
 
         parentFragmentManager.beginTransaction()
             .setReorderingAllowed(true)
-            .replace(R.id.main, detailFragment)
+            .replace(R.id.documentContainer, detailFragment)
             .addToBackStack(null)
             .commit()
     }

@@ -24,6 +24,7 @@ import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.activity.result.ActivityResultLauncher
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.FileProvider
 import com.electroboys.lightsnap.R
 import com.electroboys.lightsnap.domain.screenshot.BitmapCache
 import com.electroboys.lightsnap.domain.screenshot.ImageHistory
@@ -99,6 +100,12 @@ class ScreenshotActivity : AppCompatActivity() {
         btnBack.setOnClickListener {
             // 执行撤销操作
             undoToLastImage()
+        }
+
+        // 转发键逻辑
+        val btnShare = findViewById<ImageButton>(R.id.btnShare)
+        btnShare.setOnClickListener {
+            shareCurrentImage()
         }
 
         // 保存键逻辑
@@ -333,6 +340,45 @@ class ScreenshotActivity : AppCompatActivity() {
         val validBottom = minOf(bitmapHeight, maxOf(top, bottom))
 
         return Rect(validLeft, validTop, validRight, validBottom)
+    }
+
+    private fun shareCurrentImage(){
+        val imageView = findViewById<ImageView>(R.id.imageViewScreenshot)
+        val bitmap = (imageView.drawable as? BitmapDrawable)?.bitmap
+            ?: run {
+                Toast.makeText(this, "无法获取图片", Toast.LENGTH_SHORT).show()
+                return
+            }
+
+        // 将 Bitmap 保存到缓存文件
+        val cacheFile = File(cacheDir, "share_temp.png")
+        try {
+            FileOutputStream(cacheFile).use { stream ->
+                bitmap.compress(Bitmap.CompressFormat.PNG, 100, stream)
+            }
+        } catch (e: IOException) {
+            Toast.makeText(this, "图片保存失败", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        // 通过 FileProvider 获取 Uri（适配 Android 7.0+）
+        val contentUri = FileProvider.getUriForFile(
+            this,
+            "${packageName}.fileprovider", // 需在 Manifest 中声明 FileProvider
+            cacheFile
+        )
+
+        // 构建分享 Intent
+        val shareIntent = Intent().apply {
+            action = Intent.ACTION_SEND
+            putExtra(Intent.EXTRA_STREAM, contentUri)
+            type = "image/png"
+            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION) // 临时授权
+        }
+
+        // 显示系统分享弹窗
+        startActivity(Intent.createChooser(shareIntent, "分享截图到"))
+
     }
 
     private fun saveCurrentImage() {
