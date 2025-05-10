@@ -25,7 +25,6 @@ import com.electroboys.lightsnap.R
 import com.electroboys.lightsnap.domain.screenshot.BitmapCache
 import com.electroboys.lightsnap.domain.screenshot.ImageHistory
 import com.electroboys.lightsnap.domain.screenshot.SelectView
-import androidx.core.net.toUri
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import androidx.core.content.edit
 import com.electroboys.lightsnap.utils.ImageSaveUtil
@@ -50,6 +49,7 @@ class ScreenshotActivity : AppCompatActivity() {
     private val startTouch = PointF()
     private val endTouch = PointF()
     private var originalBitmapKey: String? = null
+    private var isSelectionEnabled = true //框选是否启用,默认开启
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -97,6 +97,12 @@ class ScreenshotActivity : AppCompatActivity() {
             undoToLastImage()
         }
 
+        // 重做键逻辑
+        val btnRedo = findViewById<ImageButton>(R.id.btnRedo)
+        btnRedo.setOnClickListener {
+            redoLastImage()
+        }
+
         // 转发键逻辑
         val btnShare = findViewById<ImageButton>(R.id.btnShare)
         btnShare.setOnClickListener {
@@ -113,6 +119,14 @@ class ScreenshotActivity : AppCompatActivity() {
         val btnExit = findViewById<ImageButton>(R.id.btnExit)
         btnExit.setOnClickListener {
             finish()
+        }
+
+        //  裁剪开关逻辑
+        val btnIfCanSelect = findViewById<ImageButton>(R.id.btnIsCanSelect)
+        btnIfCanSelect.setOnClickListener {
+            toggleSelectionMode()
+
+            // Todo: 改变 btnIfCanSelect 的图标
         }
 
         // 获取传入的 key
@@ -158,7 +172,13 @@ class ScreenshotActivity : AppCompatActivity() {
     override fun onDestroy() {
         super.onDestroy()
         // 清理 Bitmap 缓存
-        BitmapCache.clear()
+        val currentKey = intent.getStringExtra(ScreenshotActivity.EXTRA_SCREENSHOT_KEY)
+        BitmapCache.clearExcept(currentKey)
+    }
+
+    override fun finish() {
+        super.finish()
+        overridePendingTransition(R.anim.fade_out, R.anim.fade_out)
     }
 
     private fun undoToLastImage() {
@@ -190,6 +210,29 @@ class ScreenshotActivity : AppCompatActivity() {
         Toast.makeText(this, "已恢复至上一步", Toast.LENGTH_SHORT).show()
     }
 
+    private fun redoLastImage() {
+        val redoKey = ImageHistory.redo() ?: run {
+            Toast.makeText(this, "没有可重做的操作", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        val bitmap = BitmapCache.getBitmap(redoKey) ?: run {
+            Toast.makeText(this, "图片数据已释放", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        imageView.setImageBitmap(bitmap)
+        intent.putExtra(EXTRA_SCREENSHOT_KEY, redoKey)
+
+        // 更新 UI 状态
+        selectView.clearSelection()
+        btnConfirmSelection.visibility = View.GONE
+        findViewById<TextView>(R.id.selectionHint).visibility = View.VISIBLE
+
+        Toast.makeText(this, "已恢复至下一步", Toast.LENGTH_SHORT).show()
+    }
+
+
     private fun setupTouchListener() {
         val imageContainer = findViewById<View>(R.id.imageContainer)
 
@@ -199,6 +242,7 @@ class ScreenshotActivity : AppCompatActivity() {
             Log.d("ScreenshotExampleActivity", "imageContainer size after layout: ${imageContainer.width} x ${imageContainer.height}")
 
             imageContainer.setOnTouchListener { v, event ->
+                if (!isSelectionEnabled) return@setOnTouchListener false
                 Log.d("ScreenshotExampleActivity", "触摸事件发生")
                 when (event.action) {
                     MotionEvent.ACTION_DOWN -> {
@@ -412,18 +456,30 @@ class ScreenshotActivity : AppCompatActivity() {
             return
         }
 
-        val treeUri = uriString.toUri()
-
-        // 保存图片到指定路径
-        ImageSaveUtil.saveBitmapWithName(
-            context = this,
-            bitmap = bitmap,
-            treeUri = treeUri
-        ) { success ->
-            if (success) {
-                finish()
+//        <-------废弃的老的保存确认弹窗出现逻辑-------->
+//        val treeUri = uriString.toUri()
+//
+//        // 保存图片到指定路径
+//        ImageSaveUtil.saveBitmapWithName(
+//            context = this,
+//            bitmap = bitmap,
+//            treeUri = treeUri
+//        ) { success ->
+//            if (success) {
+//                finish()
+//            }
+//        }
+        val currentKey = intent.getStringExtra(EXTRA_SCREENSHOT_KEY)
+            ?: run {
+                Toast.makeText(this, "图片数据不可用", Toast.LENGTH_SHORT).show()
+                return
             }
+
+        val resultIntent = Intent().apply {
+            putExtra("bitmap_key", currentKey)
         }
+        setResult(RESULT_OK, resultIntent)
+        finish()
     }
 
 
@@ -457,6 +513,22 @@ class ScreenshotActivity : AppCompatActivity() {
         dialog.show()
     }
 
+    private fun toggleSelectionMode() {
+        isSelectionEnabled = !isSelectionEnabled
+
+        if (!isSelectionEnabled) {
+            // 关闭时清空当前选区和 UI 状态
+            selectView.clearSelection()
+            btnConfirmSelection.visibility = View.GONE
+            findViewById<TextView>(R.id.selectionHint).visibility = View.GONE
+            Toast.makeText(this, "裁剪功能已关闭", Toast.LENGTH_SHORT).show()
+        } else {
+            btnConfirmSelection.visibility = View.VISIBLE
+            Toast.makeText(this, "裁剪功能已开启", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+
 
     override fun dispatchKeyEvent(event: android.view.KeyEvent): Boolean {
         if (event.action == android.view.KeyEvent.ACTION_DOWN) {
@@ -474,11 +546,13 @@ class ScreenshotActivity : AppCompatActivity() {
                 android.view.KeyEvent.KEYCODE_Z -> {
                     if (isCtrlPressed && isShiftPressed) {
                         Toast.makeText(this, "Ctrl+Shift+Z 被触发：执行重做", Toast.LENGTH_SHORT).show()
-                        // TODO: 执行重做逻辑
+                        // 执行重做逻辑
+                        redoLastImage()
                         return true
                     } else if (isCtrlPressed) {
                         Toast.makeText(this, "Ctrl+Z 被触发：执行撤销", Toast.LENGTH_SHORT).show()
-                        // TODO: 执行撤销逻辑
+                        // 执行撤销逻辑
+                        undoToLastImage()
                         return true
                     }
                 }
@@ -490,7 +564,7 @@ class ScreenshotActivity : AppCompatActivity() {
                 }
                 android.view.KeyEvent.KEYCODE_ENTER -> {
                     Toast.makeText(this, "ENTER 被触发：保存图像", Toast.LENGTH_SHORT).show()
-                    // TODO: 调用保存逻辑
+                    // 调用保存逻辑
                     saveCurrentImage()
                     return true
                 }
