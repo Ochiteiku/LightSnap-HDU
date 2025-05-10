@@ -488,14 +488,14 @@ class ScreenshotActivity : AppCompatActivity() {
         val view = layoutInflater.inflate(R.layout.dialog_confirm_set_path, null)
         dialog.setContentView(view)
 
-//        // 设置默认展开高度
-//        dialog.setOnShowListener { dialogInterface ->
-//            val bottomSheet = (dialogInterface as BottomSheetDialog).findViewById<View>(com.google.android.material.R.id.design_bottom_sheet)
-//            bottomSheet?.let {
-//                val behavior = com.google.android.material.bottomsheet.BottomSheetBehavior.from(it)
-//                behavior.state = com.google.android.material.bottomsheet.BottomSheetBehavior.STATE_EXPANDED
-//            }
-//        }
+        // 设置默认展开高度
+        dialog.setOnShowListener { dialogInterface ->
+            val bottomSheet = (dialogInterface as BottomSheetDialog).findViewById<View>(com.google.android.material.R.id.design_bottom_sheet)
+            bottomSheet?.let {
+                val behavior = com.google.android.material.bottomsheet.BottomSheetBehavior.from(it)
+                behavior.state = com.google.android.material.bottomsheet.BottomSheetBehavior.STATE_EXPANDED
+            }
+        }
 
         val btnConfirm = view.findViewById<Button>(R.id.btnConfirm)
         val btnCancel = view.findViewById<Button>(R.id.btnCancel)
