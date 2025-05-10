@@ -27,11 +27,15 @@ import com.electroboys.lightsnap.domain.screenshot.ImageHistory
 import com.electroboys.lightsnap.domain.screenshot.SelectView
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import androidx.core.content.edit
+import com.electroboys.lightsnap.domain.watermark.WatermarkConfig
+import com.electroboys.lightsnap.domain.watermark.WatermarkOverlayView
 import com.electroboys.lightsnap.utils.ImageSaveUtil
 import com.electroboys.lightsnap.utils.PathPickerUtil
+import com.electroboys.lightsnap.utils.WatermarkUtil
 import java.io.File
 import java.io.FileOutputStream
 import java.io.IOException
+import androidx.core.view.isGone
 
 class ScreenshotActivity : AppCompatActivity() {
 
@@ -39,7 +43,7 @@ class ScreenshotActivity : AppCompatActivity() {
     private lateinit var imageView: ImageView
     private lateinit var btnConfirmSelection: ImageButton
     private lateinit var folderLauncher: ActivityResultLauncher<Intent>
-
+    private lateinit var watermarkOverlay: WatermarkOverlayView
 
     companion object {
         const val EXTRA_SCREENSHOT_KEY = "screenshot_key"
@@ -50,6 +54,8 @@ class ScreenshotActivity : AppCompatActivity() {
     private val endTouch = PointF()
     private var originalBitmapKey: String? = null
     private var isSelectionEnabled = true //框选是否启用,默认开启
+    private val watermarkConfig = WatermarkConfig.default() //水印配置
+    private var isWatermarkVisible = false // 水印是否显示
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -89,6 +95,7 @@ class ScreenshotActivity : AppCompatActivity() {
         imageView = findViewById(R.id.imageViewScreenshot)
         selectView = findViewById(R.id.selectView)
         btnConfirmSelection = findViewById(R.id.btnConfirmSelection)
+        watermarkOverlay = findViewById(R.id.watermarkOverlay)
 
         // 撤销键逻辑
         val btnBack = findViewById<ImageButton>(R.id.btnUndo)
@@ -125,8 +132,15 @@ class ScreenshotActivity : AppCompatActivity() {
         val btnIfCanSelect = findViewById<ImageButton>(R.id.btnIsCanSelect)
         btnIfCanSelect.setOnClickListener {
             toggleSelectionMode()
+        }
 
-            // Todo: 改变 btnIfCanSelect 的图标
+        // 水印开关逻辑
+        val btnWatermark = findViewById<ImageButton>(R.id.btnWatermark)
+        btnWatermark.setOnClickListener {
+            toggleWatermarkMode()
+
+            // TODO: 修改水印高亮图标
+            // TODO: 水印设置
         }
 
         // 获取传入的 key
@@ -138,20 +152,6 @@ class ScreenshotActivity : AppCompatActivity() {
 
         // 从缓存中取出 Bitmap
         val bitmap = key?.let { BitmapCache.getBitmap(it) }
-
-//        // 编辑键逻辑 跳转到编辑Activity
-//        val btnEditWrapper = findViewById<LinearLayout>(R.id.btnEditWrapper)
-//        btnEditWrapper.setOnClickListener{
-//            // 通过缓存实现数据传递
-//            val tmpFile = File(cacheDir, "tmp_img.jpeg")
-//            bitmap?.compress(Bitmap.CompressFormat.JPEG, 90, FileOutputStream(tmpFile))
-//
-//            val intent = Intent(this, EditScreenshotActivity::class.java).apply {
-//                putExtra("image_path", tmpFile.absoluteFile)
-//            }
-//
-//            startActivity(intent)
-//        }
 
         Log.d("ScreenshotExampleActivity", "Test：this  is called")
         if (bitmap != null) {
@@ -172,7 +172,7 @@ class ScreenshotActivity : AppCompatActivity() {
     override fun onDestroy() {
         super.onDestroy()
         // 清理 Bitmap 缓存
-        val currentKey = intent.getStringExtra(ScreenshotActivity.EXTRA_SCREENSHOT_KEY)
+        val currentKey = intent.getStringExtra(EXTRA_SCREENSHOT_KEY)
         BitmapCache.clearExcept(currentKey)
     }
 
@@ -476,6 +476,20 @@ class ScreenshotActivity : AppCompatActivity() {
 //                finish()
 //            }
 //        }
+        if(isWatermarkVisible){
+            // 将水印实际添加到图片中
+            val watermarkedBitmap = WatermarkUtil.addWatermark(
+                originalBitmap = bitmap,
+                config = watermarkConfig
+            )
+
+            // 将更新图片和key
+            val newKey = BitmapCache.cacheBitmap(watermarkedBitmap)
+//            imageView.setImageBitmap(watermarkedBitmap)
+            intent.putExtra(EXTRA_SCREENSHOT_KEY, newKey)
+//            ImageHistory.push(newKey)
+        }
+
         val currentKey = intent.getStringExtra(EXTRA_SCREENSHOT_KEY)
             ?: run {
                 Toast.makeText(this, "图片数据不可用", Toast.LENGTH_SHORT).show()
@@ -541,6 +555,26 @@ class ScreenshotActivity : AppCompatActivity() {
         }
     }
 
+    private fun toggleWatermarkMode(){
+        isWatermarkVisible = !isWatermarkVisible
+        val key = intent.getStringExtra(EXTRA_SCREENSHOT_KEY)
+        val bitmap = key?.let { BitmapCache.getBitmap(it) }
+        if (bitmap != null) {
+            if(isWatermarkVisible){
+                if(watermarkOverlay.isGone){
+                    watermarkOverlay.setWatermark(
+                        config = watermarkConfig
+                    )
+                }
+                watermarkOverlay.visibility = View.VISIBLE
+                Toast.makeText(this, "已添加水印", Toast.LENGTH_SHORT).show()
+            } else {
+                watermarkOverlay.visibility = View.INVISIBLE
+                Toast.makeText(this, "已取消添加水印", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
 
 
     // 快捷键触发功能
@@ -559,12 +593,14 @@ class ScreenshotActivity : AppCompatActivity() {
                 }
                 android.view.KeyEvent.KEYCODE_Z -> {
                     if (isCtrlPressed && isShiftPressed) {
-                        Toast.makeText(this, "Ctrl+Shift+Z 被触发：执行重做", Toast.LENGTH_SHORT).show()
+                        // 重做操作已经有一个提示弹窗
+//                        Toast.makeText(this, "Ctrl+Shift+Z 被触发：执行重做", Toast.LENGTH_SHORT).show()
                         // 执行重做逻辑
                         redoLastImage()
                         return true
                     } else if (isCtrlPressed) {
-                        Toast.makeText(this, "Ctrl+Z 被触发：执行撤销", Toast.LENGTH_SHORT).show()
+                        // 撤销操作已经有一个提示弹窗
+//                        Toast.makeText(this, "Ctrl+Z 被触发：执行撤销", Toast.LENGTH_SHORT).show()
                         // 执行撤销逻辑
                         undoToLastImage()
                         return true

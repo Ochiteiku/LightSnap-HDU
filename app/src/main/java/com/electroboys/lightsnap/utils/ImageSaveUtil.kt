@@ -77,6 +77,8 @@ object ImageSaveUtil {
         messageText.setOnClickListener {
             dialog.dismiss()
             showRenameDialog(context, bitmap, treeUri, defaultName, onResult)
+            // TODO: 生命周期结束再弹窗
+            Toast.makeText(context, "图片已保存", Toast.LENGTH_SHORT).show()
         }
 
         dialog.show()
