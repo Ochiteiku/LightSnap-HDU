@@ -185,7 +185,7 @@
             <ImageButton
                 android:id="@+id/btnIsCanSelect"
                 style="@style/ToolButtonStyle"
-                android:src="@drawable/ic_reselect"
+                android:src="@drawable/ic_reselect_on"
                 android:contentDescription="裁剪开关" />
 
 

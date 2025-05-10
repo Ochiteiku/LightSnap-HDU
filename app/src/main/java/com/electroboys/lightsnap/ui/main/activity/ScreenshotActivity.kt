@@ -181,6 +181,7 @@ class ScreenshotActivity : AppCompatActivity() {
         overridePendingTransition(R.anim.fade_out, R.anim.fade_out)
     }
 
+    // 撤销操作
     private fun undoToLastImage() {
         if (!ImageHistory.canUndo()) {
             Toast.makeText(this, "没有更多可撤销的操作", Toast.LENGTH_SHORT).show()
@@ -210,6 +211,7 @@ class ScreenshotActivity : AppCompatActivity() {
         Toast.makeText(this, "已恢复至上一步", Toast.LENGTH_SHORT).show()
     }
 
+    // 重做操作
     private fun redoLastImage() {
         val redoKey = ImageHistory.redo() ?: run {
             Toast.makeText(this, "没有可重做的操作", Toast.LENGTH_SHORT).show()
@@ -233,6 +235,7 @@ class ScreenshotActivity : AppCompatActivity() {
     }
 
 
+    //  设置触摸监听器
     private fun setupTouchListener() {
         val imageContainer = findViewById<View>(R.id.imageContainer)
 
@@ -271,6 +274,7 @@ class ScreenshotActivity : AppCompatActivity() {
         }
     }
 
+    // 更新选区并重绘
     private fun updateAndInvalidateSelection() {
         val left = minOf(startTouch.x, endTouch.x).toInt()
         val top = minOf(startTouch.y, endTouch.y).toInt()
@@ -312,6 +316,7 @@ class ScreenshotActivity : AppCompatActivity() {
     }
 
 
+    // 设置确认按钮点击监听器
     private fun setupConfirmButtonClickListener() {
         btnConfirmSelection.setOnClickListener {
             val bitmap = intent.getStringExtra(EXTRA_SCREENSHOT_KEY)?.let { BitmapCache.getBitmap(it) }
@@ -345,6 +350,7 @@ class ScreenshotActivity : AppCompatActivity() {
         }
     }
 
+    // 获取剪裁的矩形
     private fun getBitmapCropRect(imageView: ImageView): Rect? {
         val drawable = imageView.drawable ?: return null
         val bitmapWidth = drawable.intrinsicWidth
@@ -420,6 +426,7 @@ class ScreenshotActivity : AppCompatActivity() {
 
     }
 
+    //  保存图片
     private fun saveCurrentImage() {
         val imageView = findViewById<ImageView>(R.id.imageViewScreenshot)
         val bitmap = (imageView.drawable as? BitmapDrawable)?.bitmap
@@ -483,6 +490,7 @@ class ScreenshotActivity : AppCompatActivity() {
     }
 
 
+    // 显示设置路径对话框
     private fun showSetPathDialog(onConfirm: (Boolean) -> Unit) {
         val dialog = BottomSheetDialog(this)
         val view = layoutInflater.inflate(R.layout.dialog_confirm_set_path, null)
@@ -513,23 +521,29 @@ class ScreenshotActivity : AppCompatActivity() {
         dialog.show()
     }
 
+    // 切换裁剪开关
     private fun toggleSelectionMode() {
         isSelectionEnabled = !isSelectionEnabled
 
+        val btnIfCanSelect = findViewById<ImageButton>(R.id.btnIsCanSelect)
         if (!isSelectionEnabled) {
             // 关闭时清空当前选区和 UI 状态
             selectView.clearSelection()
             btnConfirmSelection.visibility = View.GONE
             findViewById<TextView>(R.id.selectionHint).visibility = View.GONE
+            btnIfCanSelect.setImageResource(R.drawable.ic_reselect)
             Toast.makeText(this, "裁剪功能已关闭", Toast.LENGTH_SHORT).show()
         } else {
-            btnConfirmSelection.visibility = View.VISIBLE
+            btnConfirmSelection.visibility = View.GONE
+            findViewById<TextView>(R.id.selectionHint).visibility = View.VISIBLE
+            btnIfCanSelect.setImageResource(R.drawable.ic_reselect_on)
             Toast.makeText(this, "裁剪功能已开启", Toast.LENGTH_SHORT).show()
         }
     }
 
 
 
+    // 快捷键触发功能
     override fun dispatchKeyEvent(event: android.view.KeyEvent): Boolean {
         if (event.action == android.view.KeyEvent.ACTION_DOWN) {
             val isCtrlPressed = event.isCtrlPressed
