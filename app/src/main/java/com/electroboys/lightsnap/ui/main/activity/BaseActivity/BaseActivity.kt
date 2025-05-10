@@ -15,6 +15,7 @@ import com.electroboys.lightsnap.ui.main.activity.ScreenshotActivity
 import com.electroboys.lightsnap.ui.main.activity.ScreenshotActivityForBase
 import com.electroboys.lightsnap.ui.main.viewmodel.MainViewModel
 import com.electroboys.lightsnap.utils.KeyEventUtil
+import com.electroboys.lightsnap.utils.SecretUtil
 
 open class BaseActivity : AppCompatActivity() {
 
@@ -49,41 +50,46 @@ open class BaseActivity : AppCompatActivity() {
             val prefs = getSharedPreferences("settings", Context.MODE_PRIVATE)
             val screenshotEnabled = prefs.getBoolean("screenshot_enabled", false)
 
-            if (screenshotEnabled) {
+            // 检查是否密聊
+            if (SecretUtil.isSecretMode()) {
+                SecretUtil.showSecretToast(this)
+            } else {
+                if (screenshotEnabled) {
 
-                // 如果已经在截图模式，直接返回，防止重复进入
-                if (isTakingScreenshot) return@observe
+                    // 如果已经在截图模式，直接返回，防止重复进入
+                    if (isTakingScreenshot) return@observe
 
-                isTakingScreenshot = true
+                    isTakingScreenshot = true
 
-                val screenshotHelper = ScreenshotActivityForBase(this)
-                currentScreenshotHelper = screenshotHelper
+                    val screenshotHelper = ScreenshotActivityForBase(this)
+                    currentScreenshotHelper = screenshotHelper
 
-                screenshotHelper.enableBoxSelectOnce { bitmap ->
-                    runOnUiThread {
-                        if (bitmap != null) {
-                            val bitmapKey = BitmapCache.cacheBitmap(bitmap)
-                            val intent = Intent(this, ScreenshotActivity::class.java).apply {
-                                putExtra(ScreenshotActivity.EXTRA_SCREENSHOT_KEY, bitmapKey)
+                    screenshotHelper.enableBoxSelectOnce { bitmap ->
+                        runOnUiThread {
+                            if (bitmap != null) {
+                                val bitmapKey = BitmapCache.cacheBitmap(bitmap)
+                                val intent = Intent(this, ScreenshotActivity::class.java).apply {
+                                    putExtra(ScreenshotActivity.EXTRA_SCREENSHOT_KEY, bitmapKey)
+                                }
+
+                                val options = ActivityOptions.makeCustomAnimation(
+                                    this,
+                                    R.anim.shot_enter, // 进入动画
+                                    R.anim.shot_exit   // 退出动画
+                                )
+                                startActivity(intent, options.toBundle())
+                            } else {
+                                Toast.makeText(this, "截图已取消", Toast.LENGTH_SHORT).show()
                             }
 
-                            val options = ActivityOptions.makeCustomAnimation(
-                                this,
-                                R.anim.shot_enter, // 进入动画
-                                R.anim.shot_exit   // 退出动画
-                            )
-                            startActivity(intent, options.toBundle())
-                        } else {
-                            Toast.makeText(this, "截图已取消", Toast.LENGTH_SHORT).show()
+                            isTakingScreenshot = false
+                            currentScreenshotHelper = null
                         }
-
-                        isTakingScreenshot = false
-                        currentScreenshotHelper = null
                     }
-                }
 
-            } else {
-                Toast.makeText(this, "灵截功能未启用", Toast.LENGTH_SHORT).show()
+                } else {
+                    Toast.makeText(this, "灵截功能未启用", Toast.LENGTH_SHORT).show()
+                }
             }
         }
     }

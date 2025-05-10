@@ -14,16 +14,23 @@ import androidx.fragment.app.DialogFragment.STYLE_NO_TITLE
 import androidx.fragment.app.Fragment
 import com.electroboys.lightsnap.R
 import com.electroboys.lightsnap.data.entity.Document
+import com.electroboys.lightsnap.ui.main.activity.ScreenshotActivityForBase
+import com.electroboys.lightsnap.utils.SecretUtil
 
-// 全屏状态标志
-private var isFullscreen = false
 
 class DocumentDetailFragment : Fragment(R.layout.doc_document_detail) {
 
+
+
     companion object {
+        private var isFullscreen = false
+        private var isDocumentSecret = false
+
         fun newInstance(document: Document) = DocumentDetailFragment().apply {
             arguments = Bundle().apply { putParcelable("document", document) }
         }
+
+        fun getDocumentSecret() = isDocumentSecret
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
@@ -35,12 +42,12 @@ class DocumentDetailFragment : Fragment(R.layout.doc_document_detail) {
         view.findViewById<TextView>(R.id.detailTime).text = "创建时间: ${document.time}"
 
         // 退出按键
-        view.findViewById<ImageView>(R.id.closeButton).setOnClickListener {
+        view.findViewById<ImageView>(R.id.closeDocumentButton).setOnClickListener {
             parentFragmentManager.popBackStack()
         }
 
         // 全屏按键
-        view.findViewById<ImageView>(R.id.fcButton).setOnClickListener {
+        view.findViewById<ImageView>(R.id.fcDocumentButton).setOnClickListener {
             var screen = R.id.main
             if (isFullscreen){
                 screen = R.id.documentContainer
@@ -58,19 +65,17 @@ class DocumentDetailFragment : Fragment(R.layout.doc_document_detail) {
         }
 
         // 密聊
-        val secretImage = view.findViewById<ImageView>(R.id.secretImage)
-        val secretSwitch = view.findViewById<SwitchCompat>(R.id.secretSwitch)
-        secretSwitch.setOnCheckedChangeListener { _, isChecked ->
-            secretImage.setImageResource(
-                if (isChecked) {
-                    R.drawable.ic_eye_closed
-                }
-                else {
-                    R.drawable.ic_eye_open
-                }
-            )
+        val secretImage = view.findViewById<ImageView>(R.id.secretDocumentButton)
+        secretImage.setOnClickListener {
+            if(!isDocumentSecret){
+                SecretUtil.setSecret(true)
+                secretImage.setImageResource(R.drawable.ic_eye_closed)
+            }else{
+                SecretUtil.setSecret(false)
+                secretImage.setImageResource(R.drawable.ic_eye_open)
+            }
+            isDocumentSecret = !isDocumentSecret
         }
-
         enterFullscreen()
     }
 

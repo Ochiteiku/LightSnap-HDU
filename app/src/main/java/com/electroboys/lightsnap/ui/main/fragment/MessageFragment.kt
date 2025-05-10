@@ -1,10 +1,10 @@
 package com.electroboys.lightsnap.ui.main.fragment
 
+import android.annotation.SuppressLint
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup.LayoutParams.MATCH_PARENT
-import android.widget.EditText
 import android.widget.FrameLayout
 import android.widget.ImageView
 import android.widget.LinearLayout
@@ -17,15 +17,21 @@ import com.electroboys.lightsnap.R
 import com.electroboys.lightsnap.data.entity.Contact
 import com.electroboys.lightsnap.domain.message.ChatAdapter
 import com.electroboys.lightsnap.domain.message.ContactAndChatObject
+import com.electroboys.lightsnap.ui.main.activity.ScreenshotActivityForBase
+import com.electroboys.lightsnap.utils.SecretUtil
+
 
 class MessageFragment : Fragment(R.layout.fragment_message) {
 
-
     private val contacts = ContactAndChatObject.contacts
-
     private var selectedContact: Contact? = null
     private var selectedOption: TextView? = null
     private lateinit var messageListContainer: LinearLayout
+
+    companion object {
+        private var isMessageSecret = false
+        fun getMessageSecret() = isMessageSecret
+    }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
@@ -216,6 +222,7 @@ class MessageFragment : Fragment(R.layout.fragment_message) {
     }
 
     // 会话
+    @SuppressLint("SuspiciousIndentation")
     private fun updateChatView(contact: Contact) {
         val chatContainer = requireView().findViewById<FrameLayout>(R.id.chatContainer)
         chatContainer.removeAllViews()
@@ -252,14 +259,32 @@ class MessageFragment : Fragment(R.layout.fragment_message) {
         rootLayout.addView(inputContainer)
 
         // 设置发送按钮点击事件
-        inputContainer.findViewById<ImageView>(R.id.sendButton).apply {
-            setOnClickListener {
-                val inputText =
-                    inputContainer.findViewById<EditText>(R.id.messageInput).text.toString()
-                if (inputText.isNotBlank()) {
-                    // TODO 处理发送逻辑
-                }
+//        inputContainer.findViewById<ImageView>(R.id.sendButton).apply {
+//            setOnClickListener {
+//                val inputText =
+//                    inputContainer.findViewById<EditText>(R.id.messageInput).text.toString()
+//                if (inputText.isNotBlank()) {
+//                    // 处理发送逻辑
+//                }
+//            }
+//        }
+        val closeButton = toolbar.findViewById<ImageView>(R.id.closeMessageButton)
+            closeButton.setOnClickListener {
+                parentFragmentManager.popBackStack()
             }
+
+
+        val secretImage = toolbar.findViewById<ImageView>(R.id.secretMessageButton)
+        secretImage.setOnClickListener {
+            if (!isMessageSecret) {
+                SecretUtil.setSecret(true)
+                secretImage.setImageResource(R.drawable.ic_eye_closed)
+            } else {
+                SecretUtil.setSecret(false)
+                secretImage.setImageResource(R.drawable.ic_eye_open)
+            }
+            isMessageSecret = !isMessageSecret
+
         }
 
         chatContainer.addView(rootLayout)

@@ -2,6 +2,7 @@ package com.electroboys.lightsnap
 
 import android.os.Bundle
 import android.view.View
+import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
@@ -12,7 +13,10 @@ import com.electroboys.lightsnap.ui.main.fragment.SettingsFragment
 import com.electroboys.lightsnap.ui.main.fragment.LibraryFragment
 import androidx.activity.viewModels
 import com.electroboys.lightsnap.ui.main.activity.BaseActivity.BaseActivity
+import com.electroboys.lightsnap.ui.main.activity.ScreenshotActivityForBase
+import com.electroboys.lightsnap.ui.main.fragment.DocumentDetailFragment
 import com.electroboys.lightsnap.ui.main.viewmodel.MainViewModel
+import com.electroboys.lightsnap.utils.SecretUtil
 
 
 class MainActivity : BaseActivity() {
@@ -60,18 +64,30 @@ class MainActivity : BaseActivity() {
         // 点击事件
         // 设置点击监听
         navMessage.setOnClickListener {
+            if(MessageFragment.getMessageSecret()){
+                SecretUtil.setSecret(true)
+            }else{
+                SecretUtil.setSecret(false)
+            }
             replaceFragment(MessageFragment::class.java)
             highlightNavItem(navMessage)
         }
         navDocument.setOnClickListener {
+            if(DocumentDetailFragment.getDocumentSecret()){
+                SecretUtil.setSecret(true)
+            }else{
+                SecretUtil.setSecret(false)
+            }
             replaceFragment(DocumentFragment::class.java)
             highlightNavItem(navDocument)
         }
         navSettings.setOnClickListener {
+            SecretUtil.setSecret(false)
             replaceFragment(SettingsFragment::class.java)
             highlightNavItem(navSettings)
         }
         navLibrary.setOnClickListener {
+            SecretUtil.setSecret(false)
             replaceFragment(LibraryFragment::class.java)
             highlightNavItem(navLibrary)
         }

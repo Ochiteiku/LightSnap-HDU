@@ -20,14 +20,9 @@ class ChatAdapter(private var messages: List<Message>, private var contactAvatar
         }
         val view = LayoutInflater.from(parent.context).inflate(layout, parent, false)
         return MessageViewHolder(view)
+
     }
 
-    // 更新数据的方法（包含联系人头像）
-    fun updateMessages(newMessages: List<Message>, newAvatarRes: Int) {
-        this.messages = newMessages
-        this.contactAvatarRes = newAvatarRes
-        notifyDataSetChanged()
-    }
 
 
     override fun onBindViewHolder(holder: MessageViewHolder, position: Int) {

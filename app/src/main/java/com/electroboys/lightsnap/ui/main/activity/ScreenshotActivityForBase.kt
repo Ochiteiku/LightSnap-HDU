@@ -139,5 +139,4 @@ class ScreenshotActivityForBase(private val activity: AppCompatActivity) {
         onCaptureListener = null
     }
 
-
 }

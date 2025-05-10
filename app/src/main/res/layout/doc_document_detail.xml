@@ -74,13 +74,13 @@
         android:orientation="horizontal"
         android:background="@color/white">
         <ImageView
-            android:id="@+id/closeButton"
+            android:id="@+id/closeDocumentButton"
             android:layout_width="48dp"
             android:layout_height="48dp"
             android:padding="12dp"
             android:src="@drawable/ic_back" />
         <ImageView
-            android:id="@+id/fcButton"
+            android:id="@+id/fcDocumentButton"
             android:layout_width="48dp"
             android:layout_height="48dp"
             android:padding="8dp"
@@ -90,16 +90,11 @@
             android:layout_height="0dp"
             android:layout_weight="1" />
         <ImageView
-            android:id="@+id/secretImage"
-            android:layout_width="24dp"
+            android:id="@+id/secretDocumentButton"
+            android:layout_width="48dp"
             android:layout_height="48dp"
+            android:padding="8dp"
             android:src="@drawable/ic_eye_open" />
-        <androidx.appcompat.widget.SwitchCompat
-            android:id="@+id/secretSwitch"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            app:thumbTint="@color/black"
-            android:checked="false" />
     </LinearLayout>
 
 </FrameLayout>

@@ -30,6 +30,9 @@ import com.google.android.material.bottomsheet.BottomSheetDialog
 import androidx.core.content.edit
 import com.electroboys.lightsnap.utils.ImageSaveUtil
 import com.electroboys.lightsnap.utils.PathPickerUtil
+import java.io.File
+import java.io.FileOutputStream
+import java.io.IOException
 
 class ScreenshotActivity : AppCompatActivity() {
 
@@ -429,14 +432,14 @@ class ScreenshotActivity : AppCompatActivity() {
         val view = layoutInflater.inflate(R.layout.dialog_confirm_set_path, null)
         dialog.setContentView(view)
 
-        // 设置默认展开高度
-        dialog.setOnShowListener { dialogInterface ->
-            val bottomSheet = (dialogInterface as BottomSheetDialog).findViewById<View>(com.google.android.material.R.id.design_bottom_sheet)
-            bottomSheet?.let {
-                val behavior = com.google.android.material.bottomsheet.BottomSheetBehavior.from(it)
-                behavior.state = com.google.android.material.bottomsheet.BottomSheetBehavior.STATE_EXPANDED
-            }
-        }
+//        // 设置默认展开高度
+//        dialog.setOnShowListener { dialogInterface ->
+//            val bottomSheet = (dialogInterface as BottomSheetDialog).findViewById<View>(com.google.android.material.R.id.design_bottom_sheet)
+//            bottomSheet?.let {
+//                val behavior = com.google.android.material.bottomsheet.BottomSheetBehavior.from(it)
+//                behavior.state = com.google.android.material.bottomsheet.BottomSheetBehavior.STATE_EXPANDED
+//            }
+//        }
 
         val btnConfirm = view.findViewById<Button>(R.id.btnConfirm)
         val btnCancel = view.findViewById<Button>(R.id.btnCancel)

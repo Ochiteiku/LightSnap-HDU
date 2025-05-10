@@ -8,6 +8,7 @@ data class Document(
     val title: String,
     val content: String,
     val time: String,
+    val isSecret: Boolean = false,
     val id: String
 ) : Parcelable {
     // 实现 describeContents（通常返回 0）
@@ -18,12 +19,19 @@ data class Document(
         dest.writeString(title)
         dest.writeString(content)
         dest.writeString(time)
+        dest.writeString(isSecret.toString())
     }
 
     // 反序列化 Creator
     companion object CREATOR : Parcelable.Creator<Document> {
         override fun createFromParcel(source: Parcel): Document =
-            Document(source.readString()!!, source.readString()!!, source.readString()!!, "doc1")
+            Document(
+                source.readString()!!,
+                source.readString()!!,
+                source.readString()!!,
+                source.readByte() != 0.toByte(),
+                "doc1"
+            )
 
         override fun newArray(size: Int): Array<Document?> = arrayOfNulls(size)
     }
