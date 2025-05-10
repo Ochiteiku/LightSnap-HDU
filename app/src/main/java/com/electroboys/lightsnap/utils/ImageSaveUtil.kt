@@ -14,9 +14,11 @@ import android.widget.Toast
 import com.electroboys.lightsnap.R
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import java.io.IOException
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 object ImageSaveUtil {
-
     // 使用路径和文件名保存 Bitmap 到 DocumentFile
     private fun saveBitmap(
         context: Context,
@@ -50,11 +52,9 @@ object ImageSaveUtil {
         treeUri: Uri,
         onResult: ((success: Boolean) -> Unit)? = null
     ) {
-        val defaultName = "screenshot_${System.currentTimeMillis()}"
-        val tempFileName = "temp_saving_file.png"
-
-        // 先以临时文件名保存图片
-        saveBitmap(context, bitmap, treeUri, tempFileName)
+        val timestamp = SimpleDateFormat("yyyyMMddHHmmss", Locale.getDefault()).format(Date())
+        val defaultName = "Img_$timestamp"
+        var isSaved = false
 
         // 创建提示弹窗
         val dialog = BottomSheetDialog(context)
@@ -76,9 +76,10 @@ object ImageSaveUtil {
         // 点击弹窗时，关闭当前弹窗并打开命名弹窗
         messageText.setOnClickListener {
             dialog.dismiss()
-            showRenameDialog(context, bitmap, treeUri, defaultName, onResult)
-            // TODO: 生命周期结束再弹窗
-            Toast.makeText(context, "图片已保存", Toast.LENGTH_SHORT).show()
+            showRenameDialog(context, bitmap, treeUri, defaultName) { success ->
+                isSaved = true // 已经在 rename dialog 中保存过了
+                onResult?.invoke(success)
+            }
         }
 
         dialog.show()
@@ -87,10 +88,16 @@ object ImageSaveUtil {
         messageView.postDelayed({
             if (dialog.isShowing) {
                 dialog.dismiss()
-                saveBitmap(context, bitmap, treeUri, defaultName)
                 onResult?.invoke(true)
             }
         }, 3000)
+
+        dialog.setOnDismissListener {
+            if (!isSaved) {
+                saveBitmap(context, bitmap, treeUri, defaultName)
+            }
+            onResult?.invoke(true)
+        }
     }
 
     private fun showRenameDialog(
@@ -116,9 +123,7 @@ object ImageSaveUtil {
         val etFileName = view.findViewById<EditText>(R.id.etFileName)
         val btnConfirm = view.findViewById<Button>(R.id.btnConfirm)
         val btnCancel = view.findViewById<Button>(R.id.btnCancel)
-        val btnUseDefault = view.findViewById<Button>(R.id.btnUseDefault)
-
-        etFileName.setText(defaultName)
+        val btnClear = view.findViewById<Button>(R.id.btnClear)
 
         btnConfirm.setOnClickListener {
             val input = etFileName.text.toString().trim()
@@ -133,16 +138,19 @@ object ImageSaveUtil {
 
         btnCancel.setOnClickListener {
             dialog.dismiss()
+            saveBitmap(context, bitmap, treeUri, defaultName)
             onResult?.invoke(false)
         }
 
-        btnUseDefault.setOnClickListener {
-            dialog.dismiss()
-            saveBitmap(context, bitmap, treeUri, defaultName)
-            onResult?.invoke(true)
+        btnClear.setOnClickListener {
+            etFileName.text.clear()
         }
 
         dialog.show()
+
+        dialog.setOnDismissListener {
+            Toast.makeText(context, "图片已保存", Toast.LENGTH_SHORT).show()
+        }
     }
 
 

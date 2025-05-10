@@ -29,10 +29,11 @@
         android:layout_marginTop="16dp">
 
         <Button
-            android:id="@+id/btnUseDefault"            style="?android:attr/buttonBarButtonStyle"
+            android:id="@+id/btnClear"
+            style="?android:attr/buttonBarButtonStyle"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="使用默认名称"
+            android:text="清空"
             android:layout_marginEnd="16dp"/>
 
         <Button
