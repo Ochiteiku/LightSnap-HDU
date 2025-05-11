@@ -134,7 +134,7 @@
             <ImageButton
                 android:id="@+id/btnWatermark"
                 style="@style/ToolButtonStyle"
-                android:src="@drawable/ic_line"
+                android:src="@drawable/ic_watermark"
                 android:contentDescription="水印" />
 
 
