@@ -1,5 +1,6 @@
 package com.electroboys.lightsnap.ui.main.activity
 
+import android.app.AlertDialog
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
@@ -64,6 +65,7 @@ import org.json.JSONArray
 import java.util.concurrent.TimeUnit
 import kotlin.math.max
 import kotlin.math.min
+import kotlin.math.sqrt
 
 
 class ScreenshotActivity : AppCompatActivity() {
@@ -144,6 +146,28 @@ class ScreenshotActivity : AppCompatActivity() {
             performTextRecognition(croppedBitmap)
         }
 
+        // 摘要键逻辑
+        val btnSummary = findViewById<ImageButton>(R.id.btnSummary)
+        btnSummary.setOnClickListener {
+            // 执行摘要操作
+//            if (!recognizedText.isNullOrBlank()) {
+//                val fullText = recognizedText!!
+//
+//                lifecycleOwner.lifecycleScope.launch {
+//                    val summary = try {
+//                        getSummaryFromSuanliAPI(fullText)
+//                    } catch (e: Exception) {
+//                        e.printStackTrace()
+//                        println("捕获到异常：${e.message}")
+//                        "请求摘要失败，请检查网络或API Key"
+//                    }
+//                    showSummaryDialog(summary)
+//                }
+//            } else {
+//                Toast.makeText(this, "请先进行文字识别", Toast.LENGTH_SHORT).show()
+//            }
+        }
+
         // 撤销键逻辑
         val btnBack = findViewById<ImageButton>(R.id.btnUndo)
         btnBack.setOnClickListener {
@@ -161,6 +185,13 @@ class ScreenshotActivity : AppCompatActivity() {
         val btnShare = findViewById<ImageButton>(R.id.btnShare)
         btnShare.setOnClickListener {
             shareCurrentImage()
+        }
+
+        // 图片复制键逻辑
+        val btnCopy = findViewById<ImageButton>(R.id.btnCopy)
+        btnCopy.setOnClickListener {
+            // 执行复制图片操作
+            copyImageToClipboard()
         }
 
         // 保存键逻辑
@@ -740,66 +771,66 @@ class ScreenshotActivity : AppCompatActivity() {
             val text = textBlock.text
             val boundingBox = textBlock.boundingBox ?: return@forEach
 
-            // 获取当前图片的矩阵变换参数
+            // 获取图片矩阵变换参数
             val matrix = imageView.imageMatrix
             val values = FloatArray(9).also { matrix.getValues(it) }
 
-            // 计算实际显示区域坐标
+            // 计算映射后的坐标
             val mappedLeft = (boundingBox.left * values[Matrix.MSCALE_X] + values[Matrix.MTRANS_X])
             val mappedTop = (boundingBox.top * values[Matrix.MSCALE_Y] + values[Matrix.MTRANS_Y])
             val mappedRight = (boundingBox.right * values[Matrix.MSCALE_X] + values[Matrix.MTRANS_X])
             val mappedBottom = (boundingBox.bottom * values[Matrix.MSCALE_Y] + values[Matrix.MTRANS_Y])
 
-            // 边界检查
             val scaledLeft = max(0f, mappedLeft).toInt()
             val scaledTop = max(0f, mappedTop).toInt()
-            val scaledRight = max(
-                (scaledLeft + 1).toFloat(), // 统一转换为Float
-                min(mappedRight, imageWidth.toFloat())
-            ).toInt() // 最小宽度1px
-            val scaledBottom = max(
-                (scaledTop + 1).toFloat(), // 显式转换为Float
-                min(mappedBottom, imageHeight.toFloat())
-            ).toInt()
+            val scaledRight = max((scaledLeft + 1).toFloat(), min(mappedRight, imageWidth.toFloat())).toInt()
+            val scaledBottom = max((scaledTop + 1).toFloat(), min(mappedBottom, imageHeight.toFloat())).toInt()
+
+            val paddingHorizontal = 4.dpToPx()
+            val paddingVertical = 2.dpToPx()
+
+            val blockWidth = scaledRight - scaledLeft
+            val blockHeight = scaledBottom - scaledTop
+
+            val extraHeight = (blockHeight * 0.3f).toInt() // 多留30%高度避免裁剪
+            val layoutWidth = blockWidth
+            val layoutHeight = blockHeight + paddingVertical * 2 + extraHeight
 
             val textView = TextView(this).apply {
                 this.text = text
                 setTextColor(Color.BLACK)
                 setBackgroundColor(Color.parseColor("#E0F0FF"))
-                setPadding(4.dpToPx(), 2.dpToPx(), 4.dpToPx(), 2.dpToPx())
+                setPadding(paddingHorizontal, paddingVertical, paddingHorizontal, paddingVertical)
+                gravity = Gravity.CENTER
                 tag = "ocr_text"
 
-                // 动态字体计算（SP单位）
-                val estimatedTextSizePx = (scaledBottom - scaledTop) * 0.4f
+                // 估算动态字体大小
+                val area = layoutWidth * layoutHeight
+                val estimatedTextSizePx = sqrt(area.toFloat()) * 0.2f
                 val textSizeSp = estimatedTextSizePx / resources.displayMetrics.scaledDensity
                 textSize = textSizeSp.coerceIn(12f, 36f)
 
-                // 点击区域优化
                 minimumWidth = 32.dpToPx()
                 minimumHeight = 24.dpToPx()
 
                 setOnClickListener {
                     if (selectedTexts.contains(text)) {
                         selectedTexts.remove(text)
-                        background.setTint(Color.parseColor("#E0F0FF"))
+                        setBackgroundColor(Color.parseColor("#E0F0FF"))
                     } else {
                         selectedTexts.add(text)
-                        background.setTint(Color.parseColor("#AA66CCFF"))
+                        setBackgroundColor(Color.parseColor("#AA66CCFF"))
                     }
                 }
             }
 
-            // 添加视图到父容器
             rootView.addView(textView)
             textViews.add(textView)
 
-            // 设置布局参数
-            textView.layoutParams = (textView.layoutParams as? FrameLayout.LayoutParams ?: FrameLayout.LayoutParams(
-                FrameLayout.LayoutParams.WRAP_CONTENT,
-                FrameLayout.LayoutParams.WRAP_CONTENT
-            )).apply {
-                width = scaledRight - scaledLeft
-                height = scaledBottom - scaledTop + 2
+            textView.layoutParams = FrameLayout.LayoutParams(
+                layoutWidth,
+                layoutHeight
+            ).apply {
                 leftMargin = scaledLeft
                 topMargin = scaledTop
             }
@@ -928,6 +959,77 @@ class ScreenshotActivity : AppCompatActivity() {
             e.printStackTrace()
             Toast.makeText(this, "复制失败: ${e.message}", Toast.LENGTH_SHORT).show()
         }
+    }
+
+    private suspend fun getSummaryFromSuanliAPI(content: String): String {
+        val client = OkHttpClient.Builder()
+            .connectTimeout(30, TimeUnit.SECONDS)
+            .readTimeout(30, TimeUnit.SECONDS)
+            .writeTimeout(30, TimeUnit.SECONDS)
+            .build()
+
+        // 正确构建JSON，避免非法字符
+        val messageObject = JSONObject()
+        messageObject.put("role", "user")
+        messageObject.put("content", "请根据文本内容生成文本摘要，只需要简洁地呈现摘要内容，不要包含思考过程：" + content)
+
+        val messagesArray = JSONArray()
+        messagesArray.put(messageObject)
+
+        val rootObject = JSONObject()
+        rootObject.put("model", "free:QwQ-32B")
+        rootObject.put("messages", messagesArray)
+
+        val json = rootObject.toString() // 自动转成合法JSON字符串
+
+        val body = json.toRequestBody("application/json".toMediaType())
+
+        val request = Request.Builder()
+            .url("https://api.suanli.cn/v1/chat/completions")
+            .addHeader("Authorization", "Bearer sk-W0rpStc95T7JVYVwDYc29IyirjtpPPby6SozFMQr17m8KWeo")
+            .post(body)
+            .build()
+
+        return withContext(Dispatchers.IO) {
+            val response = client.newCall(request).execute()
+            println("响应状态码：${response.code}")
+            val responseBody = response.body?.string() ?: ""
+            if (response.isSuccessful) {
+                try {
+                    val jsonObject = JSONObject(responseBody)
+                    val summary = jsonObject
+                        .getJSONArray("choices")
+                        .getJSONObject(0)
+                        .getJSONObject("message")
+                        .getString("content")
+                    summary.trim()
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                    println("解析摘要返回出错，原始内容：$responseBody")
+                    "解析摘要失败，请检查返回格式"
+                }
+            } else {
+                println("请求失败，状态码：${response.code}, 返回内容：$responseBody")
+                "摘要失败: ${response.message} (${response.code})"
+            }
+        }
+    }
+
+    private fun showSummaryDialog(summary: String) {
+        // 创建一个 AlertDialog.Builder
+        val builder = AlertDialog.Builder(this)
+        // 设置对话框的标题
+        builder.setTitle("内容摘要")
+        // 设置对话框的消息为摘要内容
+        builder.setMessage(summary)
+        // 添加一个“确定”按钮
+        builder.setPositiveButton("确定") { dialog, _ ->
+            // 点击确定后关闭对话框
+            dialog.dismiss()
+        }
+        // 创建并显示对话框
+        val dialog = builder.create()
+        dialog.show()
     }
 
 }
