@@ -58,6 +58,9 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.LifecycleOwner
+import com.electroboys.lightsnap.ui.main.view.GraffitiTabView
+import com.electroboys.lightsnap.ui.main.view.GraffitiView
+import com.electroboys.lightsnap.ui.main.view.MosaicTabView
 import kotlinx.coroutines.launch
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.RequestBody.Companion.toRequestBody
@@ -70,6 +73,8 @@ import kotlin.math.sqrt
 
 class ScreenshotActivity : AppCompatActivity() {
 
+    private lateinit var graffitiView: GraffitiView
+    private lateinit var exControlFrame: FrameLayout// 扩展控制面板
     private lateinit var selectView: SelectView
     private lateinit var imageView: ImageView
     private lateinit var btnConfirmSelection: ImageButton
@@ -137,6 +142,8 @@ class ScreenshotActivity : AppCompatActivity() {
         selectView = findViewById(R.id.selectView)
         btnConfirmSelection = findViewById(R.id.btnConfirmSelection)
         watermarkOverlay = findViewById(R.id.watermarkOverlay)
+        graffitiView = findViewById(R.id.graffitiView)
+        exControlFrame = findViewById(R.id.exControlFrame)
         overlayView = imageView
 
         // 文字识别键逻辑
@@ -220,7 +227,23 @@ class ScreenshotActivity : AppCompatActivity() {
             // TODO: 修改水印高亮图标
             // TODO: 水印设置
         }
+        showControlView(ControlViewStatus.OtherMode.ordinal)
+        // 涂鸦按钮逻辑
+        val btnGraffiti = findViewById<ImageButton>(R.id.btnDraw)
+        btnGraffiti.setOnClickListener {
+            showControlView(ControlViewStatus.GraffitiMode.ordinal)
+        }
+        // 马赛克按钮逻辑
+        val btnMosaic = findViewById<ImageButton>(R.id.btnMosaic)
+        btnMosaic.setOnClickListener {
+            showControlView(ControlViewStatus.MosaicMode.ordinal)
+        }
+        graffitiView.setOnBitmapChangeListener(object : GraffitiView.onBitmapChangeListener {
+            override fun onBitmapChange(bitmap: Bitmap) {
+                imageView.setImageBitmap(bitmap)
+            }
 
+        })
         // 获取传入的 key
         val key = intent.getStringExtra(EXTRA_SCREENSHOT_KEY)
         originalBitmapKey = key
@@ -235,6 +258,7 @@ class ScreenshotActivity : AppCompatActivity() {
         if (bitmap != null) {
             croppedBitmap = bitmap
             imageView.setImageBitmap(bitmap)
+            graffitiView.setBitmap(croppedBitmap)
         } else {
             Toast.makeText(this, "截图数据为空或已释放", Toast.LENGTH_SHORT).show()
         }
@@ -398,7 +422,8 @@ class ScreenshotActivity : AppCompatActivity() {
     // 设置确认按钮点击监听器
     private fun setupConfirmButtonClickListener() {
         btnConfirmSelection.setOnClickListener {
-            val bitmap = intent.getStringExtra(EXTRA_SCREENSHOT_KEY)?.let { BitmapCache.getBitmap(it) }
+            val drawable = imageView.drawable as? BitmapDrawable
+            val bitmap = drawable?.bitmap
             val selectedRect = getBitmapCropRect(imageView)
 
             if (bitmap != null && selectedRect != null && !selectedRect.isEmpty) {
@@ -421,7 +446,7 @@ class ScreenshotActivity : AppCompatActivity() {
                 btnConfirmSelection.visibility = View.GONE
                 val hintTextView = findViewById<TextView>(R.id.selectionHint)
                 hintTextView.visibility = View.VISIBLE
-
+                graffitiView.setBitmap(croppedBitmap)
                 Toast.makeText(this, "已裁剪并更新图像", Toast.LENGTH_SHORT).show()
             } else {
                 Toast.makeText(this, "无效选区或图片为空", Toast.LENGTH_SHORT).show()
@@ -570,6 +595,10 @@ class ScreenshotActivity : AppCompatActivity() {
 //            imageView.setImageBitmap(watermarkedBitmap)
             intent.putExtra(EXTRA_SCREENSHOT_KEY, newKey)
 //            ImageHistory.push(newKey)
+        }else{
+            // 将更新图片和key
+            val newKey = BitmapCache.cacheBitmap(bitmap)
+            intent.putExtra(EXTRA_SCREENSHOT_KEY, newKey)
         }
 
         val currentKey = intent.getStringExtra(EXTRA_SCREENSHOT_KEY)
@@ -1030,6 +1059,61 @@ class ScreenshotActivity : AppCompatActivity() {
         // 创建并显示对话框
         val dialog = builder.create()
         dialog.show()
+    }
+    /**
+     * 显示控制视图
+     */
+    private fun showControlView(mode: Int) {
+        when (mode) {
+            ControlViewStatus.GraffitiMode.ordinal -> {
+                graffitiView.visibility = View.VISIBLE
+                val graffitiTabView = GraffitiTabView(this)
+                exControlFrame.removeAllViews()
+                exControlFrame.addView(graffitiTabView)
+                graffitiView.setMosaicMode(false)
+                graffitiTabView.setOnSelectedListener(listener = object : GraffitiTabView.OnSelectedListener {
+                    override fun onColorSelected(color: Int) {
+                        graffitiView.setStrokeColor(color)
+                    }
+
+                    override fun onSelectSize(size: Int) {
+                        graffitiView.setStrokeWidth(size)
+                    }
+
+                })
+            }
+            ControlViewStatus.MosaicMode.ordinal -> {
+                graffitiView.visibility = View.VISIBLE
+                graffitiView.isClickable
+                // 显示涂鸦模式
+                val doodleTabView = MosaicTabView(this)
+                exControlFrame.removeAllViews()
+                exControlFrame.addView(doodleTabView)
+                // 显示马赛克模式
+                graffitiView.setMosaicMode(true)
+                doodleTabView.setOnMosaicTabClickListener(listener = object : MosaicTabView.OnMosaicTabClickListener {
+                    override fun onMosaicSelectedClick(tabIndex: Int) {
+                        graffitiView.setMosaicRadius(tabIndex)
+                    }
+
+                    override fun onMosaicSettingClick(progress: Float) {
+                        graffitiView.setMosaicBlur(progress.toInt())
+                    }
+
+                })
+            }
+            ControlViewStatus.OtherMode.ordinal -> {
+                graffitiView.visibility = View.GONE
+                // 显示其他模式
+                exControlFrame.removeAllViews()
+            }
+        }
+    }
+
+    enum class ControlViewStatus {
+        GraffitiMode,//涂鸦模式
+        MosaicMode,//马赛克模式
+        OtherMode//其他模式
     }
 
 }

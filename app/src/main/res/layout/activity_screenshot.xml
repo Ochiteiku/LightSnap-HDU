@@ -60,6 +60,11 @@
             android:layout_gravity="top|start"
             android:visibility="gone"
             android:contentDescription="确认选区" />
+        <com.electroboys.lightsnap.ui.main.view.GraffitiView
+            android:id="@+id/graffitiView"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:visibility="invisible"/>
     </FrameLayout>
 
     <ImageButton
@@ -74,7 +79,13 @@
         app:tint="#FFFFFF"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintStart_toStartOf="parent" />
-
+    <FrameLayout
+        android:id="@+id/exControlFrame"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        app:layout_constraintStart_toStartOf="@id/bottomBar"
+        app:layout_constraintBottom_toTopOf="@id/bottomBar"
+        />
     <!-- 底部操作栏 -->
     <LinearLayout
         android:id="@+id/bottomBar"

@@ -2,10 +2,19 @@
 <resources>
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
+    <color name="gray">#FF9E9E9E</color>
 
     <!-- msg -->
     <color name="contact_default_text">#696969</color>
     <color name="msg_option_default_text">#9E9E9E</color>
     <color name="msg_option_selected_text">#4285F4</color>
     <color name="unread_message_name">#FF0000</color>
+    <!-- 画笔颜色 -->
+    <color name="red">#FFFF0000</color>
+    <color name="green">#FF00FF00</color>
+    <color name="blue">#FF0000FF</color>
+    <color name="yellow">#FFFFFF00</color>
+    <color name="purple">#FF800080</color>
+    <color name="orange">#FFFFA500</color>
+    <color name="cyan">#FF00FFFF</color>
 </resources>
