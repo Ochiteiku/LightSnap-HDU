@@ -1,4 +1,4 @@
-package com.electroboys.lightsnap.domain.screenshot
+package com.electroboys.lightsnap.ui.main.view
 
 import android.content.Context
 import android.graphics.Bitmap
@@ -93,7 +93,7 @@ class EditAddTextView @JvmOverloads constructor(
         invalidate()
     }
 
-    fun getFinalBitmap(originalBitmap: Bitmap): Bitmap{
+    fun getFinalBitmap(originalBitmap: Bitmap): Bitmap {
         val bitmap = originalBitmap.copy(Bitmap.Config.ARGB_8888,true)
         val canvas = Canvas(bitmap)
         drawAllTextItems(canvas)
@@ -151,7 +151,7 @@ class EditAddTextView @JvmOverloads constructor(
     private fun createTextPaint(
         item: TextItem,
         alpha: Int
-    ): Paint{
+    ): Paint {
         return Paint().apply {
             color = item.color
             textSize = item.size
