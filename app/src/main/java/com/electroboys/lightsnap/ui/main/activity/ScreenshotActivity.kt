@@ -281,7 +281,7 @@ class ScreenshotActivity : AppCompatActivity() {
 
     override fun finish() {
         super.finish()
-        overridePendingTransition(R.anim.fade_out, R.anim.fade_out)
+        //overridePendingTransition(R.anim.fade_out, R.anim.fade_out)
     }
 
     // 撤销操作
