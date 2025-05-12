@@ -207,11 +207,6 @@
                 android:src="@drawable/ic_box"
                 android:contentDescription="框选" />
 
-            <ImageButton
-                android:id="@+id/btnLine"
-                style="@style/ToolButtonStyle"
-                android:src="@drawable/ic_line"
-                android:contentDescription="横线" />
 
             <ImageButton
                 android:id="@+id/btnArrow"
@@ -235,6 +230,12 @@
             android:layout_height="wrap_content"
             android:orientation="horizontal"
             android:gravity="center_vertical">
+
+            <ImageButton
+                android:id="@+id/btnTranslate"
+                style="@style/ToolButtonStyle"
+                android:src="@drawable/ic_translate"
+                android:contentDescription="翻译" />
 
             <ImageButton
                 android:id="@+id/btnOcr"
@@ -297,6 +298,12 @@
             android:layout_height="wrap_content"
             android:orientation="horizontal"
             android:gravity="center_vertical">
+
+            <ImageButton
+                android:id="@+id/btnFixed"
+                style="@style/ToolButtonStyle"
+                android:src="@drawable/ic_fixed"
+                android:contentDescription="固定" />
 
             <ImageButton
                 android:id="@+id/btnShare"
