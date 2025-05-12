@@ -39,13 +39,13 @@
             android:padding="8dp"
             android:layout_gravity="top|center_horizontal"
             android:layout_marginTop="20dp" />
-        <com.electroboys.lightsnap.domain.watermark.WatermarkOverlayView
+        <com.electroboys.lightsnap.ui.main.view.WatermarkOverlayView
             android:id="@+id/watermarkOverlay"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:visibility="gone"/>
 
-        <com.electroboys.lightsnap.domain.screenshot.SelectView
+        <com.electroboys.lightsnap.ui.main.view.SelectView
             android:id="@+id/selectView"
             android:layout_width="match_parent"
             android:layout_height="match_parent" />
@@ -61,7 +61,7 @@
             android:visibility="gone"
             android:contentDescription="确认选区" />
 
-        <com.electroboys.lightsnap.domain.screenshot.EditAddTextView
+        <com.electroboys.lightsnap.ui.main.view.EditAddTextView
             android:id="@+id/EditView"
             android:layout_width="match_parent"
             android:layout_height="match_parent"/>

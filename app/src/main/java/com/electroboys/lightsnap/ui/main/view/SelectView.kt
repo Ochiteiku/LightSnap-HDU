@@ -1,4 +1,4 @@
-package com.electroboys.lightsnap.domain.screenshot
+package com.electroboys.lightsnap.ui.main.view
 
 import android.content.Context
 import android.graphics.Canvas
@@ -34,7 +34,7 @@ class SelectView @JvmOverloads constructor(
         color = Color.BLUE
         style = Paint.Style.STROKE
         strokeWidth = 4f
-        pathEffect = DashPathEffect(floatArrayOf(10f, 5f),0f)
+        pathEffect = DashPathEffect(floatArrayOf(10f, 5f), 0f)
     }
 
     private val maskPaint = Paint().apply {

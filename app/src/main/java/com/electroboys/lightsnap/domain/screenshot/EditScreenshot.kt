@@ -8,7 +8,8 @@ import android.widget.Button
 import android.widget.EditText
 import android.widget.ImageButton
 import android.widget.SeekBar
-import android.widget.ToggleButton
+import com.electroboys.lightsnap.domain.screenshot.addText.AddTextController
+import com.electroboys.lightsnap.ui.main.view.EditAddTextView
 
 // 协调各个组件的工作
 class EditScreenshot(

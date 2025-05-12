@@ -1,10 +1,13 @@
-package com.electroboys.lightsnap.domain.watermark
+package com.electroboys.lightsnap.ui.main.view
 
 import android.content.Context
-import android.graphics.*
+import android.graphics.Canvas
+import android.graphics.Paint
+import android.graphics.Rect
 import android.util.AttributeSet
 import android.view.View
 import androidx.core.graphics.withTranslation
+import com.electroboys.lightsnap.domain.screenshot.watermark.WatermarkConfig
 
 class WatermarkOverlayView @JvmOverloads constructor(
     context: Context,
@@ -13,7 +16,7 @@ class WatermarkOverlayView @JvmOverloads constructor(
 ) : View(context, attrs, defStyleAttr) {
 
     private val paint = Paint()
-    private var config = WatermarkConfig.default()
+    private var config = WatermarkConfig.Companion.default()
     private val textBounds = Rect()
 
     override fun onDraw(canvas: Canvas) {

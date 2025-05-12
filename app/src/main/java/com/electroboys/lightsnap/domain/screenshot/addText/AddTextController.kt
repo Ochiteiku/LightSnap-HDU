@@ -1,4 +1,4 @@
-package com.electroboys.lightsnap.domain.screenshot
+package com.electroboys.lightsnap.domain.screenshot.addText
 
 import android.graphics.Color
 import android.graphics.Typeface
@@ -7,9 +7,9 @@ import android.widget.Button
 import android.widget.EditText
 import android.widget.ImageButton
 import android.widget.SeekBar
-import android.widget.ToggleButton
 import androidx.core.view.isVisible
 import com.electroboys.lightsnap.R
+import com.electroboys.lightsnap.ui.main.view.EditAddTextView
 
 // 处理相应按钮控制逻辑
 class AddTextController (

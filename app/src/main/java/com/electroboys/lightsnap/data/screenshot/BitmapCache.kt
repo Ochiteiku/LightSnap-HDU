@@ -1,7 +1,7 @@
-package com.electroboys.lightsnap.domain.screenshot
+package com.electroboys.lightsnap.data.screenshot
 
 import android.graphics.Bitmap
-import java.util.*
+import java.util.UUID
 
 object BitmapCache {
     private val cache = mutableMapOf<String, Bitmap>()
