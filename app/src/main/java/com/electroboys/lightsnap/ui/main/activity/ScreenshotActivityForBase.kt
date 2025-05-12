@@ -6,7 +6,9 @@ import android.graphics.PointF
 import android.view.KeyEvent
 import android.view.MotionEvent
 import android.view.View
+import android.view.ViewGroup
 import android.widget.FrameLayout
+import android.widget.ImageView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import com.electroboys.lightsnap.domain.screenshot.SelectView
@@ -29,22 +31,34 @@ class ScreenshotActivityForBase(private val activity: AppCompatActivity) {
         isBoxSelectEnabled = true
         selectionOverlayView.clearSelection()
 
+        val fullScreenBitmap = ScreenshotUtil.captureWithStatusBar(activity)  // 提前截图
+
         // 创建灰幕 View
         maskView = View(activity).apply {
             setBackgroundColor(0xAA000000.toInt()) // 半透明黑色
         }
 
+        // 创建显示截图的 ImageView
+        val screenshotImageView = ImageView(activity).apply {
+            setImageBitmap(fullScreenBitmap)
+            scaleType = ImageView.ScaleType.FIT_XY
+            layoutParams = FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.MATCH_PARENT
+            )
+        }
+
         // 添加 overlay 到根布局
         val container = activity.findViewById<FrameLayout>(android.R.id.content)
         if (selectionOverlayView.parent == null) {
-            container.addView(maskView) // 先添加灰幕
-            container.addView(selectionOverlayView)
+            container.addView(screenshotImageView)   // 2. 截图图像
+            container.addView(maskView)              // 1. 灰幕
+            container.addView(selectionOverlayView)  // 3. 框选层
         }
 
         Toast.makeText(activity, "按住屏幕进行拖动框选区域", Toast.LENGTH_SHORT).show()
 
-
-        val touchListener = View.OnTouchListener { v, event ->
+        val touchListener = View.OnTouchListener { _, event ->
             when (event.action) {
                 MotionEvent.ACTION_DOWN -> {
                     startTouch.set(event.x, event.y)
@@ -58,50 +72,41 @@ class ScreenshotActivityForBase(private val activity: AppCompatActivity) {
                 MotionEvent.ACTION_UP -> {
                     selectionOverlayView.setSelection(startTouch, endTouch)
 
-                    val container = activity.findViewById<FrameLayout>(android.R.id.content)
-
                     if (startTouch == endTouch) {
-                        // 用户点击未拖动，表示取消截图
                         Toast.makeText(activity, "已取消截图", Toast.LENGTH_SHORT).show()
-
-                        cleanup(container)
-                        onCaptureListener?.invoke(null) // 明确回调 null 表示取消
+                        cleanup(container, screenshotImageView)
+                        onCaptureListener?.invoke(null)
                         return@OnTouchListener true
                     }
 
-                    // 正常截图流程
-                    container.removeView(selectionOverlayView)
-                    val bitmap = ScreenshotUtil.captureWithStatusBar(activity)
                     val selectedRect = selectionOverlayView.getSelectedRect()
 
-                    container.addView(selectionOverlayView)
-
                     val croppedBitmap = if (selectedRect != null && selectedRect.width() > 0 && selectedRect.height() > 0) {
-                        Bitmap.createBitmap(bitmap, selectedRect.left, selectedRect.top, selectedRect.width(), selectedRect.height())
+                        Bitmap.createBitmap(
+                            fullScreenBitmap,
+                            selectedRect.left,
+                            selectedRect.top,
+                            selectedRect.width(),
+                            selectedRect.height()
+                        )
                     } else {
-                        bitmap
+                        fullScreenBitmap
                     }
 
                     onCaptureListener?.invoke(croppedBitmap)
-                    cleanup(container)
+                    cleanup(container, screenshotImageView)
                 }
-
             }
             true
         }
 
-
-        //先将该页面设为焦点，方便快捷键监控，然后监控空格键，空格键则直接全屏截图
         selectionOverlayView.isFocusableInTouchMode = true
         selectionOverlayView.requestFocus()
 
         selectionOverlayView.setOnKeyListener { _, keyCode, event ->
             if (keyCode == KeyEvent.KEYCODE_SPACE && event.action == KeyEvent.ACTION_DOWN) {
-                val bitmap = ScreenshotUtil.captureWithStatusBar(activity)
-                onCaptureListener?.invoke(bitmap)
-
-                val container = activity.findViewById<FrameLayout>(android.R.id.content)
-                cleanup(container)
+                onCaptureListener?.invoke(fullScreenBitmap)
+                cleanup(container, screenshotImageView)
                 true
             } else {
                 false
@@ -109,7 +114,6 @@ class ScreenshotActivityForBase(private val activity: AppCompatActivity) {
         }
 
         selectionOverlayView.setOnTouchListener(touchListener)
-
     }
 
 
@@ -121,9 +125,10 @@ class ScreenshotActivityForBase(private val activity: AppCompatActivity) {
         maskView?.visibility = View.INVISIBLE
     }
 
-    fun cleanup(container: FrameLayout) {
+    fun cleanup(container: FrameLayout, screenshotImageView: ImageView? = null) {
         selectionOverlayView.clearSelection()
         selectionOverlayView.setOnTouchListener(null)
+        selectionOverlayView.setOnKeyListener(null)
 
         if (selectionOverlayView.parent != null) {
             container.removeView(selectionOverlayView)
@@ -135,8 +140,18 @@ class ScreenshotActivityForBase(private val activity: AppCompatActivity) {
             maskView = null
         }
 
+        // 移除截图背景
+        screenshotImageView?.let {
+            if (it.parent != null) {
+                container.removeView(it)
+            }
+        }
+
         isBoxSelectEnabled = false
         onCaptureListener = null
     }
+
+
+
 
 }
