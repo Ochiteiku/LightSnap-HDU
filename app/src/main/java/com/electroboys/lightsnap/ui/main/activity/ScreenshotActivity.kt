@@ -15,6 +15,7 @@ import android.graphics.drawable.BitmapDrawable
 import android.view.Gravity
 import android.view.View
 import android.widget.Button
+import android.widget.EditText
 import android.widget.FrameLayout
 import android.widget.ImageButton
 import android.widget.TextView
@@ -27,6 +28,7 @@ import com.electroboys.lightsnap.domain.screenshot.ImageHistory
 import com.electroboys.lightsnap.domain.screenshot.SelectView
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import androidx.core.content.edit
+import com.electroboys.lightsnap.domain.screenshot.EditScreenshot
 import com.electroboys.lightsnap.utils.ImageSaveUtil
 import com.electroboys.lightsnap.utils.PathPickerUtil
 import java.io.File
@@ -39,6 +41,8 @@ class ScreenshotActivity : AppCompatActivity() {
     private lateinit var imageView: ImageView
     private lateinit var btnConfirmSelection: ImageButton
     private lateinit var folderLauncher: ActivityResultLauncher<Intent>
+
+    private lateinit var bitmapEdit: EditScreenshot
 
 
     companion object {
@@ -90,6 +94,21 @@ class ScreenshotActivity : AppCompatActivity() {
         selectView = findViewById(R.id.selectView)
         btnConfirmSelection = findViewById(R.id.btnConfirmSelection)
 
+        // 编辑的叠加管理器
+        bitmapEdit = EditScreenshot(this,findViewById(R.id.imageContainer))
+
+        // 控制器逻辑
+        bitmapEdit.addText(
+            btnText = findViewById(R.id.btnText),
+            btnColorPicker = findViewById(R.id.btnColor),
+            btnConfirmText = findViewById(R.id.btnConfirmText),
+            btnCancelText = findViewById(R.id.btnCancelText),
+            btnIsBold = findViewById(R.id.btnIsBold),
+            textSizeSeekBar = findViewById(R.id.textSizeSeekBar),
+            btnAddTextDone = findViewById(R.id.btnAddTextDone),
+            textInput = findViewById(R.id.textInput)
+        )
+
         // 撤销键逻辑
         val btnBack = findViewById<ImageButton>(R.id.btnUndo)
         btnBack.setOnClickListener {
@@ -138,6 +157,7 @@ class ScreenshotActivity : AppCompatActivity() {
 
         // 从缓存中取出 Bitmap
         val bitmap = key?.let { BitmapCache.getBitmap(it) }
+
 
 //        // 编辑键逻辑 跳转到编辑Activity
 //        val btnEditWrapper = findViewById<LinearLayout>(R.id.btnEditWrapper)
@@ -232,7 +252,6 @@ class ScreenshotActivity : AppCompatActivity() {
         Toast.makeText(this, "已恢复至下一步", Toast.LENGTH_SHORT).show()
     }
 
-
     private fun setupTouchListener() {
         val imageContainer = findViewById<View>(R.id.imageContainer)
 
@@ -310,7 +329,6 @@ class ScreenshotActivity : AppCompatActivity() {
             }
         }
     }
-
 
     private fun setupConfirmButtonClickListener() {
         btnConfirmSelection.setOnClickListener {
@@ -482,7 +500,6 @@ class ScreenshotActivity : AppCompatActivity() {
         finish()
     }
 
-
     private fun showSetPathDialog(onConfirm: (Boolean) -> Unit) {
         val dialog = BottomSheetDialog(this)
         val view = layoutInflater.inflate(R.layout.dialog_confirm_set_path, null)
@@ -527,8 +544,6 @@ class ScreenshotActivity : AppCompatActivity() {
             Toast.makeText(this, "裁剪功能已开启", Toast.LENGTH_SHORT).show()
         }
     }
-
-
 
     override fun dispatchKeyEvent(event: android.view.KeyEvent): Boolean {
         if (event.action == android.view.KeyEvent.ACTION_DOWN) {

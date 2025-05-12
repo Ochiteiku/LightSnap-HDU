@@ -55,6 +55,12 @@
             android:layout_gravity="top|start"
             android:visibility="gone"
             android:contentDescription="确认选区" />
+
+        <com.electroboys.lightsnap.domain.screenshot.EditAddTextView
+            android:id="@+id/EditView"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"/>
+
     </FrameLayout>
 
     <ImageButton
@@ -69,6 +75,76 @@
         app:tint="#FFFFFF"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintStart_toStartOf="parent" />
+
+    <!-- 文本操作栏 -->
+    <LinearLayout
+        android:id="@+id/bottomTextBar"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:padding="6dp"
+        android:gravity="center"
+        android:background="#000000"
+        app:layout_constraintBottom_toTopOf="@+id/bottomBar"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <!-- 加粗、颜色按钮 -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical">
+
+            <EditText
+                android:id="@+id/textInput"
+                android:layout_width="200dp"
+                android:layout_height="40dp"
+                android:background="#ffffff"
+                android:hint="请输入文字"/>
+
+            <!--调节文字大小-->
+            <SeekBar
+                android:id="@+id/textSizeSeekBar"
+                android:layout_width="200dp"
+                android:layout_height="wrap_content"
+                android:max="200"
+                android:progress="40"/>
+
+            <Button
+                android:id="@+id/btnColor"
+                style="@style/ToolButtonStyle"
+                android:src="@drawable/ic_revert"
+                android:contentDescription="文字颜色选择"/>
+
+            <ImageButton
+                android:id="@+id/btnIsBold"
+                style="@style/ToolButtonStyle"
+                android:src="@drawable/ic_addtext_unbold"
+                android:contentDescription="加粗"/>
+
+            <ImageButton
+                android:id="@+id/btnCancelText"
+                style="@style/ToolButtonStyle"
+                android:src="@drawable/ic_addtext_rollback"
+                android:contentDescription="取消"/>
+
+            <ImageButton
+                android:id="@+id/btnConfirmText"
+                style="@style/ToolButtonStyle"
+                android:src="@drawable/ic_addtext_confrim"
+                android:contentDescription="确定"/>
+
+            <ImageButton
+                android:id="@+id/btnAddTextDone"
+                style="@style/ToolButtonStyle"
+                android:src="@drawable/ic_addtext_done"
+                android:contentDescription="完成添加"/>
+        </LinearLayout>
+
+    </LinearLayout>
+
+
 
     <!-- 底部操作栏 -->
     <LinearLayout
@@ -99,7 +175,7 @@
             <ImageButton
                 android:id="@+id/btnText"
                 style="@style/ToolButtonStyle"
-                android:src="@drawable/ic_text"
+                android:src="@drawable/ic_addtext_textbox"
                 android:contentDescription="文字" />
 
             <ImageButton
