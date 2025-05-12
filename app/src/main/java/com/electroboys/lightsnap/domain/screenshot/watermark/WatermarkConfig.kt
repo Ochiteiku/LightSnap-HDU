@@ -1,4 +1,4 @@
-package com.electroboys.lightsnap.domain.watermark
+package com.electroboys.lightsnap.domain.screenshot.watermark
 
 class WatermarkConfig private constructor(
     var text: String,

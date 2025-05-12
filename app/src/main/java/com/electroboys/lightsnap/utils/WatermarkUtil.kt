@@ -5,7 +5,7 @@ import android.graphics.Canvas
 import android.graphics.Paint
 import android.graphics.Rect
 import androidx.core.graphics.withTranslation
-import com.electroboys.lightsnap.domain.watermark.WatermarkConfig
+import com.electroboys.lightsnap.domain.screenshot.watermark.WatermarkConfig
 
 object WatermarkUtil {
 

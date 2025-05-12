@@ -14,7 +14,7 @@ import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.net.toUri
 import com.electroboys.lightsnap.R
-import com.electroboys.lightsnap.domain.screenshot.BitmapCache
+import com.electroboys.lightsnap.data.screenshot.BitmapCache
 import com.electroboys.lightsnap.ui.main.activity.ScreenshotActivity
 import com.electroboys.lightsnap.ui.main.activity.ScreenshotActivityForBase
 import com.electroboys.lightsnap.ui.main.viewmodel.MainViewModel
