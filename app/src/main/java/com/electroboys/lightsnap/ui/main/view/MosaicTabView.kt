@@ -17,7 +17,8 @@ class MosaicTabView @JvmOverloads constructor(
     private var ivMosaicTwo: View
     private var ivMosaicThree: View
     private var mListener: OnMosaicTabClickListener? = null
-
+    private var ivMosaicStyleOne: View
+    private var ivMosaicStyleTwo: View
     fun setOnMosaicTabClickListener(listener: OnMosaicTabClickListener) {
         mListener = listener
     }
@@ -30,8 +31,12 @@ class MosaicTabView @JvmOverloads constructor(
         ivMosaicTwo = findViewById(R.id.iv_mosaic_two)
         ivMosaicThree = findViewById(R.id.iv_mosaic_three)
         sbMosaicBlur = findViewById(R.id.sb_mosaic_blur)
+        ivMosaicStyleOne = findViewById(R.id.iv_mosaic_style_one)
+        ivMosaicStyleTwo = findViewById(R.id.iv_mosaic_style_two)
         ivMosaicOne.isSelected = true
         sbMosaicBlur.progress = 50
+        ivMosaicStyleTwo.isSelected = true
+
         // 设置点击事件
         ivMosaicOne.setOnClickListener {
             mListener?.onMosaicSelectedClick(0)
@@ -44,6 +49,17 @@ class MosaicTabView @JvmOverloads constructor(
         ivMosaicThree.setOnClickListener {
             mListener?.onMosaicSelectedClick(2)
             updateSelectedView(2)
+        }
+        ivMosaicStyleOne.setOnClickListener {
+            mListener?.onMosaicStyleSelectedClick(0)
+            ivMosaicStyleOne.isSelected = true
+            ivMosaicStyleTwo.isSelected = false
+        }
+        ivMosaicStyleTwo.setOnClickListener {
+            mListener?.onMosaicStyleSelectedClick(1)
+            updateSelectedView(1)
+            ivMosaicStyleOne.isSelected = false
+            ivMosaicStyleTwo.isSelected = true
         }
         sbMosaicBlur.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
@@ -75,5 +91,6 @@ class MosaicTabView @JvmOverloads constructor(
     interface OnMosaicTabClickListener {
         fun onMosaicSelectedClick(tabIndex: Int)
         fun onMosaicSettingClick(progress: Float)
+        abstract fun onMosaicStyleSelectedClick(i: Int)
     }
 }

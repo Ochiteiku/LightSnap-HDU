@@ -1144,6 +1144,10 @@ class ScreenshotActivity : AppCompatActivity() {
                         graffitiView.setMosaicBlur(progress.toInt())
                     }
 
+                    override fun onMosaicStyleSelectedClick(i: Int) {
+                        graffitiView.setMosaicStyle(style = i)
+                    }
+
                 })
             }
             ControlViewStatus.OtherMode.ordinal -> {

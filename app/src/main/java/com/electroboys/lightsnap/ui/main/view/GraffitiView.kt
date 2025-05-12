@@ -14,6 +14,7 @@ class GraffitiView @JvmOverloads constructor(
     context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0
 ) : View(context, attrs, defStyleAttr) {
 
+    private var style: Int = 0
     private var paint = Paint().apply {
         isAntiAlias = true
         isDither = true
@@ -29,8 +30,8 @@ class GraffitiView @JvmOverloads constructor(
     private var canvas: Canvas? = null
     private var isMosaicMode = false
     private var maskBlur: Float = 50f // 默认模糊度为50
-    private var mosaicRadius: Int = 2 // 默认马赛克半径为20
-
+    private var mosaicRadius: Int = 5 // 默认马赛克半径为20
+    private var blurStyle = BlurMaskFilter.Blur.NORMAL // 0为实心，1为描边，2为虚线
     init {
     }
 
@@ -45,10 +46,11 @@ class GraffitiView @JvmOverloads constructor(
     // 设置是否为马赛克模式
     fun setMosaicMode(mosaicMode: Boolean) {
         isMosaicMode = mosaicMode
-        if (!isMosaicMode){
+        if (!isMosaicMode) {
             initPaint()
         }
     }
+
     private fun initPaint() {
         paint = Paint().apply {
             isAntiAlias = true
@@ -174,7 +176,7 @@ class GraffitiView @JvmOverloads constructor(
 
                 // 配置绘制参数
                 paint.color = avgColor
-                paint.maskFilter = BlurMaskFilter(blurRadius, BlurMaskFilter.Blur.NORMAL)
+                paint.maskFilter = BlurMaskFilter(blurRadius, blurStyle)
 
                 // 绘制无缝衔接的色块
                 val drawEndX = minOf(i + blockSize, endX)
@@ -279,6 +281,19 @@ class GraffitiView @JvmOverloads constructor(
 
     fun saveBitmap(): Bitmap? {
         return bitmap
+    }
+
+    fun setMosaicStyle(style: Int) {
+        this.style = style;
+        if (style == 0){
+            blurStyle = BlurMaskFilter.Blur.INNER
+        }else{
+            blurStyle = BlurMaskFilter.Blur.NORMAL
+        }
+//        setMosaicBlur(blur)
+//        Log.d("GraffitiView", "setMosaicStyle: $maskBlur")
+        invalidate() // 刷新视图以应用新的马赛克半径
+
     }
 
 }
