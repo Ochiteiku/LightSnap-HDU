@@ -1,8 +1,12 @@
 package com.electroboys.lightsnap.ui.main.activity
 
+import android.app.AlertDialog
+import android.content.ClipData
+import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
+import android.graphics.Color
 import android.graphics.Matrix
 import android.os.Bundle
 import android.util.Log
@@ -12,8 +16,10 @@ import android.widget.Toast
 import android.graphics.PointF
 import android.graphics.Rect
 import android.graphics.drawable.BitmapDrawable
+import android.graphics.drawable.GradientDrawable
 import android.view.Gravity
 import android.view.View
+import android.view.ViewGroup
 import android.widget.Button
 import android.widget.EditText
 import android.widget.FrameLayout
@@ -28,15 +34,49 @@ import com.electroboys.lightsnap.domain.screenshot.ImageHistory
 import com.electroboys.lightsnap.domain.screenshot.SelectView
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import androidx.core.content.edit
+import com.electroboys.lightsnap.domain.watermark.WatermarkConfig
+import com.electroboys.lightsnap.domain.watermark.WatermarkOverlayView
 import com.electroboys.lightsnap.domain.screenshot.EditScreenshot
 import com.electroboys.lightsnap.utils.ImageSaveUtil
 import com.electroboys.lightsnap.utils.PathPickerUtil
+import com.electroboys.lightsnap.utils.WatermarkUtil
 import java.io.File
 import java.io.FileOutputStream
 import java.io.IOException
+import androidx.core.view.isGone
+
+import com.google.mlkit.vision.common.InputImage
+import com.google.mlkit.vision.text.TextRecognition
+import com.google.mlkit.vision.text.chinese.ChineseTextRecognizerOptions
+import android.widget.LinearLayout
+import android.content.ClipDescription
+import android.os.ParcelFileDescriptor
+import android.widget.ScrollView
+import com.google.mlkit.vision.text.Text
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import org.json.JSONObject
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.LifecycleOwner
+import com.electroboys.lightsnap.ui.main.view.GraffitiTabView
+import com.electroboys.lightsnap.ui.main.view.GraffitiView
+import com.electroboys.lightsnap.ui.main.view.MosaicTabView
+import kotlinx.coroutines.launch
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.RequestBody.Companion.toRequestBody
+import org.json.JSONArray
+import java.util.concurrent.TimeUnit
+import kotlin.math.max
+import kotlin.math.min
+import kotlin.math.sqrt
+
 
 class ScreenshotActivity : AppCompatActivity() {
 
+    private lateinit var graffitiView: GraffitiView
+    private lateinit var exControlFrame: FrameLayout// 扩展控制面板
     private lateinit var selectView: SelectView
     private lateinit var imageView: ImageView
     private lateinit var btnConfirmSelection: ImageButton
@@ -44,6 +84,7 @@ class ScreenshotActivity : AppCompatActivity() {
 
     private lateinit var bitmapEdit: EditScreenshot
 
+    private lateinit var watermarkOverlay: WatermarkOverlayView
 
     companion object {
         const val EXTRA_SCREENSHOT_KEY = "screenshot_key"
@@ -54,6 +95,18 @@ class ScreenshotActivity : AppCompatActivity() {
     private val endTouch = PointF()
     private var originalBitmapKey: String? = null
     private var isSelectionEnabled = true //框选是否启用,默认开启
+    private val watermarkConfig = WatermarkConfig.default() //水印配置
+    private var isWatermarkVisible = false // 水印是否显示
+
+    private var textViews: MutableList<TextView> = mutableListOf()
+    private val selectedTexts = mutableListOf<String>()
+    private lateinit var copyButton: Button
+    private var recognizedText: String? = null
+    private lateinit var overlayView: ImageView
+    private lateinit var croppedBitmap: Bitmap
+    private lateinit var buttonLayout: LinearLayout
+    private var startX = 0f
+    private var startY = 0f
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -93,6 +146,39 @@ class ScreenshotActivity : AppCompatActivity() {
         imageView = findViewById(R.id.imageViewScreenshot)
         selectView = findViewById(R.id.selectView)
         btnConfirmSelection = findViewById(R.id.btnConfirmSelection)
+        watermarkOverlay = findViewById(R.id.watermarkOverlay)
+        graffitiView = findViewById(R.id.graffitiView)
+        exControlFrame = findViewById(R.id.exControlFrame)
+        overlayView = imageView
+
+        // 文字识别键逻辑
+        val btnOcr = findViewById<ImageButton>(R.id.btnOcr)
+        btnOcr.setOnClickListener {
+            // 执行文字识别操作
+            performTextRecognition(croppedBitmap)
+        }
+
+        // 摘要键逻辑
+        val btnSummary = findViewById<ImageButton>(R.id.btnSummary)
+        btnSummary.setOnClickListener {
+            // 执行摘要操作
+//            if (!recognizedText.isNullOrBlank()) {
+//                val fullText = recognizedText!!
+//
+//                lifecycleOwner.lifecycleScope.launch {
+//                    val summary = try {
+//                        getSummaryFromSuanliAPI(fullText)
+//                    } catch (e: Exception) {
+//                        e.printStackTrace()
+//                        println("捕获到异常：${e.message}")
+//                        "请求摘要失败，请检查网络或API Key"
+//                    }
+//                    showSummaryDialog(summary)
+//                }
+//            } else {
+//                Toast.makeText(this, "请先进行文字识别", Toast.LENGTH_SHORT).show()
+//            }
+        }
 
         // 编辑的叠加管理器
         bitmapEdit = EditScreenshot(this,findViewById(R.id.imageContainer))
@@ -128,6 +214,13 @@ class ScreenshotActivity : AppCompatActivity() {
             shareCurrentImage()
         }
 
+        // 图片复制键逻辑
+        val btnCopy = findViewById<ImageButton>(R.id.btnCopy)
+        btnCopy.setOnClickListener {
+            // 执行复制图片操作
+            copyImageToClipboard()
+        }
+
         // 保存键逻辑
         val btnSave = findViewById<ImageButton>(R.id.btnSave)
         btnSave.setOnClickListener {
@@ -144,10 +237,33 @@ class ScreenshotActivity : AppCompatActivity() {
         val btnIfCanSelect = findViewById<ImageButton>(R.id.btnIsCanSelect)
         btnIfCanSelect.setOnClickListener {
             toggleSelectionMode()
-
-            // Todo: 改变 btnIfCanSelect 的图标
         }
 
+        // 水印开关逻辑
+        val btnWatermark = findViewById<ImageButton>(R.id.btnWatermark)
+        btnWatermark.setOnClickListener {
+            toggleWatermarkMode()
+
+            // TODO: 修改水印高亮图标
+            // TODO: 水印设置
+        }
+        showControlView(ControlViewStatus.OtherMode.ordinal)
+        // 涂鸦按钮逻辑
+        val btnGraffiti = findViewById<ImageButton>(R.id.btnDraw)
+        btnGraffiti.setOnClickListener {
+            showControlView(ControlViewStatus.GraffitiMode.ordinal)
+        }
+        // 马赛克按钮逻辑
+        val btnMosaic = findViewById<ImageButton>(R.id.btnMosaic)
+        btnMosaic.setOnClickListener {
+            showControlView(ControlViewStatus.MosaicMode.ordinal)
+        }
+        graffitiView.setOnBitmapChangeListener(object : GraffitiView.onBitmapChangeListener {
+            override fun onBitmapChange(bitmap: Bitmap) {
+                imageView.setImageBitmap(bitmap)
+            }
+
+        })
         // 获取传入的 key
         val key = intent.getStringExtra(EXTRA_SCREENSHOT_KEY)
         originalBitmapKey = key
@@ -158,24 +274,11 @@ class ScreenshotActivity : AppCompatActivity() {
         // 从缓存中取出 Bitmap
         val bitmap = key?.let { BitmapCache.getBitmap(it) }
 
-
-//        // 编辑键逻辑 跳转到编辑Activity
-//        val btnEditWrapper = findViewById<LinearLayout>(R.id.btnEditWrapper)
-//        btnEditWrapper.setOnClickListener{
-//            // 通过缓存实现数据传递
-//            val tmpFile = File(cacheDir, "tmp_img.jpeg")
-//            bitmap?.compress(Bitmap.CompressFormat.JPEG, 90, FileOutputStream(tmpFile))
-//
-//            val intent = Intent(this, EditScreenshotActivity::class.java).apply {
-//                putExtra("image_path", tmpFile.absoluteFile)
-//            }
-//
-//            startActivity(intent)
-//        }
-
         Log.d("ScreenshotExampleActivity", "Test：this  is called")
         if (bitmap != null) {
+            croppedBitmap = bitmap
             imageView.setImageBitmap(bitmap)
+            graffitiView.setBitmap(croppedBitmap)
         } else {
             Toast.makeText(this, "截图数据为空或已释放", Toast.LENGTH_SHORT).show()
         }
@@ -192,15 +295,16 @@ class ScreenshotActivity : AppCompatActivity() {
     override fun onDestroy() {
         super.onDestroy()
         // 清理 Bitmap 缓存
-        val currentKey = intent.getStringExtra(ScreenshotActivity.EXTRA_SCREENSHOT_KEY)
+        val currentKey = intent.getStringExtra(EXTRA_SCREENSHOT_KEY)
         BitmapCache.clearExcept(currentKey)
     }
 
     override fun finish() {
         super.finish()
-        overridePendingTransition(R.anim.fade_out, R.anim.fade_out)
+        //overridePendingTransition(R.anim.fade_out, R.anim.fade_out)
     }
 
+    // 撤销操作
     private fun undoToLastImage() {
         if (!ImageHistory.canUndo()) {
             Toast.makeText(this, "没有更多可撤销的操作", Toast.LENGTH_SHORT).show()
@@ -230,6 +334,7 @@ class ScreenshotActivity : AppCompatActivity() {
         Toast.makeText(this, "已恢复至上一步", Toast.LENGTH_SHORT).show()
     }
 
+    // 重做操作
     private fun redoLastImage() {
         val redoKey = ImageHistory.redo() ?: run {
             Toast.makeText(this, "没有可重做的操作", Toast.LENGTH_SHORT).show()
@@ -252,6 +357,8 @@ class ScreenshotActivity : AppCompatActivity() {
         Toast.makeText(this, "已恢复至下一步", Toast.LENGTH_SHORT).show()
     }
 
+
+    //  设置触摸监听器
     private fun setupTouchListener() {
         val imageContainer = findViewById<View>(R.id.imageContainer)
 
@@ -290,6 +397,7 @@ class ScreenshotActivity : AppCompatActivity() {
         }
     }
 
+    // 更新选区并重绘
     private fun updateAndInvalidateSelection() {
         val left = minOf(startTouch.x, endTouch.x).toInt()
         val top = minOf(startTouch.y, endTouch.y).toInt()
@@ -330,9 +438,12 @@ class ScreenshotActivity : AppCompatActivity() {
         }
     }
 
+
+    // 设置确认按钮点击监听器
     private fun setupConfirmButtonClickListener() {
         btnConfirmSelection.setOnClickListener {
-            val bitmap = intent.getStringExtra(EXTRA_SCREENSHOT_KEY)?.let { BitmapCache.getBitmap(it) }
+            val drawable = imageView.drawable as? BitmapDrawable
+            val bitmap = drawable?.bitmap
             val selectedRect = getBitmapCropRect(imageView)
 
             if (bitmap != null && selectedRect != null && !selectedRect.isEmpty) {
@@ -355,7 +466,7 @@ class ScreenshotActivity : AppCompatActivity() {
                 btnConfirmSelection.visibility = View.GONE
                 val hintTextView = findViewById<TextView>(R.id.selectionHint)
                 hintTextView.visibility = View.VISIBLE
-
+                graffitiView.setBitmap(croppedBitmap)
                 Toast.makeText(this, "已裁剪并更新图像", Toast.LENGTH_SHORT).show()
             } else {
                 Toast.makeText(this, "无效选区或图片为空", Toast.LENGTH_SHORT).show()
@@ -363,6 +474,7 @@ class ScreenshotActivity : AppCompatActivity() {
         }
     }
 
+    // 获取剪裁的矩形
     private fun getBitmapCropRect(imageView: ImageView): Rect? {
         val drawable = imageView.drawable ?: return null
         val bitmapWidth = drawable.intrinsicWidth
@@ -389,6 +501,9 @@ class ScreenshotActivity : AppCompatActivity() {
         val top = ((startTouch.y - transY) / scaleY).toInt()
         val right = ((endTouch.x - transX) / scaleX).toInt()
         val bottom = ((endTouch.y - transY) / scaleY).toInt()
+
+        startX = startTouch.x
+        startY = startTouch.y
 
         // 边界检查
         val validLeft = maxOf(0, minOf(left, right))
@@ -438,6 +553,7 @@ class ScreenshotActivity : AppCompatActivity() {
 
     }
 
+    //  保存图片
     private fun saveCurrentImage() {
         val imageView = findViewById<ImageView>(R.id.imageViewScreenshot)
         val bitmap = (imageView.drawable as? BitmapDrawable)?.bitmap
@@ -487,6 +603,24 @@ class ScreenshotActivity : AppCompatActivity() {
 //                finish()
 //            }
 //        }
+        if(isWatermarkVisible){
+            // 将水印实际添加到图片中
+            val watermarkedBitmap = WatermarkUtil.addWatermark(
+                originalBitmap = bitmap,
+                config = watermarkConfig
+            )
+
+            // 将更新图片和key
+            val newKey = BitmapCache.cacheBitmap(watermarkedBitmap)
+//            imageView.setImageBitmap(watermarkedBitmap)
+            intent.putExtra(EXTRA_SCREENSHOT_KEY, newKey)
+//            ImageHistory.push(newKey)
+        }else{
+            // 将更新图片和key
+            val newKey = BitmapCache.cacheBitmap(bitmap)
+            intent.putExtra(EXTRA_SCREENSHOT_KEY, newKey)
+        }
+
         val currentKey = intent.getStringExtra(EXTRA_SCREENSHOT_KEY)
             ?: run {
                 Toast.makeText(this, "图片数据不可用", Toast.LENGTH_SHORT).show()
@@ -500,19 +634,21 @@ class ScreenshotActivity : AppCompatActivity() {
         finish()
     }
 
+
+    // 显示设置路径对话框
     private fun showSetPathDialog(onConfirm: (Boolean) -> Unit) {
         val dialog = BottomSheetDialog(this)
         val view = layoutInflater.inflate(R.layout.dialog_confirm_set_path, null)
         dialog.setContentView(view)
 
-//        // 设置默认展开高度
-//        dialog.setOnShowListener { dialogInterface ->
-//            val bottomSheet = (dialogInterface as BottomSheetDialog).findViewById<View>(com.google.android.material.R.id.design_bottom_sheet)
-//            bottomSheet?.let {
-//                val behavior = com.google.android.material.bottomsheet.BottomSheetBehavior.from(it)
-//                behavior.state = com.google.android.material.bottomsheet.BottomSheetBehavior.STATE_EXPANDED
-//            }
-//        }
+        // 设置默认展开高度
+        dialog.setOnShowListener { dialogInterface ->
+            val bottomSheet = (dialogInterface as BottomSheetDialog).findViewById<View>(com.google.android.material.R.id.design_bottom_sheet)
+            bottomSheet?.let {
+                val behavior = com.google.android.material.bottomsheet.BottomSheetBehavior.from(it)
+                behavior.state = com.google.android.material.bottomsheet.BottomSheetBehavior.STATE_EXPANDED
+            }
+        }
 
         val btnConfirm = view.findViewById<Button>(R.id.btnConfirm)
         val btnCancel = view.findViewById<Button>(R.id.btnCancel)
@@ -530,21 +666,49 @@ class ScreenshotActivity : AppCompatActivity() {
         dialog.show()
     }
 
+    // 切换裁剪开关
     private fun toggleSelectionMode() {
         isSelectionEnabled = !isSelectionEnabled
 
+        val btnIfCanSelect = findViewById<ImageButton>(R.id.btnIsCanSelect)
         if (!isSelectionEnabled) {
             // 关闭时清空当前选区和 UI 状态
             selectView.clearSelection()
             btnConfirmSelection.visibility = View.GONE
             findViewById<TextView>(R.id.selectionHint).visibility = View.GONE
+            btnIfCanSelect.setImageResource(R.drawable.ic_reselect)
             Toast.makeText(this, "裁剪功能已关闭", Toast.LENGTH_SHORT).show()
         } else {
-            btnConfirmSelection.visibility = View.VISIBLE
+            btnConfirmSelection.visibility = View.GONE
+            findViewById<TextView>(R.id.selectionHint).visibility = View.VISIBLE
+            btnIfCanSelect.setImageResource(R.drawable.ic_reselect_on)
             Toast.makeText(this, "裁剪功能已开启", Toast.LENGTH_SHORT).show()
         }
     }
 
+    private fun toggleWatermarkMode(){
+        isWatermarkVisible = !isWatermarkVisible
+        val key = intent.getStringExtra(EXTRA_SCREENSHOT_KEY)
+        val bitmap = key?.let { BitmapCache.getBitmap(it) }
+        if (bitmap != null) {
+            if(isWatermarkVisible){
+                if(watermarkOverlay.isGone){
+                    watermarkOverlay.setWatermark(
+                        config = watermarkConfig
+                    )
+                }
+                watermarkOverlay.visibility = View.VISIBLE
+                Toast.makeText(this, "已添加水印", Toast.LENGTH_SHORT).show()
+            } else {
+                watermarkOverlay.visibility = View.INVISIBLE
+                Toast.makeText(this, "已取消添加水印", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
+
+
+    // 快捷键触发功能
     override fun dispatchKeyEvent(event: android.view.KeyEvent): Boolean {
         if (event.action == android.view.KeyEvent.ACTION_DOWN) {
             val isCtrlPressed = event.isCtrlPressed
@@ -560,12 +724,14 @@ class ScreenshotActivity : AppCompatActivity() {
                 }
                 android.view.KeyEvent.KEYCODE_Z -> {
                     if (isCtrlPressed && isShiftPressed) {
-                        Toast.makeText(this, "Ctrl+Shift+Z 被触发：执行重做", Toast.LENGTH_SHORT).show()
+                        // 重做操作已经有一个提示弹窗
+//                        Toast.makeText(this, "Ctrl+Shift+Z 被触发：执行重做", Toast.LENGTH_SHORT).show()
                         // 执行重做逻辑
                         redoLastImage()
                         return true
                     } else if (isCtrlPressed) {
-                        Toast.makeText(this, "Ctrl+Z 被触发：执行撤销", Toast.LENGTH_SHORT).show()
+                        // 撤销操作已经有一个提示弹窗
+//                        Toast.makeText(this, "Ctrl+Z 被触发：执行撤销", Toast.LENGTH_SHORT).show()
                         // 执行撤销逻辑
                         undoToLastImage()
                         return true
@@ -587,6 +753,387 @@ class ScreenshotActivity : AppCompatActivity() {
         }
 
         return super.dispatchKeyEvent(event)
+    }
+
+    // 在截图后进行文字识别
+    private fun performTextRecognition(bitmap: Bitmap) {
+        recognizeText(bitmap,
+            onSuccess = { text ->
+                // 将识别到的文字存储到recognizedText中，方便后面进行内容摘要
+                recognizedText = text
+                // 打印识别到的文字
+                println("识别到的文字：$text")
+            },
+            onSuccessWithBlocks = { visionText: Text ->
+                // 显示文字在截图对应位置
+                showTextOnScreenshotWithInteraction(visionText)
+            },
+            onFailure = { error ->
+                // 打印错误
+                error.printStackTrace()
+                println("文字识别失败：${error.message}")
+            }
+        )
+    }
+
+    // 封装好的识别函数
+    fun recognizeText(
+        bitmap: Bitmap,
+        onSuccess: (String) -> Unit,
+        onSuccessWithBlocks: (Text) -> Unit,
+        onFailure: (Exception) -> Unit
+    ) {
+        val image = InputImage.fromBitmap(bitmap, 0)
+
+        // 使用中文识别器（同时可以识别英文）
+        val recognizer = TextRecognition.getClient(ChineseTextRecognizerOptions.Builder().build())
+
+        recognizer.process(image)
+            .addOnSuccessListener { visionText ->
+                onSuccess(visionText.text)
+                onSuccessWithBlocks(visionText)
+            }
+            .addOnFailureListener { e ->
+                onFailure(e)
+            }
+    }
+
+    private fun showTextOnScreenshotWithInteraction(visionText: Text) {
+        val textBlocks = visionText.textBlocks
+        val rootView = overlayView.parent as? ViewGroup ?: return
+
+        // 先清除旧的TextView
+        textViews.forEach { rootView.removeView(it) }
+        textViews.clear()
+
+        val imageView = overlayView // 截图显示的View
+        val imageWidth = imageView.width
+        val imageHeight = imageView.height
+
+        val originalWidth = croppedBitmap.width
+        val originalHeight = croppedBitmap.height
+
+        val scaleX = imageWidth.toFloat() / originalWidth
+        val scaleY = imageHeight.toFloat() / originalHeight
+
+        textBlocks.forEach { textBlock ->
+            val text = textBlock.text
+            val boundingBox = textBlock.boundingBox ?: return@forEach
+
+            // 获取图片矩阵变换参数
+            val matrix = imageView.imageMatrix
+            val values = FloatArray(9).also { matrix.getValues(it) }
+
+            // 计算映射后的坐标
+            val mappedLeft = (boundingBox.left * values[Matrix.MSCALE_X] + values[Matrix.MTRANS_X])
+            val mappedTop = (boundingBox.top * values[Matrix.MSCALE_Y] + values[Matrix.MTRANS_Y])
+            val mappedRight = (boundingBox.right * values[Matrix.MSCALE_X] + values[Matrix.MTRANS_X])
+            val mappedBottom = (boundingBox.bottom * values[Matrix.MSCALE_Y] + values[Matrix.MTRANS_Y])
+
+            val scaledLeft = max(0f, mappedLeft).toInt()
+            val scaledTop = max(0f, mappedTop).toInt()
+            val scaledRight = max((scaledLeft + 1).toFloat(), min(mappedRight, imageWidth.toFloat())).toInt()
+            val scaledBottom = max((scaledTop + 1).toFloat(), min(mappedBottom, imageHeight.toFloat())).toInt()
+
+            val paddingHorizontal = 4.dpToPx()
+            val paddingVertical = 2.dpToPx()
+
+            val blockWidth = scaledRight - scaledLeft
+            val blockHeight = scaledBottom - scaledTop
+
+            val extraHeight = (blockHeight * 0.3f).toInt() // 多留30%高度避免裁剪
+            val layoutWidth = blockWidth
+            val layoutHeight = blockHeight + paddingVertical * 2 + extraHeight
+
+            val textView = TextView(this).apply {
+                this.text = text
+                setTextColor(Color.BLACK)
+                setBackgroundColor(Color.parseColor("#E0F0FF"))
+                setPadding(paddingHorizontal, paddingVertical, paddingHorizontal, paddingVertical)
+                gravity = Gravity.CENTER
+                tag = "ocr_text"
+
+                // 估算动态字体大小
+                val area = layoutWidth * layoutHeight
+                val estimatedTextSizePx = sqrt(area.toFloat()) * 0.2f
+                val textSizeSp = estimatedTextSizePx / resources.displayMetrics.scaledDensity
+                textSize = textSizeSp.coerceIn(12f, 36f)
+
+                minimumWidth = 32.dpToPx()
+                minimumHeight = 24.dpToPx()
+
+                setOnClickListener {
+                    if (selectedTexts.contains(text)) {
+                        selectedTexts.remove(text)
+                        setBackgroundColor(Color.parseColor("#E0F0FF"))
+                    } else {
+                        selectedTexts.add(text)
+                        setBackgroundColor(Color.parseColor("#AA66CCFF"))
+                    }
+                }
+            }
+
+            rootView.addView(textView)
+            textViews.add(textView)
+
+            textView.layoutParams = FrameLayout.LayoutParams(
+                layoutWidth,
+                layoutHeight
+            ).apply {
+                leftMargin = scaledLeft
+                topMargin = scaledTop
+            }
+        }
+        addCopyButton()
+    }
+
+    private fun setSelectedStyle(textView: TextView) {
+        textView.setBackgroundColor(Color.parseColor("#AA66CCFF")) // 高亮选中
+    }
+
+    private fun setUnselectedStyle(textView: TextView) {
+        textView.setBackgroundColor(Color.parseColor("#E0F0FF")) // 恢复原背景
+    }
+
+    private fun addCopyButton() {
+        val rootView = overlayView.parent as? ViewGroup ?: return
+
+        copyButton = Button(this).apply {
+            text = "复制选中内容"
+            setTextColor(Color.BLACK)
+
+            // 设置圆角白色背景
+            background = GradientDrawable().apply {
+                shape = GradientDrawable.RECTANGLE
+                cornerRadius = 16f.dpToPx() // 设置圆角半径
+                setColor(Color.WHITE) // 白色背景
+            }
+
+            setOnClickListener {
+                copySelectedTextsToClipboard()
+
+                if (::buttonLayout.isInitialized) {
+                    val parentView = overlayView.parent as? ViewGroup
+                    parentView?.removeView(overlayView)
+                    parentView?.removeView(buttonLayout)
+                }
+
+                // 移除所有识别出的 TextView
+                for (textView in textViews) {
+                    textView.parent?.let { parent ->
+                        if (parent is ViewGroup) {
+                            parent.removeView(textView)
+                        }
+                    }
+                }
+                textViews.clear()
+
+                // 移除copyButton本身
+                this@apply.parent?.let { parent ->
+                    if (parent is ViewGroup) {
+                        parent.removeView(this@apply)
+                    }
+                }
+            }
+        }
+
+        val layoutParams = FrameLayout.LayoutParams(
+            ViewGroup.LayoutParams.WRAP_CONTENT,
+            ViewGroup.LayoutParams.WRAP_CONTENT
+        ).apply {
+            gravity = Gravity.BOTTOM or Gravity.END
+            rightMargin = 30
+            bottomMargin = 30
+        }
+
+        rootView.addView(copyButton, layoutParams)
+    }
+
+    // dp转换扩展函数
+    private fun Int.dpToPx(): Int = (this * resources.displayMetrics.density).toInt()
+    private fun Float.dpToPx(): Float = this * resources.displayMetrics.density
+
+    private fun copySelectedTextsToClipboard() {
+        if (selectedTexts.isEmpty()) {
+            Toast.makeText(this, "未选中任何内容", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        val combinedText = selectedTexts.joinToString(separator = "\n") // 多行拼接
+        val clipboardManager = this.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+        val clipData = ClipData.newPlainText("Selected OCR Text", combinedText)
+        clipboardManager.setPrimaryClip(clipData)
+
+        Toast.makeText(this, "已复制${selectedTexts.size}条内容到剪贴板", Toast.LENGTH_SHORT).show()
+
+        // 可选：复制完成后清空选中状态
+        selectedTexts.clear()
+    }
+
+
+    private fun copyImageToClipboard() {
+        // 创建一个临时文件来存储图片
+        val tempFile = File(this.cacheDir, "temp_image.png")
+        try {
+            // 将截图保存到临时文件
+            val outputStream = FileOutputStream(tempFile)
+            croppedBitmap.compress(Bitmap.CompressFormat.PNG, 100, outputStream)
+            outputStream.close()
+
+            // 使用 FileProvider 获取内容 URI
+            val fileProviderUri = FileProvider.getUriForFile(
+                this,
+                "${this.packageName}.fileprovider",
+                tempFile
+            )
+
+            // 授予权限给目标应用
+            this.grantUriPermission(
+                "*",
+                fileProviderUri,
+                Intent.FLAG_GRANT_READ_URI_PERMISSION
+            )
+
+            // 将图片复制到剪贴板
+            val clipData = ClipData.newUri(
+                this.contentResolver,
+                "image/png",
+                fileProviderUri
+            )
+            val clipboardManager = this.getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
+            clipboardManager.setPrimaryClip(clipData)
+
+            Toast.makeText(this, "图片已复制到剪贴板", Toast.LENGTH_SHORT).show()
+        } catch (e: IOException) {
+            e.printStackTrace()
+            Toast.makeText(this, "复制失败: ${e.message}", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    private suspend fun getSummaryFromSuanliAPI(content: String): String {
+        val client = OkHttpClient.Builder()
+            .connectTimeout(30, TimeUnit.SECONDS)
+            .readTimeout(30, TimeUnit.SECONDS)
+            .writeTimeout(30, TimeUnit.SECONDS)
+            .build()
+
+        // 正确构建JSON，避免非法字符
+        val messageObject = JSONObject()
+        messageObject.put("role", "user")
+        messageObject.put("content", "请根据文本内容生成文本摘要，只需要简洁地呈现摘要内容，不要包含思考过程：" + content)
+
+        val messagesArray = JSONArray()
+        messagesArray.put(messageObject)
+
+        val rootObject = JSONObject()
+        rootObject.put("model", "free:QwQ-32B")
+        rootObject.put("messages", messagesArray)
+
+        val json = rootObject.toString() // 自动转成合法JSON字符串
+
+        val body = json.toRequestBody("application/json".toMediaType())
+
+        val request = Request.Builder()
+            .url("https://api.suanli.cn/v1/chat/completions")
+            .addHeader("Authorization", "Bearer sk-W0rpStc95T7JVYVwDYc29IyirjtpPPby6SozFMQr17m8KWeo")
+            .post(body)
+            .build()
+
+        return withContext(Dispatchers.IO) {
+            val response = client.newCall(request).execute()
+            println("响应状态码：${response.code}")
+            val responseBody = response.body?.string() ?: ""
+            if (response.isSuccessful) {
+                try {
+                    val jsonObject = JSONObject(responseBody)
+                    val summary = jsonObject
+                        .getJSONArray("choices")
+                        .getJSONObject(0)
+                        .getJSONObject("message")
+                        .getString("content")
+                    summary.trim()
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                    println("解析摘要返回出错，原始内容：$responseBody")
+                    "解析摘要失败，请检查返回格式"
+                }
+            } else {
+                println("请求失败，状态码：${response.code}, 返回内容：$responseBody")
+                "摘要失败: ${response.message} (${response.code})"
+            }
+        }
+    }
+
+    private fun showSummaryDialog(summary: String) {
+        // 创建一个 AlertDialog.Builder
+        val builder = AlertDialog.Builder(this)
+        // 设置对话框的标题
+        builder.setTitle("内容摘要")
+        // 设置对话框的消息为摘要内容
+        builder.setMessage(summary)
+        // 添加一个“确定”按钮
+        builder.setPositiveButton("确定") { dialog, _ ->
+            // 点击确定后关闭对话框
+            dialog.dismiss()
+        }
+        // 创建并显示对话框
+        val dialog = builder.create()
+        dialog.show()
+    }
+    /**
+     * 显示控制视图
+     */
+    private fun showControlView(mode: Int) {
+        when (mode) {
+            ControlViewStatus.GraffitiMode.ordinal -> {
+                graffitiView.visibility = View.VISIBLE
+                val graffitiTabView = GraffitiTabView(this)
+                exControlFrame.removeAllViews()
+                exControlFrame.addView(graffitiTabView)
+                graffitiView.setMosaicMode(false)
+                graffitiTabView.setOnSelectedListener(listener = object : GraffitiTabView.OnSelectedListener {
+                    override fun onColorSelected(color: Int) {
+                        graffitiView.setStrokeColor(color)
+                    }
+
+                    override fun onSelectSize(size: Int) {
+                        graffitiView.setStrokeWidth(size)
+                    }
+
+                })
+            }
+            ControlViewStatus.MosaicMode.ordinal -> {
+                graffitiView.visibility = View.VISIBLE
+                graffitiView.isClickable
+                // 显示涂鸦模式
+                val doodleTabView = MosaicTabView(this)
+                exControlFrame.removeAllViews()
+                exControlFrame.addView(doodleTabView)
+                // 显示马赛克模式
+                graffitiView.setMosaicMode(true)
+                doodleTabView.setOnMosaicTabClickListener(listener = object : MosaicTabView.OnMosaicTabClickListener {
+                    override fun onMosaicSelectedClick(tabIndex: Int) {
+                        graffitiView.setMosaicRadius(tabIndex)
+                    }
+
+                    override fun onMosaicSettingClick(progress: Float) {
+                        graffitiView.setMosaicBlur(progress.toInt())
+                    }
+
+                })
+            }
+            ControlViewStatus.OtherMode.ordinal -> {
+                graffitiView.visibility = View.GONE
+                // 显示其他模式
+                exControlFrame.removeAllViews()
+            }
+        }
+    }
+
+    enum class ControlViewStatus {
+        GraffitiMode,//涂鸦模式
+        MosaicMode,//马赛克模式
+        OtherMode//其他模式
     }
 
 }

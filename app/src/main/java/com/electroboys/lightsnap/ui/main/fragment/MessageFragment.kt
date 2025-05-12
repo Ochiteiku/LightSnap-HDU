@@ -269,9 +269,9 @@ class MessageFragment : Fragment(R.layout.fragment_message) {
 //            }
 //        }
         val closeButton = toolbar.findViewById<ImageView>(R.id.closeMessageButton)
-            closeButton.setOnClickListener {
-                parentFragmentManager.popBackStack()
-            }
+        closeButton.setOnClickListener {
+            parentFragmentManager.popBackStack()
+        }
 
 
         val secretImage = toolbar.findViewById<ImageView>(R.id.secretMessageButton)
@@ -284,8 +284,8 @@ class MessageFragment : Fragment(R.layout.fragment_message) {
                 secretImage.setImageResource(R.drawable.ic_eye_open)
             }
             isMessageSecret = !isMessageSecret
-
         }
+        secretImage.setImageResource(if (isMessageSecret) R.drawable.ic_eye_closed else R.drawable.ic_eye_open)
 
         chatContainer.addView(rootLayout)
     }

@@ -39,6 +39,11 @@
             android:padding="8dp"
             android:layout_gravity="top|center_horizontal"
             android:layout_marginTop="20dp" />
+        <com.electroboys.lightsnap.domain.watermark.WatermarkOverlayView
+            android:id="@+id/watermarkOverlay"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:visibility="gone"/>
 
         <com.electroboys.lightsnap.domain.screenshot.SelectView
             android:id="@+id/selectView"
@@ -61,6 +66,11 @@
             android:layout_width="match_parent"
             android:layout_height="match_parent"/>
 
+        <com.electroboys.lightsnap.ui.main.view.GraffitiView
+            android:id="@+id/graffitiView"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:visibility="invisible"/>
     </FrameLayout>
 
     <ImageButton
@@ -75,6 +85,13 @@
         app:tint="#FFFFFF"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintStart_toStartOf="parent" />
+    <FrameLayout
+        android:id="@+id/exControlFrame"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        app:layout_constraintStart_toStartOf="@id/bottomBar"
+        app:layout_constraintBottom_toTopOf="@id/bottomBar"
+        />
 
     <!-- 文本操作栏 -->
     <LinearLayout
@@ -175,7 +192,7 @@
             <ImageButton
                 android:id="@+id/btnText"
                 style="@style/ToolButtonStyle"
-                android:src="@drawable/ic_addtext_textbox"
+                android:src="@drawable/ic_text"
                 android:contentDescription="文字" />
 
             <ImageButton

@@ -1,5 +1,6 @@
 package com.electroboys.lightsnap.ui.main.fragment
 
+import android.media.Image
 import android.os.Bundle
 import android.util.Log
 import android.view.View
@@ -19,8 +20,6 @@ import com.electroboys.lightsnap.utils.SecretUtil
 
 
 class DocumentDetailFragment : Fragment(R.layout.doc_document_detail) {
-
-
 
     companion object {
         private var isFullscreen = false
@@ -76,6 +75,10 @@ class DocumentDetailFragment : Fragment(R.layout.doc_document_detail) {
             }
             isDocumentSecret = !isDocumentSecret
         }
+
+        secretImage.setImageResource(if (isDocumentSecret) R.drawable.ic_eye_closed else R.drawable.ic_eye_open )
+
+
         enterFullscreen()
     }
 
