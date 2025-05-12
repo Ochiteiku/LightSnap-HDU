@@ -28,6 +28,9 @@ class LibraryPictureAdapter(private val images: List<Uri>) : Adapter<LibraryPict
             imageView.load(uri){
                 crossfade(true)
                 placeholder(R.drawable.ic_avatar1)  // 占位图
+
+                // 强制使用软件层 Bitmap，避免硬件加速冲突
+                allowHardware(false)
             }
 
             imageView.setOnLongClickListener{
