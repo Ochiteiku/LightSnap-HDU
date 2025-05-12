@@ -3,6 +3,8 @@ package com.electroboys.lightsnap.ui.main.activity
 import android.annotation.SuppressLint
 import android.graphics.Bitmap
 import android.graphics.PointF
+import android.os.Handler
+import android.os.Looper
 import android.view.KeyEvent
 import android.view.MotionEvent
 import android.view.View
@@ -11,6 +13,9 @@ import android.widget.FrameLayout
 import android.widget.ImageView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import androidx.recyclerview.widget.RecyclerView
+import com.electroboys.lightsnap.R
+import com.electroboys.lightsnap.ui.main.adapter.LibraryPictureAdapter
 import com.electroboys.lightsnap.ui.main.view.SelectView
 import com.electroboys.lightsnap.utils.ScreenshotUtil
 
@@ -24,7 +29,7 @@ class ScreenshotActivityForBase(private val activity: AppCompatActivity) {
     private var maskView: View? = null// 灰幕
     private var backgroundImageView: ImageView? = null
 
-    @SuppressLint("ClickableViewAccessibility")
+    @SuppressLint("ClickableViewAccessibility", "NotifyDataSetChanged")
     fun enableBoxSelectOnce(onCapture: (Bitmap?) -> Unit) {
         this.onCaptureListener = onCapture
         if (isBoxSelectEnabled) return
@@ -34,8 +39,17 @@ class ScreenshotActivityForBase(private val activity: AppCompatActivity) {
 
         val container = activity.findViewById<FrameLayout>(android.R.id.content)
 
+        val recyclerView = activity.findViewById<RecyclerView>(R.id.library_picture)
+        val adapter = recyclerView.adapter as? LibraryPictureAdapter
+        LibraryPictureAdapter.isScreenshotMode = true
+        adapter?.notifyDataSetChanged()
+
+        // 强制等待 UI 更新完成
+        Handler(Looper.getMainLooper()).postDelayed({
         // 执行异步截图（支持 SurfaceView）
         ScreenshotUtil.captureWithStatusBar(activity) { fullScreenshot ->
+            LibraryPictureAdapter.isScreenshotMode = false
+            adapter?.notifyDataSetChanged()
             // 截图完成后的逻辑，确保在主线程执行
             activity.runOnUiThread {
                 val imageView = ImageView(activity).apply {
@@ -119,6 +133,7 @@ class ScreenshotActivityForBase(private val activity: AppCompatActivity) {
                 selectionOverlayView.setOnTouchListener(touchListener)
             }
         }
+        }, 200) // 小小延迟确保界面刷新完成
     }
 
 

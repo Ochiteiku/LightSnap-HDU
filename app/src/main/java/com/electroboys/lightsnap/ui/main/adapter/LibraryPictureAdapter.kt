@@ -14,6 +14,10 @@ import com.github.chrisbanes.photoview.PhotoView
 
 class LibraryPictureAdapter(private val images: List<Uri>) : Adapter<LibraryPictureAdapter.ImageViewHolder>(){
 
+    companion object {
+        var isScreenshotMode = false
+    }
+
     // 为item定义回调接口
     var onImageViewLongClickListener: ((position: Int) -> Unit)? = null
     var onImageViewClickListener: ((position: Int) -> Unit)? = null
@@ -24,13 +28,18 @@ class LibraryPictureAdapter(private val images: List<Uri>) : Adapter<LibraryPict
 
         fun bind(uri: Uri){
 
-            // 使用Coil加载图片
-            imageView.load(uri){
-                crossfade(true)
-                placeholder(R.drawable.ic_avatar1)  // 占位图
-
-                // 强制使用软件层 Bitmap，避免硬件加速冲突
-                allowHardware(false)
+            if (isScreenshotMode) {
+                imageView.load(uri) {
+                    crossfade(false)
+                    allowHardware(false)
+                    placeholder(R.drawable.ic_avatar1)
+                }
+            } else {
+                imageView.load(uri) {
+                    crossfade(true)
+                    allowHardware(true)
+                    placeholder(R.drawable.ic_avatar1)
+                }
             }
 
             imageView.setOnLongClickListener{
