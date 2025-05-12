@@ -214,6 +214,12 @@
                 android:src="@drawable/ic_arrow"
                 android:contentDescription="箭头" />
 
+            <ImageButton
+                android:id="@+id/btnWatermark"
+                style="@style/ToolButtonStyle"
+                android:src="@drawable/ic_line"
+                android:contentDescription="水印"/>
+
 
         </LinearLayout>
 
