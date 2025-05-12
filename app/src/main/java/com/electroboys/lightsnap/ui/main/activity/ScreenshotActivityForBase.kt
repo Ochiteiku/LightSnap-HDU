@@ -22,6 +22,7 @@ class ScreenshotActivityForBase(private val activity: AppCompatActivity) {
     private var isBoxSelectEnabled = false
     private var onCaptureListener: ((Bitmap?) -> Unit)? = null
     private var maskView: View? = null// 灰幕
+    private var backgroundImageView: ImageView? = null
 
     @SuppressLint("ClickableViewAccessibility")
     fun enableBoxSelectOnce(onCapture: (Bitmap?) -> Unit) {
@@ -31,90 +32,95 @@ class ScreenshotActivityForBase(private val activity: AppCompatActivity) {
         isBoxSelectEnabled = true
         selectionOverlayView.clearSelection()
 
-        val fullScreenBitmap = ScreenshotUtil.captureWithStatusBar(activity)  // 提前截图
-
-        // 创建灰幕 View
-        maskView = View(activity).apply {
-            setBackgroundColor(0xAA000000.toInt()) // 半透明黑色
-        }
-
-        // 创建显示截图的 ImageView
-        val screenshotImageView = ImageView(activity).apply {
-            setImageBitmap(fullScreenBitmap)
-            scaleType = ImageView.ScaleType.FIT_XY
-            layoutParams = FrameLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.MATCH_PARENT
-            )
-        }
-
-        // 添加 overlay 到根布局
         val container = activity.findViewById<FrameLayout>(android.R.id.content)
-        if (selectionOverlayView.parent == null) {
-            container.addView(screenshotImageView)   // 2. 截图图像
-            container.addView(maskView)              // 1. 灰幕
-            container.addView(selectionOverlayView)  // 3. 框选层
-        }
 
-        Toast.makeText(activity, "按住屏幕进行拖动框选区域", Toast.LENGTH_SHORT).show()
-
-        val touchListener = View.OnTouchListener { _, event ->
-            when (event.action) {
-                MotionEvent.ACTION_DOWN -> {
-                    startTouch.set(event.x, event.y)
-                    endTouch.set(event.x, event.y)
+        // 执行异步截图（支持 SurfaceView）
+        ScreenshotUtil.captureWithStatusBar(activity) { fullScreenshot ->
+            // 截图完成后的逻辑，确保在主线程执行
+            activity.runOnUiThread {
+                val imageView = ImageView(activity).apply {
+                    setImageBitmap(fullScreenshot)
+                    scaleType = ImageView.ScaleType.FIT_XY
+                    layoutParams = FrameLayout.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT,
+                        ViewGroup.LayoutParams.MATCH_PARENT
+                    )
                 }
-                MotionEvent.ACTION_MOVE -> {
-                    hideMask()
-                    endTouch.set(event.x, event.y)
-                    selectionOverlayView.setSelection(startTouch, endTouch)
-                }
-                MotionEvent.ACTION_UP -> {
-                    selectionOverlayView.setSelection(startTouch, endTouch)
 
-                    if (startTouch == endTouch) {
-                        Toast.makeText(activity, "已取消截图", Toast.LENGTH_SHORT).show()
-                        cleanup(container, screenshotImageView)
-                        onCaptureListener?.invoke(null)
-                        return@OnTouchListener true
+                backgroundImageView = imageView
+
+                // 创建灰幕 View
+                maskView = View(activity).apply {
+                    setBackgroundColor(0xAA000000.toInt()) // 半透明黑色
+                }
+
+                if (selectionOverlayView.parent == null) {
+                    container.addView(imageView)            // 背景图层
+                    container.addView(maskView)             // 灰幕
+                    container.addView(selectionOverlayView) // 框选层
+                }
+
+                Toast.makeText(activity, "按住屏幕进行拖动框选区域", Toast.LENGTH_SHORT).show()
+
+                val touchListener = View.OnTouchListener { _, event ->
+                    when (event.action) {
+                        MotionEvent.ACTION_DOWN -> {
+                            startTouch.set(event.x, event.y)
+                            endTouch.set(event.x, event.y)
+                        }
+                        MotionEvent.ACTION_MOVE -> {
+                            hideMask()
+                            endTouch.set(event.x, event.y)
+                            selectionOverlayView.setSelection(startTouch, endTouch)
+                        }
+                        MotionEvent.ACTION_UP -> {
+                            selectionOverlayView.setSelection(startTouch, endTouch)
+
+                            if (startTouch == endTouch) {
+                                Toast.makeText(activity, "已取消截图", Toast.LENGTH_SHORT).show()
+                                cleanup(container)
+                                onCaptureListener?.invoke(null)
+                                return@OnTouchListener true
+                            }
+
+                            val selectedRect = selectionOverlayView.getSelectedRect()
+                            val croppedBitmap = if (selectedRect != null &&
+                                selectedRect.width() > 0 && selectedRect.height() > 0
+                            ) {
+                                Bitmap.createBitmap(
+                                    fullScreenshot,
+                                    selectedRect.left, selectedRect.top,
+                                    selectedRect.width(), selectedRect.height()
+                                )
+                            } else {
+                                fullScreenshot
+                            }
+
+                            onCaptureListener?.invoke(croppedBitmap)
+                            cleanup(container)
+                        }
                     }
+                    true
+                }
 
-                    val selectedRect = selectionOverlayView.getSelectedRect()
+                selectionOverlayView.isFocusableInTouchMode = true
+                selectionOverlayView.requestFocus()
 
-                    val croppedBitmap = if (selectedRect != null && selectedRect.width() > 0 && selectedRect.height() > 0) {
-                        Bitmap.createBitmap(
-                            fullScreenBitmap,
-                            selectedRect.left,
-                            selectedRect.top,
-                            selectedRect.width(),
-                            selectedRect.height()
-                        )
+                selectionOverlayView.setOnKeyListener { _, keyCode, event ->
+                    if (keyCode == KeyEvent.KEYCODE_SPACE && event.action == KeyEvent.ACTION_DOWN) {
+                        onCaptureListener?.invoke(fullScreenshot)
+                        cleanup(container)
+                        true
                     } else {
-                        fullScreenBitmap
+                        false
                     }
-
-                    onCaptureListener?.invoke(croppedBitmap)
-                    cleanup(container, screenshotImageView)
                 }
-            }
-            true
-        }
 
-        selectionOverlayView.isFocusableInTouchMode = true
-        selectionOverlayView.requestFocus()
-
-        selectionOverlayView.setOnKeyListener { _, keyCode, event ->
-            if (keyCode == KeyEvent.KEYCODE_SPACE && event.action == KeyEvent.ACTION_DOWN) {
-                onCaptureListener?.invoke(fullScreenBitmap)
-                cleanup(container, screenshotImageView)
-                true
-            } else {
-                false
+                selectionOverlayView.setOnTouchListener(touchListener)
             }
         }
-
-        selectionOverlayView.setOnTouchListener(touchListener)
     }
+
 
 
     private fun showMask() {
@@ -125,33 +131,29 @@ class ScreenshotActivityForBase(private val activity: AppCompatActivity) {
         maskView?.visibility = View.INVISIBLE
     }
 
-    fun cleanup(container: FrameLayout, screenshotImageView: ImageView? = null) {
+    fun cleanup(container: FrameLayout) {
         selectionOverlayView.clearSelection()
         selectionOverlayView.setOnTouchListener(null)
-        selectionOverlayView.setOnKeyListener(null)
 
         if (selectionOverlayView.parent != null) {
             container.removeView(selectionOverlayView)
         }
 
-        // 移除灰幕
         maskView?.let {
             container.removeView(it)
             maskView = null
         }
 
-        // 移除截图背景
-        screenshotImageView?.let {
+        backgroundImageView?.let {
             if (it.parent != null) {
                 container.removeView(it)
             }
+            backgroundImageView = null
         }
 
         isBoxSelectEnabled = false
         onCaptureListener = null
     }
-
-
 
 
 }
