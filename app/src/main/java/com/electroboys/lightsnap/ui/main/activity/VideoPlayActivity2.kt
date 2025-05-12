@@ -24,8 +24,8 @@ VideoPlayActivity2 : BaseActivity() {
         player = ExoPlayer.Builder(this).build()
         playerView.player = player
 
-        // 构建 Uri 指向 raw 文件
-        val videoUri = "android.resource://${packageName}/${R.raw.test_video}".toUri()
+        // 网络视频地址
+        val videoUri = "https://lightsnap-1318767045.cos.ap-shanghai.myqcloud.com/test_video.mp4".toUri()
         val mediaItem = MediaItem.fromUri(videoUri)
 
         player.setMediaItem(mediaItem)

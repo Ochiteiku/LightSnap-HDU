@@ -25,7 +25,7 @@ class VideoPlayActivity : BaseActivity(){
 
         val videoView = findViewById<VideoView>(R.id.videoView)
 
-        val videoUri = "android.resource://${packageName}/${R.raw.test_video}".toUri()
+        val videoUri = "https://lightsnap-1318767045.cos.ap-shanghai.myqcloud.com/test_video.mp4".toUri()
         videoView.setVideoURI(videoUri)
 
         videoView.setOnPreparedListener {
