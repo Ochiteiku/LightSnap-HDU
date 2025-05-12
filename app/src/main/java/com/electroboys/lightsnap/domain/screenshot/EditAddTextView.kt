@@ -164,4 +164,13 @@ class EditAddTextView @JvmOverloads constructor(
             }
         }
     }
+
+    // 将当前所有文字项绘制到原图上，返回新 Bitmap
+    fun applyTextToBitmap(originalBitmap: Bitmap): Bitmap {
+        val newBitmap = originalBitmap.copy(Bitmap.Config.ARGB_8888, true)
+        val canvas = Canvas(newBitmap)
+        drawAllTextItems(canvas)
+        return newBitmap
+    }
+
 }

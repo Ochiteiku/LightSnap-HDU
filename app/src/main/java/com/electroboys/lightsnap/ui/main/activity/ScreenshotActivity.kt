@@ -198,6 +198,7 @@ class ScreenshotActivity : AppCompatActivity() {
         // 撤销键逻辑
         val btnBack = findViewById<ImageButton>(R.id.btnUndo)
         btnBack.setOnClickListener {
+            showControlView(ControlViewStatus.OtherMode.ordinal)
             // 执行撤销操作
             undoToLastImage()
         }
@@ -205,6 +206,7 @@ class ScreenshotActivity : AppCompatActivity() {
         // 重做键逻辑
         val btnRedo = findViewById<ImageButton>(R.id.btnRedo)
         btnRedo.setOnClickListener {
+            showControlView(ControlViewStatus.OtherMode.ordinal)
             redoLastImage()
         }
 
@@ -224,18 +226,21 @@ class ScreenshotActivity : AppCompatActivity() {
         // 保存键逻辑
         val btnSave = findViewById<ImageButton>(R.id.btnSave)
         btnSave.setOnClickListener {
+            showControlView(ControlViewStatus.OtherMode.ordinal)
             saveCurrentImage()
         }
 
         // 退出键逻辑
         val btnExit = findViewById<ImageButton>(R.id.btnExit)
         btnExit.setOnClickListener {
+            showControlView(ControlViewStatus.OtherMode.ordinal)
             finish()
         }
 
         //  裁剪开关逻辑
         val btnIfCanSelect = findViewById<ImageButton>(R.id.btnIsCanSelect)
         btnIfCanSelect.setOnClickListener {
+            showControlView(ControlViewStatus.OtherMode.ordinal)
             toggleSelectionMode()
         }
 
@@ -247,23 +252,36 @@ class ScreenshotActivity : AppCompatActivity() {
             // TODO: 修改水印高亮图标
             // TODO: 水印设置
         }
+
         showControlView(ControlViewStatus.OtherMode.ordinal)
         // 涂鸦按钮逻辑
         val btnGraffiti = findViewById<ImageButton>(R.id.btnDraw)
         btnGraffiti.setOnClickListener {
+            if (isSelectionEnabled) {
+                toggleSelectionMode()
+            }
             showControlView(ControlViewStatus.GraffitiMode.ordinal)
         }
+
         // 马赛克按钮逻辑
         val btnMosaic = findViewById<ImageButton>(R.id.btnMosaic)
         btnMosaic.setOnClickListener {
+            if (isSelectionEnabled) {
+                toggleSelectionMode()
+            }
             showControlView(ControlViewStatus.MosaicMode.ordinal)
         }
+
         graffitiView.setOnBitmapChangeListener(object : GraffitiView.onBitmapChangeListener {
             override fun onBitmapChange(bitmap: Bitmap) {
+                val newKey = BitmapCache.cacheBitmap(bitmap)
+                intent.putExtra(EXTRA_SCREENSHOT_KEY, newKey)
+                ImageHistory.push(newKey)
                 imageView.setImageBitmap(bitmap)
             }
 
         })
+
         // 获取传入的 key
         val key = intent.getStringExtra(EXTRA_SCREENSHOT_KEY)
         originalBitmapKey = key
@@ -274,7 +292,6 @@ class ScreenshotActivity : AppCompatActivity() {
         // 从缓存中取出 Bitmap
         val bitmap = key?.let { BitmapCache.getBitmap(it) }
 
-        Log.d("ScreenshotExampleActivity", "Test：this  is called")
         if (bitmap != null) {
             croppedBitmap = bitmap
             imageView.setImageBitmap(bitmap)
@@ -282,8 +299,6 @@ class ScreenshotActivity : AppCompatActivity() {
         } else {
             Toast.makeText(this, "截图数据为空或已释放", Toast.LENGTH_SHORT).show()
         }
-
-        Log.d("ScreenshotExampleActivity", "准备调用 setupTouchListener()")
 
         //设置监听器和交互逻辑
         setupTouchListener()
@@ -691,15 +706,18 @@ class ScreenshotActivity : AppCompatActivity() {
         val key = intent.getStringExtra(EXTRA_SCREENSHOT_KEY)
         val bitmap = key?.let { BitmapCache.getBitmap(it) }
         if (bitmap != null) {
+            val btnWatermark = findViewById<ImageButton>(R.id.btnWatermark)
             if(isWatermarkVisible){
                 if(watermarkOverlay.isGone){
                     watermarkOverlay.setWatermark(
                         config = watermarkConfig
                     )
                 }
+                btnWatermark.setImageResource(R.drawable.ic_watermark_on)
                 watermarkOverlay.visibility = View.VISIBLE
                 Toast.makeText(this, "已添加水印", Toast.LENGTH_SHORT).show()
             } else {
+                btnWatermark.setImageResource(R.drawable.ic_watermark)
                 watermarkOverlay.visibility = View.INVISIBLE
                 Toast.makeText(this, "已取消添加水印", Toast.LENGTH_SHORT).show()
             }
@@ -1086,6 +1104,9 @@ class ScreenshotActivity : AppCompatActivity() {
     private fun showControlView(mode: Int) {
         when (mode) {
             ControlViewStatus.GraffitiMode.ordinal -> {
+                val currentBitmap = (imageView.drawable as? BitmapDrawable)?.bitmap ?: return
+                graffitiView.setBitmap(currentBitmap) // 刷新为当前 imageView 的 bitmap
+
                 graffitiView.visibility = View.VISIBLE
                 val graffitiTabView = GraffitiTabView(this)
                 exControlFrame.removeAllViews()
@@ -1103,6 +1124,9 @@ class ScreenshotActivity : AppCompatActivity() {
                 })
             }
             ControlViewStatus.MosaicMode.ordinal -> {
+                val currentBitmap = (imageView.drawable as? BitmapDrawable)?.bitmap ?: return
+                graffitiView.setBitmap(currentBitmap) // 强制刷新为当前 imageView 的 bitmap
+
                 graffitiView.visibility = View.VISIBLE
                 graffitiView.isClickable
                 // 显示涂鸦模式

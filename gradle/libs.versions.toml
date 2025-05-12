@@ -20,6 +20,7 @@ mlkit-text-recognition-chinese = "16.0.0-beta5"
 okhttp = "4.11.0"
 kotlinxCoroutines = "1.6.4"
 orgJson = "20231013"
+visionCommon = "17.3.0"
 
 [libraries]
 androidx-activity-ktx = { module = "androidx.activity:activity-ktx", version.ref = "activity" }
@@ -43,6 +44,7 @@ okhttp = { group = "com.squareup.okhttp3", name = "okhttp", version.ref = "okhtt
 kotlinx-coroutines-core = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-core", version.ref = "kotlinxCoroutines" }
 kotlinx-coroutines-android = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-android", version.ref = "kotlinxCoroutines" }
 org-json = { group = "org.json", name = "json", version.ref = "orgJson" }
+vision-common = { group = "com.google.mlkit", name = "vision-common", version.ref = "visionCommon" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

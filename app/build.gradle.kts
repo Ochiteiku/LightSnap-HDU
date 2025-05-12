@@ -49,6 +49,7 @@ dependencies {
     implementation(libs.androidx.media3.ui)
     implementation(libs.androidx.media3.exoplayer)
     implementation("com.github.chrisbanes:PhotoView:2.3.0")
+    implementation(libs.vision.common)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
