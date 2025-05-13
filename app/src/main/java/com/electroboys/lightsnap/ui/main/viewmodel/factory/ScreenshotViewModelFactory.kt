@@ -1,7 +1,8 @@
-package com.electroboys.lightsnap.domain.screenshot.repository
+package com.electroboys.lightsnap.ui.main.viewmodel.factory
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
+import com.electroboys.lightsnap.domain.screenshot.repository.OcrRepository
 import com.electroboys.lightsnap.ui.main.viewmodel.ScreenshotViewModel
 
 class ScreenshotViewModelFactory(

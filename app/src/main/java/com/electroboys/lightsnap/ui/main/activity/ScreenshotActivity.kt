@@ -34,7 +34,7 @@ import com.electroboys.lightsnap.data.screenshot.ImageHistory
 import com.electroboys.lightsnap.domain.screenshot.EditScreenshot
 import com.electroboys.lightsnap.domain.screenshot.repository.ImageCropRepository
 import com.electroboys.lightsnap.domain.screenshot.repository.OcrRepository
-import com.electroboys.lightsnap.domain.screenshot.repository.ScreenshotViewModelFactory
+import com.electroboys.lightsnap.ui.main.viewmodel.factory.ScreenshotViewModelFactory
 import com.electroboys.lightsnap.domain.screenshot.watermark.WatermarkConfig
 import com.electroboys.lightsnap.ui.main.view.EditAddTextView
 import com.electroboys.lightsnap.ui.main.view.GraffitiTabView
