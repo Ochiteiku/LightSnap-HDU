@@ -30,6 +30,7 @@ class EditAddTextView @JvmOverloads constructor(
         var size: Float,
         var color: Int,
         var isBold: Boolean,
+        var isItalic: Boolean,
         var typeface: Typeface?
     )
 
@@ -38,6 +39,7 @@ class EditAddTextView @JvmOverloads constructor(
         size: Float,
         color: Int,
         isBold: Boolean,
+        isItalic: Boolean,
         typeface: Typeface?
     ){
         currentItem = TextItem(
@@ -47,6 +49,7 @@ class EditAddTextView @JvmOverloads constructor(
             size = size,
             color = color,
             isBold = isBold,
+            isItalic = isItalic,
             typeface = typeface
         )
         isAddingText = true
@@ -59,11 +62,13 @@ class EditAddTextView @JvmOverloads constructor(
         size: Float,
         color: Int,
         isBold: Boolean,
+        isItalic: Boolean,
         typeface: Typeface?
     ){
         currentItem?.let{
             it.size = size
             it.isBold = isBold
+            it.isItalic = isItalic
             it.color = color
             it.typeface = typeface
             // 请求系统在下一个绘制周期重绘该视图
@@ -93,7 +98,7 @@ class EditAddTextView @JvmOverloads constructor(
         invalidate()
     }
 
-    fun getFinalBitmap(originalBitmap: Bitmap): Bitmap {
+    fun getFinalBitmap(originalBitmap: Bitmap): Bitmap{
         val bitmap = originalBitmap.copy(Bitmap.Config.ARGB_8888,true)
         val canvas = Canvas(bitmap)
         drawAllTextItems(canvas)
@@ -142,7 +147,7 @@ class EditAddTextView @JvmOverloads constructor(
 
     private fun drawAllTextItems(canvas: Canvas){
         textItems.forEach{
-            item ->
+                item ->
             val paint = createTextPaint(item, 255)
             canvas.drawText(item.text!!, item.x, item.y, paint)
         }
@@ -151,15 +156,23 @@ class EditAddTextView @JvmOverloads constructor(
     private fun createTextPaint(
         item: TextItem,
         alpha: Int
-    ): Paint {
+    ): Paint{
         return Paint().apply {
             color = item.color
             textSize = item.size
             isAntiAlias = true
             this.alpha =alpha
+//            typeface = when {
+//                item.typeface != null -> item.typeface
+//                item.isBold -> Typeface.DEFAULT_BOLD
+//                item.isItalic -> Typeface.ITALIC
+//                else -> Typeface.DEFAULT
+//            }
             typeface = when {
                 item.typeface != null -> item.typeface
-                item.isBold -> Typeface.DEFAULT_BOLD
+                item.isBold == true && item.isItalic == true -> Typeface.create(Typeface.DEFAULT, Typeface.BOLD_ITALIC)
+                item.isBold == true -> Typeface.DEFAULT_BOLD
+                item.isItalic == true -> Typeface.create(Typeface.DEFAULT, Typeface.ITALIC)
                 else -> Typeface.DEFAULT
             }
         }

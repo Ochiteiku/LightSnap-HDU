@@ -59,7 +59,7 @@ class ScreenshotActivity : AppCompatActivity() {
     private lateinit var imageView: ImageView
     private lateinit var btnConfirmSelection: ImageButton
 
-    private lateinit var bitmapEdit: EditScreenshot
+    private lateinit var editScreenshot: EditScreenshot
 
     private lateinit var watermarkOverlay: WatermarkOverlayView
 
@@ -119,20 +119,12 @@ class ScreenshotActivity : AppCompatActivity() {
             //TODO 摘要
         }
 
-        // 编辑的叠加管理器
-        bitmapEdit = EditScreenshot(this,findViewById(R.id.imageContainer))
-
-        // 控制器逻辑
-        bitmapEdit.addText(
-            btnText = findViewById(R.id.btnText),
-            btnColorPicker = findViewById(R.id.btnColor),
-            btnConfirmText = findViewById(R.id.btnConfirmText),
-            btnCancelText = findViewById(R.id.btnCancelText),
-            btnIsBold = findViewById(R.id.btnIsBold),
-            textSizeSeekBar = findViewById(R.id.textSizeSeekBar),
-            btnAddTextDone = findViewById(R.id.btnAddTextDone),
-            textInput = findViewById(R.id.textInput)
-        )
+        // 添加文字键逻辑
+        var btnText = findViewById<ImageButton>(R.id.btnText)
+        btnText.setOnClickListener{
+            editScreenshot = EditScreenshot(this,findViewById(R.id.imageContainer)).apply {
+                addText(btnText, exControlFrame) }
+        }
 
         //设置二次裁剪功能监听器和交互逻辑
         setupTouchListener()      // 初始化触摸裁剪逻辑
