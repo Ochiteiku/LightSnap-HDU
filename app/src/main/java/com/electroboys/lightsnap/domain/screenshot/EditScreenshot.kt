@@ -100,13 +100,13 @@ class EditScreenshot(
         // 获取最终的bitmap
         val originalKey = intent.getStringExtra(EXTRA_SCREENSHOT_KEY)
         val originalBitmap = originalKey?.let { BitmapCache.getBitmap(it) }
-        val finalBitmap = getFinalBitmap(originalBitmap!!)
-        // 将最新的bitmap放入缓存中
-        var newKey = BitmapCache.cacheBitmap(finalBitmap)
-        Log.d("ScreenshotActivity", "${intent.getStringExtra(EXTRA_SCREENSHOT_KEY)},${newKey}")
-        intent.putExtra(EXTRA_SCREENSHOT_KEY, newKey)
-        ImageHistory.push(newKey)
-        imageView.setImageBitmap(BitmapCache.getBitmap(newKey))
+        if (originalBitmap != null) {
+            val finalBitmap = editAddTextView.getFinalBitmap(originalBitmap, imageView) // ✅ 添加 imageView 参数
+            val newKey = BitmapCache.cacheBitmap(finalBitmap)
+            intent.putExtra(EXTRA_SCREENSHOT_KEY, newKey)
+            ImageHistory.push(newKey)
+            imageView.setImageBitmap(finalBitmap)
+        }
     }
 
     private fun updateCurrentTextProperties(){
@@ -118,9 +118,9 @@ class EditScreenshot(
             typeface = typeface
         )
     }
-    fun getFinalBitmap(orignalBitmap: Bitmap): Bitmap{
-        return editAddTextView.getFinalBitmap(orignalBitmap)
-    }
+//    fun getFinalBitmap(orignalBitmap: Bitmap): Bitmap{
+//        return editAddTextView.getFinalBitmap(orignalBitmap)
+//    }
 
     fun setTypeface(typeface: Typeface){
         this.typeface = typeface
