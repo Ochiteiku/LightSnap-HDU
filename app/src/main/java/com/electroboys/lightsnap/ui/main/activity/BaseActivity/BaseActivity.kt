@@ -1,5 +1,6 @@
 package com.electroboys.lightsnap.ui.main.activity.BaseActivity
 
+import QRScannerUtil
 import android.app.ActivityOptions
 import android.content.Context
 import android.content.Intent
@@ -107,17 +108,25 @@ open class BaseActivity : AppCompatActivity() {
                 screenshotHelper.enableBoxSelectOnce { bitmap ->
                     runOnUiThread {
                         if (bitmap != null) {
-                            val bitmapKey = BitmapCache.cacheBitmap(bitmap)
-                            val intent = Intent(this, ScreenshotActivity::class.java).apply {
-                                putExtra(ScreenshotActivity.EXTRA_SCREENSHOT_KEY, bitmapKey)
-                            }
 
-                            val options = ActivityOptions.makeCustomAnimation(
-                                this,
-                                R.anim.shot_enter, // 进入动画
-                                R.anim.shot_exit   // 退出动画
+                            QRScannerUtil.detectQRCode(
+                                context = this@BaseActivity,
+                                bitmap = bitmap,
+                                onContinueScreenshot = {
+                                    // 继续原有截图流程
+                                    val bitmapKey = BitmapCache.cacheBitmap(bitmap)
+                                    val intent = Intent(this, ScreenshotActivity::class.java).apply {
+                                        putExtra(ScreenshotActivity.EXTRA_SCREENSHOT_KEY, bitmapKey)
+                                    }
+
+                                    val options = ActivityOptions.makeCustomAnimation(
+                                        this,
+                                        R.anim.shot_enter,
+                                        R.anim.shot_exit
+                                    )
+                                    screenshotResultLauncher.launch(intent)
+                                }
                             )
-                            screenshotResultLauncher.launch(intent)
                         } else {
                             Toast.makeText(this, "截图已取消", Toast.LENGTH_SHORT).show()
                         }

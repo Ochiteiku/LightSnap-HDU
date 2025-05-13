@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">灵截beta</string>
+    <string name="fontPicker">选择字体</string>
 </resources>

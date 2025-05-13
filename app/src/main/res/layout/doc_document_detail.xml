@@ -63,6 +63,13 @@
                     android:layout_height="0dp"
                     android:layout_weight="1"/>
 
+                <ImageView
+                    android:layout_width="99dp"
+                    android:layout_height="99dp"
+                    android:background="@drawable/ic_qrcode"
+                    android:layout_margin="10dp"
+                    />
+
             </LinearLayout>
 
         </LinearLayout>
@@ -96,6 +103,8 @@
             android:padding="8dp"
             android:src="@drawable/ic_eye_open" />
     </LinearLayout>
+
+
 
 </FrameLayout>
 

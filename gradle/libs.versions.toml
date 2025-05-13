@@ -23,6 +23,8 @@ orgJson = "20231013"
 visionCommon = "17.3.0"
 lifecycleViewmodelKtx = "2.7.0"
 lifecycleLivedataKtx = "2.7.0"
+playServicesMlkitBarcodeScanning = "18.3.1"
+fragmentKtxVersion = "1.8.0"
 
 [libraries]
 androidx-activity-ktx = { module = "androidx.activity:activity-ktx", version.ref = "activity" }
@@ -49,6 +51,8 @@ org-json = { group = "org.json", name = "json", version.ref = "orgJson" }
 vision-common = { group = "com.google.mlkit", name = "vision-common", version.ref = "visionCommon" }
 androidx-lifecycle-viewmodel-ktx = { group = "androidx.lifecycle", name = "lifecycle-viewmodel-ktx", version.ref = "lifecycleViewmodelKtx" }
 androidx-lifecycle-livedata-ktx = { group = "androidx.lifecycle", name = "lifecycle-livedata-ktx", version.ref = "lifecycleLivedataKtx" }
+play-services-mlkit-barcode-scanning = { group = "com.google.android.gms", name = "play-services-mlkit-barcode-scanning", version.ref = "playServicesMlkitBarcodeScanning" }
+fragment-ktx = { group = "androidx.fragment", name = "fragment-ktx", version.ref = "fragmentKtxVersion" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
