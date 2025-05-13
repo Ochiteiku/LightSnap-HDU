@@ -104,39 +104,41 @@ class EditAddTextBarView @JvmOverloads constructor(
         })
 
         fontPicker = findViewById(R.id.fontPicker)
-//        // 设置Spinner适配器
-//        val adapter = ArrayAdapter<>(
-//            this,
-//            android.R.layout.simple_spinner_item,
-//            systemFonts
-//        ).apply {
-//            setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
-//        }
-//        fontPicker.adapter = adapter
-//        // 设置Spinner选择监听
-//        fontPicker.onItemSelectedListener = object : AdapterView.OnItemSelectedListener{
-//            override fun onItemSelected(
-//                parent: AdapterView<*>?,
-//                view: View?,
-//                position: Int,
-//                id: Long
-//            ){
-//                fontPickerlistener?.invoke(position)
-//            }
-//
-//            override fun onNothingSelected(parent: AdapterView<*>?) {
-//                TODO("Not yet implemented")
-//            }
-//        }
+        // 利用系统字体列表，设置Spinner适配器
+        val adapter = ArrayAdapter(
+            context,
+            android.R.layout.simple_spinner_item,
+            systemFonts
+        ).apply {
+            setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+        }
+        fontPicker.adapter = adapter
+
+        // 设置Spinner选择监听
+        fontPicker.onItemSelectedListener = object : AdapterView.OnItemSelectedListener{
+            override fun onItemSelected(
+                parent: AdapterView<*>?,
+                view: View?,
+                position: Int,
+                id: Long
+            ){
+                fontPickerlistener?.invoke(position)
+            }
+
+            override fun onNothingSelected(parent: AdapterView<*>?) {
+                TODO("Not yet implemented")
+            }
+        }
 
     }
 
-      fun updateUIState(isAddingText: Boolean){
+    fun updateUIState(isAddingText: Boolean){
         btnColorPicker.isVisible = isAddingText
         btnIsBold.isVisible = isAddingText
         btnIsItalic.isVisible = isAddingText
         textSizeSeekBar.isVisible = isAddingText
         textInput.isVisible = isAddingText
         btnAddTextDone.isVisible = isAddingText
+        fontPicker.isVisible = isAddingText
     }
 }

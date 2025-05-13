@@ -46,7 +46,6 @@ class EditScreenshot(
     private var currentText: String? = null
     private var currentTextSize = 40f
     private var currentTextColor = Color.RED
-    private var currentTextFont = "sans-serif"
     private var isBold = false
     private var isItalic = false
     private var isColorpicker = true
@@ -97,7 +96,7 @@ class EditScreenshot(
             fontPickerlistener = {
                 position: Int ->
                 val SelectedFont = systemFonts[position]
-                // TODO typeface =
+                typeface = Typeface.create(SelectedFont, Typeface.NORMAL)
                 updateCurrentTextProperties()
             }
         }
