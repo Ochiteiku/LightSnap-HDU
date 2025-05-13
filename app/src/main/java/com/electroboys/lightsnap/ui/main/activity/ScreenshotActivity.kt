@@ -36,7 +36,6 @@ import com.electroboys.lightsnap.domain.screenshot.ModeActions
 import com.electroboys.lightsnap.domain.screenshot.ModeManager
 import com.electroboys.lightsnap.domain.screenshot.repository.ImageCropRepository
 import com.electroboys.lightsnap.domain.screenshot.repository.OcrRepository
-import com.electroboys.lightsnap.domain.screenshot.repository.ScreenshotViewModelFactory
 import com.electroboys.lightsnap.domain.screenshot.watermark.WatermarkConfig
 import com.electroboys.lightsnap.ui.main.view.EditAddTextView
 import com.electroboys.lightsnap.ui.main.view.GraffitiTabView
@@ -45,6 +44,7 @@ import com.electroboys.lightsnap.ui.main.view.MosaicTabView
 import com.electroboys.lightsnap.ui.main.view.SelectView
 import com.electroboys.lightsnap.ui.main.view.WatermarkOverlayView
 import com.electroboys.lightsnap.ui.main.viewmodel.ScreenshotViewModel
+import com.electroboys.lightsnap.ui.main.viewmodel.factory.ScreenshotViewModelFactory
 import com.electroboys.lightsnap.utils.WatermarkUtil
 import com.google.mlkit.vision.text.Text
 import java.io.File
