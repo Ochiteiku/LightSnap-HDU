@@ -13,6 +13,7 @@ import android.view.MotionEvent
 import android.view.View
 import android.widget.ImageView
 import android.widget.Toast
+import com.electroboys.lightsnap.domain.screenshot.EditScreenshot.Companion.systemFonts
 
 // 负责绘制以及触摸控制
 class EditAddTextView @JvmOverloads constructor(
@@ -156,7 +157,6 @@ class EditAddTextView @JvmOverloads constructor(
 
         when(event?.action){
             MotionEvent.ACTION_DOWN -> {
-                // 点击创建新的文本项
                 currentItem?.let {
                     it.x = event.x
                     it.y = event.y

@@ -33,13 +33,26 @@ class EditScreenshot(
     private var editAddTextView: EditAddTextView = EditAddTextView(context)
     private var editAddTextBarView: EditAddTextBarView = EditAddTextBarView(context)
 
+    companion object {
+         val systemFonts = arrayOf(
+            "sans-serif",           // 默认
+            "sans-serif-light",     // 细体
+            "casual",               // 休闲
+            "cursive"               // 手写
+        )
+    }
+
+    // 当前文本的编辑项
     private var currentText: String? = null
     private var currentTextSize = 40f
     private var currentTextColor = Color.RED
+    private var currentTextFont = "sans-serif"
     private var isBold = false
     private var isItalic = false
     private var isColorpicker = true
     private var typeface: Typeface? = null
+
+    private var isAddingTextFlag = 0
 
     init {
         editAddTextBarView.apply {
@@ -80,6 +93,13 @@ class EditScreenshot(
                     typeface = typeface
                 )
             }
+
+            fontPickerlistener = {
+                position: Int ->
+                val SelectedFont = systemFonts[position]
+                // TODO typeface =
+                updateCurrentTextProperties()
+            }
         }
 
         container.addView(editAddTextView, ViewGroup.LayoutParams(
@@ -87,24 +107,35 @@ class EditScreenshot(
             ViewGroup.LayoutParams.MATCH_PARENT
         ))
     }
-
     fun addText(
         btnText: ImageButton,
         exControlFrame: FrameLayout,
         imageView: ImageView
     ){
-        btnText.setImageResource(R.drawable.ic_addtext_textboxfilled)
-
-        // 设置btnAddTextDone的监听器并加入到root界面
-        editAddTextBarView.apply {
-            btnAddTextDonelistener = {
-                editAddTextView.addTextDone()
-                bitmapChanged(imageView)
-                clearAllText()
-                btnText.setImageResource(R.drawable.ic_addtext_textbox)
+        if(isAddingTextFlag == 0){
+            // 第一次进入编辑文本状态
+            // 设置监听器 以及 加入父容器中
+            btnText.setImageResource(R.drawable.ic_addtext_textboxfilled)
+            editAddTextBarView.apply {
+                btnAddTextDonelistener = {
+                    editAddTextView.addTextDone()
+                    bitmapChanged(imageView)
+                    clearAllText()
+                    btnText.setImageResource(R.drawable.ic_addtext_textbox)
+                    updateUIState(false)
+                }
             }
+            exControlFrame.addView(editAddTextBarView)
+        }else if(isAddingTextFlag % 2 == 1){
+            // 2、4、6...点击btnText 隐藏addtextbar
+            btnText.setImageResource(R.drawable.ic_addtext_textbox)
+            editAddTextBarView.updateUIState(false)
+        }else{
+            // 3、5、7...点击btnText 显示addtextbar
+            btnText.setImageResource(R.drawable.ic_addtext_textboxfilled)
+            editAddTextBarView.updateUIState(true)
         }
-        exControlFrame.addView(editAddTextBarView)
+        isAddingTextFlag++
     }
 
     fun bitmapChanged(imageView: ImageView){
@@ -136,7 +167,6 @@ class EditScreenshot(
             setBackgroundDrawableResource(R.drawable.bg_addtext_colorpicker_dialog)
             setTitle("颜色选择")
         }
-
         colorpickerDialog.show()
     }
 
@@ -149,29 +179,8 @@ class EditScreenshot(
             typeface = typeface
         )
     }
-//    fun getFinalBitmap(orignalBitmap: Bitmap): Bitmap{
-//        return editAddTextView.getFinalBitmap(orignalBitmap)
-//    }
-
-    fun setTypeface(typeface: Typeface){
-        this.typeface = typeface
-        updateCurrentTextProperties()
-    }
 
     fun clearAllText(){
         editAddTextView.clearAllText()
-    }
-
-    fun addMosic(){
-
-    }
-    fun addBox(){
-
-    }
-    fun addLine(){
-
-    }
-    fun addArrow(){
-
     }
 }

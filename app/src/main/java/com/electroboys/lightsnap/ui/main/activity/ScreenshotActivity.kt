@@ -119,14 +119,11 @@ class ScreenshotActivity : AppCompatActivity() {
         btnSummary.setOnClickListener {
             //TODO 摘要
         }
-
+        editScreenshot = EditScreenshot(this,findViewById(R.id.imageContainer),intent)
         // 添加文字键逻辑
         val btnText = findViewById<ImageButton>(R.id.btnText)
-
         btnText.setOnClickListener{
-            editScreenshot = EditScreenshot(this,findViewById(R.id.imageContainer),intent).apply {
-                addText(btnText, exControlFrame, imageView)
-            }
+            editScreenshot.apply { addText(btnText, exControlFrame, imageView) }
         }
 
         //设置二次裁剪功能监听器和交互逻辑

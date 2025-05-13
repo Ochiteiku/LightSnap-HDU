@@ -1,19 +1,21 @@
 package com.electroboys.lightsnap.ui.main.view
 
 import android.content.Context
-import android.graphics.Color
 import android.text.Editable
 import android.text.TextWatcher
 import android.util.AttributeSet
 import android.view.LayoutInflater
-import android.widget.Button
+import android.view.View
+import android.widget.AdapterView
+import android.widget.ArrayAdapter
 import android.widget.EditText
 import android.widget.ImageButton
 import android.widget.LinearLayout
 import android.widget.SeekBar
+import android.widget.Spinner
 import androidx.core.view.isVisible
 import com.electroboys.lightsnap.R
-import com.google.android.material.color.MaterialColors
+import com.electroboys.lightsnap.domain.screenshot.EditScreenshot.Companion.systemFonts
 
 class EditAddTextBarView @JvmOverloads constructor(
     context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0
@@ -25,6 +27,7 @@ class EditAddTextBarView @JvmOverloads constructor(
     private var textSizeSeekBar: SeekBar
     private var btnAddTextDone: ImageButton
     private var textInput: EditText
+    private var fontPicker: Spinner
 
     var btnIsBoldlistener: (() -> Boolean)? = null
     var btnIsItalicistener: (() -> Boolean)? = null
@@ -32,6 +35,8 @@ class EditAddTextBarView @JvmOverloads constructor(
     var btnAddTextDonelistener: (() -> Unit)? = null
     var textSizeSeekBarlistener: ((Float) -> Unit)? = null
     var textInputlistener: ((String) -> Unit)? = null
+    var fontPickerlistener: ((position: Int) -> Unit)? = null
+
 
     init {
         // 加载自定义布局
@@ -80,7 +85,6 @@ class EditAddTextBarView @JvmOverloads constructor(
         btnAddTextDone = findViewById(R.id.btnAddTextDone)
         btnAddTextDone.setOnClickListener{
             btnAddTextDonelistener?.invoke()
-            updateUIState(false)
         }
 
         textInput = findViewById(R.id.textInput)
@@ -98,9 +102,36 @@ class EditAddTextBarView @JvmOverloads constructor(
                 textInputlistener?.invoke(s.toString())
             }
         })
+
+        fontPicker = findViewById(R.id.fontPicker)
+//        // 设置Spinner适配器
+//        val adapter = ArrayAdapter<>(
+//            this,
+//            android.R.layout.simple_spinner_item,
+//            systemFonts
+//        ).apply {
+//            setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+//        }
+//        fontPicker.adapter = adapter
+//        // 设置Spinner选择监听
+//        fontPicker.onItemSelectedListener = object : AdapterView.OnItemSelectedListener{
+//            override fun onItemSelected(
+//                parent: AdapterView<*>?,
+//                view: View?,
+//                position: Int,
+//                id: Long
+//            ){
+//                fontPickerlistener?.invoke(position)
+//            }
+//
+//            override fun onNothingSelected(parent: AdapterView<*>?) {
+//                TODO("Not yet implemented")
+//            }
+//        }
+
     }
 
-    private fun updateUIState(isAddingText: Boolean){
+      fun updateUIState(isAddingText: Boolean){
         btnColorPicker.isVisible = isAddingText
         btnIsBold.isVisible = isAddingText
         btnIsItalic.isVisible = isAddingText
