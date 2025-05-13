@@ -28,6 +28,7 @@ class ScreenshotActivityForBase(private val activity: AppCompatActivity) {
     private var onCaptureListener: ((Bitmap?) -> Unit)? = null
     private var maskView: View? = null// 灰幕
     private var backgroundImageView: ImageView? = null
+    private var adapter:LibraryPictureAdapter ?= null
 
     @SuppressLint("ClickableViewAccessibility", "NotifyDataSetChanged")
     fun enableBoxSelectOnce(onCapture: (Bitmap?) -> Unit) {
@@ -40,9 +41,11 @@ class ScreenshotActivityForBase(private val activity: AppCompatActivity) {
         val container = activity.findViewById<FrameLayout>(android.R.id.content)
 
         val recyclerView = activity.findViewById<RecyclerView>(R.id.library_picture)
-        val adapter = recyclerView.adapter as? LibraryPictureAdapter
-        LibraryPictureAdapter.isScreenshotMode = true
-        adapter?.notifyDataSetChanged()
+        if (recyclerView != null) {
+            adapter = recyclerView.adapter as? LibraryPictureAdapter
+            LibraryPictureAdapter.isScreenshotMode = true
+            adapter?.notifyDataSetChanged()
+        }
 
         // 强制等待 UI 更新完成
         Handler(Looper.getMainLooper()).postDelayed({
