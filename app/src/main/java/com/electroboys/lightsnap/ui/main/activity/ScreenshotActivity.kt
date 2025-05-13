@@ -121,7 +121,7 @@ class ScreenshotActivity : AppCompatActivity() {
         }
 
         // 添加文字键逻辑
-        var btnText = findViewById<ImageButton>(R.id.btnText)
+        val btnText = findViewById<ImageButton>(R.id.btnText)
 
         btnText.setOnClickListener{
             editScreenshot = EditScreenshot(this,findViewById(R.id.imageContainer),intent).apply {

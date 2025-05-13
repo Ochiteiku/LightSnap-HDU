@@ -85,9 +85,14 @@ class EditAddTextView @JvmOverloads constructor(
 
     // 确认文字
     fun addTextDone(){
-        currentItem?.let {
-            textItems.add(it)
+        val item = currentItem ?: return
+
+        // 如果没有拖动或点击就默认居中显示
+        if (item.x == 0f && item.y == 0f) {
+            item.x = width / 2f
+            item.y = height / 2f
         }
+        textItems.add(item)
         currentItem = null
         isAddingText = false
         invalidate()
