@@ -19,7 +19,7 @@ class EditAddTextBarView @JvmOverloads constructor(
 
     private var btnIsBold: ImageButton
     private var btnIsItalic: ImageButton
-    private var btnColorPicker: Button
+    private var btnColorPicker: ImageButton
     private var textSizeSeekBar: SeekBar
     private var btnAddTextDone: ImageButton
     private var textInput: EditText
