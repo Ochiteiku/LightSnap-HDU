@@ -3,9 +3,12 @@ package com.electroboys.lightsnap.ui.main.view
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.Canvas
+import android.graphics.Matrix
 import android.graphics.Paint
+import android.graphics.Rect
 import android.graphics.Typeface
 import android.util.AttributeSet
+import android.util.Log
 import android.view.MotionEvent
 import android.view.View
 import android.widget.Toast
@@ -22,6 +25,8 @@ class EditAddTextView @JvmOverloads constructor(
 
     // 设置EditText的默认值
     private var currentItem: TextItem? = null  // 当前的编辑文本项（包含颜色、大小等）
+
+    var BitmapChangeListener: ((Bitmap) -> Unit)? = null
 
     data class TextItem(
         var text: String?,
@@ -53,9 +58,9 @@ class EditAddTextView @JvmOverloads constructor(
             typeface = typeface
         )
         isAddingText = true
-        Toast.makeText(context, "点击屏幕中的任意位置可添加文本", Toast.LENGTH_SHORT).show()
+        // Toast.makeText(context, "点击屏幕中的任意位置可添加文本", Toast.LENGTH_SHORT).show()
         // requestFocus()
-        // invalidate()
+        invalidate()
     }
 
     fun setCurrentTextProperties(
@@ -87,12 +92,6 @@ class EditAddTextView @JvmOverloads constructor(
         invalidate()
     }
 
-    fun cancelText(){
-        currentItem = null
-        isAddingText = false
-        invalidate()
-    }
-
     fun clearAllText(){
         textItems.clear()
         invalidate()
@@ -103,6 +102,14 @@ class EditAddTextView @JvmOverloads constructor(
         val canvas = Canvas(bitmap)
         drawAllTextItems(canvas)
         return bitmap
+    }
+
+    private fun drawAllTextItems(canvas: Canvas){
+        textItems.forEach{
+                item ->
+            val paint = createTextPaint(item, 255)
+            canvas.drawText(item.text!!, item.x, item.y, paint)
+        }
     }
 
     // 获取当前添加的所有文字
@@ -145,14 +152,6 @@ class EditAddTextView @JvmOverloads constructor(
         }
     }
 
-    private fun drawAllTextItems(canvas: Canvas){
-        textItems.forEach{
-                item ->
-            val paint = createTextPaint(item, 255)
-            canvas.drawText(item.text!!, item.x, item.y, paint)
-        }
-    }
-
     private fun createTextPaint(
         item: TextItem,
         alpha: Int
@@ -176,14 +175,6 @@ class EditAddTextView @JvmOverloads constructor(
                 else -> Typeface.DEFAULT
             }
         }
-    }
-
-    // 将当前所有文字项绘制到原图上，返回新 Bitmap
-    fun applyTextToBitmap(originalBitmap: Bitmap): Bitmap {
-        val newBitmap = originalBitmap.copy(Bitmap.Config.ARGB_8888, true)
-        val canvas = Canvas(newBitmap)
-        drawAllTextItems(canvas)
-        return newBitmap
     }
 
 }

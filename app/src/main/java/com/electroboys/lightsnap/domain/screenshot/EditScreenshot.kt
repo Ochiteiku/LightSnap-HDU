@@ -1,23 +1,31 @@
 package com.electroboys.lightsnap.domain.screenshot
 
 import android.content.Context
+import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.Color
 import android.graphics.Typeface
+import android.util.Log
 import android.view.ViewGroup
 import android.widget.FrameLayout
 import android.widget.ImageButton
+import android.widget.ImageView
 import com.electroboys.lightsnap.R
+import com.electroboys.lightsnap.data.screenshot.BitmapCache
+import com.electroboys.lightsnap.data.screenshot.ImageHistory
+import com.electroboys.lightsnap.ui.main.activity.ScreenshotActivity.Companion.EXTRA_SCREENSHOT_KEY
 import com.electroboys.lightsnap.ui.main.view.EditAddTextBarView
 import com.electroboys.lightsnap.ui.main.view.EditAddTextView
 
 // 协调各个组件的工作
 class EditScreenshot(
     context: Context,
-    private var container: ViewGroup
+    private var container: ViewGroup,
+    private var intent: Intent
 ){
     private var editAddTextView: EditAddTextView = EditAddTextView(context)
     private var editAddTextBarView: EditAddTextBarView = EditAddTextBarView(context)
+
     private var currentText: String? = null
     private var currentTextSize = 40f
     private var currentTextColor = Color.RED
@@ -25,22 +33,8 @@ class EditScreenshot(
     private var isItalic = false
     private var typeface: Typeface? = null
 
-    fun addText(
-        btnText: ImageButton,
-        exControlFrame: FrameLayout
-    ) {
-        btnText.setImageResource(R.drawable.ic_addtext_textboxfilled)
-        // 创建editaddingtextbar，并设置监听器
+    init {
         editAddTextBarView.apply {
-            btnAddTextDonelistener = {
-                editAddTextView.addTextDone()
-                btnText.setImageResource(R.drawable.ic_addtext_textbox)
-            }
-
-            btnCancellistener = {
-                editAddTextView.cancelText()
-                btnText.setImageResource(R.drawable.ic_addtext_textbox)
-            }
 
             btnIsBoldlistener = {
                 isBold = !isBold
@@ -77,11 +71,42 @@ class EditScreenshot(
                 )
             }
         }
+
         container.addView(editAddTextView, ViewGroup.LayoutParams(
             ViewGroup.LayoutParams.MATCH_PARENT,
             ViewGroup.LayoutParams.MATCH_PARENT
         ))
+    }
+
+    fun addText(
+        btnText: ImageButton,
+        exControlFrame: FrameLayout,
+        imageView: ImageView
+    ){
+        btnText.setImageResource(R.drawable.ic_addtext_textboxfilled)
+
+        // 设置btnAddTextDone的监听器并加入到root界面
+        editAddTextBarView.apply {
+            btnAddTextDonelistener = {
+                editAddTextView.addTextDone()
+                bitmapChanged(imageView)
+                clearAllText()
+                btnText.setImageResource(R.drawable.ic_addtext_textbox)
+            }
+        }
         exControlFrame.addView(editAddTextBarView)
+    }
+    fun bitmapChanged(imageView: ImageView){
+        // 获取最终的bitmap
+        val originalKey = intent.getStringExtra(EXTRA_SCREENSHOT_KEY)
+        val originalBitmap = originalKey?.let { BitmapCache.getBitmap(it) }
+        val finalBitmap = getFinalBitmap(originalBitmap!!)
+        // 将最新的bitmap放入缓存中
+        var newKey = BitmapCache.cacheBitmap(finalBitmap)
+        Log.d("ScreenshotActivity", "${intent.getStringExtra(EXTRA_SCREENSHOT_KEY)},${newKey}")
+        intent.putExtra(EXTRA_SCREENSHOT_KEY, newKey)
+        ImageHistory.push(newKey)
+        imageView.setImageBitmap(BitmapCache.getBitmap(newKey))
     }
 
     private fun updateCurrentTextProperties(){
@@ -93,15 +118,15 @@ class EditScreenshot(
             typeface = typeface
         )
     }
+    fun getFinalBitmap(orignalBitmap: Bitmap): Bitmap{
+        return editAddTextView.getFinalBitmap(orignalBitmap)
+    }
 
     fun setTypeface(typeface: Typeface){
         this.typeface = typeface
         updateCurrentTextProperties()
     }
 
-    fun getFinalBitmap(orignalBitmap: Bitmap): Bitmap{
-        return editAddTextView.getFinalBitmap(orignalBitmap)
-    }
     fun clearAllText(){
         editAddTextView.clearAllText()
     }

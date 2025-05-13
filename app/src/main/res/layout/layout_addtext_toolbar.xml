@@ -26,17 +26,12 @@
         android:progressTint="@color/white"
         android:thumb="@drawable/seekbar_thumb"/>
 
-    <Button
-        android:id="@+id/btnColor"
-        style="@style/ToolButtonStyle"
-        android:src="@drawable/ic_revert"
-        android:contentDescription="文字颜色选择"/>
-
     <ImageButton
         android:id="@+id/btnIsBold"
         style="@style/ToolButtonStyle"
         android:src="@drawable/ic_addtext_unbold"
         android:contentDescription="加粗"/>
+
     <ImageButton
         android:id="@+id/btnIsItalic"
         style="@style/ToolButtonStyle"
@@ -44,16 +39,17 @@
         android:contentDescription="斜体"/>
 
     <ImageButton
-        android:id="@+id/btnCancelText"
+        android:id="@+id/btnColor"
         style="@style/ToolButtonStyle"
-        android:src="@drawable/ic_addtext_rollback"
-        android:contentDescription="取消"/>
+        android:src="@drawable/ic_addtext_uncolorpick"
+        android:contentDescription="文字颜色选择"/>
 
     <ImageButton
         android:id="@+id/btnAddTextDone"
         style="@style/ToolButtonStyle"
         android:src="@drawable/ic_addtext_done"
         android:contentDescription="完成添加"/>
+
 
 
 

@@ -12,6 +12,7 @@ import android.graphics.PointF
 import android.graphics.drawable.BitmapDrawable
 import android.graphics.drawable.GradientDrawable
 import android.os.Bundle
+import android.util.Log
 import android.view.Gravity
 import android.view.MotionEvent
 import android.view.View
@@ -35,6 +36,7 @@ import com.electroboys.lightsnap.domain.screenshot.repository.ImageCropRepositor
 import com.electroboys.lightsnap.domain.screenshot.repository.OcrRepository
 import com.electroboys.lightsnap.domain.screenshot.repository.ScreenshotViewModelFactory
 import com.electroboys.lightsnap.domain.screenshot.watermark.WatermarkConfig
+import com.electroboys.lightsnap.ui.main.view.EditAddTextView
 import com.electroboys.lightsnap.ui.main.view.GraffitiTabView
 import com.electroboys.lightsnap.ui.main.view.GraffitiView
 import com.electroboys.lightsnap.ui.main.view.MosaicTabView
@@ -81,7 +83,6 @@ class ScreenshotActivity : AppCompatActivity() {
     private lateinit var viewModel: ScreenshotViewModel
     private val cropRepository = ImageCropRepository()
 
-
     // dp转换扩展函数
     private fun Int.dpToPx(): Int = (this * resources.displayMetrics.density).toInt()
     private fun Float.dpToPx(): Float = this * resources.displayMetrics.density
@@ -121,9 +122,11 @@ class ScreenshotActivity : AppCompatActivity() {
 
         // 添加文字键逻辑
         var btnText = findViewById<ImageButton>(R.id.btnText)
+
         btnText.setOnClickListener{
-            editScreenshot = EditScreenshot(this,findViewById(R.id.imageContainer)).apply {
-                addText(btnText, exControlFrame) }
+            editScreenshot = EditScreenshot(this,findViewById(R.id.imageContainer),intent).apply {
+                addText(btnText, exControlFrame, imageView)
+            }
         }
 
         //设置二次裁剪功能监听器和交互逻辑
@@ -221,7 +224,6 @@ class ScreenshotActivity : AppCompatActivity() {
                 ImageHistory.push(newKey)
                 imageView.setImageBitmap(bitmap)
             }
-
         })
 
         // 获取传入的 key
@@ -230,6 +232,8 @@ class ScreenshotActivity : AppCompatActivity() {
         key?.let {
             ImageHistory.push(it)
         }
+
+
 
         // 从缓存中取出 Bitmap
         val bitmap = key?.let { BitmapCache.getBitmap(it) }

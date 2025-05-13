@@ -17,7 +17,6 @@ class EditAddTextBarView @JvmOverloads constructor(
     context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0
 ) : LinearLayout(context, attrs, defStyleAttr) {
 
-    private var btnCancelText: ImageButton
     private var btnIsBold: ImageButton
     private var btnIsItalic: ImageButton
     private var btnColorPicker: Button
@@ -25,7 +24,6 @@ class EditAddTextBarView @JvmOverloads constructor(
     private var btnAddTextDone: ImageButton
     private var textInput: EditText
 
-    var btnCancellistener: (() -> Unit)? = null
     var btnIsBoldlistener: (() -> Boolean)? = null
     var btnIsItalicistener: (() -> Boolean)? = null
     var btnColorPickerlistener: (() -> Unit)? = null
@@ -37,12 +35,7 @@ class EditAddTextBarView @JvmOverloads constructor(
         // 加载自定义布局
         LayoutInflater.from(context).inflate(R.layout.layout_addtext_toolbar, this, true)
 
-        btnCancelText = findViewById(R.id.btnCancelText)
-        btnCancelText.setOnClickListener{
-            btnCancellistener?.invoke()
-            updateUIState(false)
-        }
-
+        // 设置监听器
         btnIsBold = findViewById(R.id.btnIsBold)
         btnIsBold.setOnClickListener{
             var isBold = btnIsBoldlistener?.invoke()
@@ -102,8 +95,8 @@ class EditAddTextBarView @JvmOverloads constructor(
 
     private fun updateUIState(isAddingText: Boolean){
         btnColorPicker.isVisible = isAddingText
-        btnCancelText.isVisible = isAddingText
         btnIsBold.isVisible = isAddingText
+        btnIsItalic.isVisible = isAddingText
         textSizeSeekBar.isVisible = isAddingText
         textInput.isVisible = isAddingText
         btnAddTextDone.isVisible = isAddingText
