@@ -39,11 +39,6 @@
             android:padding="8dp"
             android:layout_gravity="top|center_horizontal"
             android:layout_marginTop="20dp" />
-        <com.electroboys.lightsnap.ui.main.view.WatermarkOverlayView
-            android:id="@+id/watermarkOverlay"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:visibility="gone"/>
 
         <com.electroboys.lightsnap.ui.main.view.SelectView
             android:id="@+id/selectView"
@@ -71,6 +66,12 @@
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:visibility="invisible"/>
+
+        <com.electroboys.lightsnap.ui.main.view.WatermarkOverlayView
+            android:id="@+id/watermarkOverlay"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:visibility="gone"/>
     </FrameLayout>
 
     <ImageButton

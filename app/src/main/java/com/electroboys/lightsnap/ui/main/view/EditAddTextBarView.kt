@@ -101,4 +101,11 @@ class EditAddTextBarView @JvmOverloads constructor(
         textInput.isVisible = isAddingText
         btnAddTextDone.isVisible = isAddingText
     }
+
+    fun clearState() {
+        textInput.setText("") // 清空输入框
+        btnIsBold.setImageResource(R.drawable.ic_addtext_unbold) // 重置按钮图标
+        btnIsItalic.setImageResource(R.drawable.ic_addtext_unitalic)
+
+    }
 }

@@ -6,6 +6,7 @@ import android.graphics.Bitmap
 import android.graphics.Color
 import android.graphics.Typeface
 import android.util.Log
+import android.view.View
 import android.view.ViewGroup
 import android.widget.FrameLayout
 import android.widget.ImageButton
@@ -142,5 +143,13 @@ class EditScreenshot(
     }
     fun addArrow(){
 
+    }
+
+    // 退出添加文字模式
+    fun exitAddTextMode() {
+        editAddTextView.clearAllText()
+        editAddTextView.visibility = View.GONE
+        editAddTextBarView.visibility = View.GONE
+        editAddTextBarView.clearState()
     }
 }

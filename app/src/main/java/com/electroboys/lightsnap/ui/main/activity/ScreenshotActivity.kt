@@ -32,6 +32,8 @@ import com.electroboys.lightsnap.data.screenshot.BitmapCache
 import com.electroboys.lightsnap.data.screenshot.ControlViewStatus
 import com.electroboys.lightsnap.data.screenshot.ImageHistory
 import com.electroboys.lightsnap.domain.screenshot.EditScreenshot
+import com.electroboys.lightsnap.domain.screenshot.ModeActions
+import com.electroboys.lightsnap.domain.screenshot.ModeManager
 import com.electroboys.lightsnap.domain.screenshot.repository.ImageCropRepository
 import com.electroboys.lightsnap.domain.screenshot.repository.OcrRepository
 import com.electroboys.lightsnap.domain.screenshot.repository.ScreenshotViewModelFactory
@@ -53,7 +55,7 @@ import kotlin.math.min
 import kotlin.math.sqrt
 
 
-class ScreenshotActivity : AppCompatActivity() {
+class ScreenshotActivity : AppCompatActivity() , ModeActions {
 
     private lateinit var graffitiView: GraffitiView
     private lateinit var exControlFrame: FrameLayout// 扩展控制面板
@@ -67,12 +69,24 @@ class ScreenshotActivity : AppCompatActivity() {
 
     companion object {
         const val EXTRA_SCREENSHOT_KEY = "screenshot_key"
+
+        //所有的功能列表
+        enum class Mode {
+            None,
+            AddText,
+            Graffiti,
+            Mosaic,
+            Crop,
+            OCR
+        }
     }
 
+    private lateinit var modeManager: ModeManager//模式管理器
     private var originalBitmapKey: String? = null
-    private var isSelectionEnabled = true //框选是否启用,默认开启
+    var isSelectionEnabled = true //框选是否启用,默认开启
     private val watermarkConfig = WatermarkConfig.default() //水印配置
     private var isWatermarkVisible = false // 水印是否显示
+    private var isEditingText = false // 是否正在添加文字
 
     private var textViews: MutableList<TextView> = mutableListOf()
     private lateinit var copyButton: Button
@@ -91,6 +105,7 @@ class ScreenshotActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_screenshot)
 
+        modeManager = ModeManager(this)
         val factory = ScreenshotViewModelFactory(
             OcrRepository(),
         )
@@ -107,9 +122,8 @@ class ScreenshotActivity : AppCompatActivity() {
         // OCR键逻辑
         val btnOcr = findViewById<ImageButton>(R.id.btnOcr)
         btnOcr.setOnClickListener {
-            viewModel.recognize(croppedBitmap)
+            modeManager.enter(Mode.OCR)
         }
-        //OCR
         viewModel.recognizedBlocks.observe(this) { text ->
             showTextOnScreenshotWithInteraction(text)
         }
@@ -122,10 +136,11 @@ class ScreenshotActivity : AppCompatActivity() {
 
         // 添加文字键逻辑
         val btnText = findViewById<ImageButton>(R.id.btnText)
-
         btnText.setOnClickListener{
-            editScreenshot = EditScreenshot(this,findViewById(R.id.imageContainer),intent).apply {
-                addText(btnText, exControlFrame, imageView)
+            if(modeManager.getCurrentMode() == Mode.AddText){
+                modeManager.enter(Mode.None)
+            }else {
+                modeManager.enter(Mode.AddText)
             }
         }
 
@@ -146,24 +161,28 @@ class ScreenshotActivity : AppCompatActivity() {
         // 撤销键逻辑
         val btnUndo = findViewById<ImageButton>(R.id.btnUndo)
         btnUndo.setOnClickListener {
+            modeManager.enter(Mode.None)
             viewModel.undo()
         }
 
         // 重做键逻辑
         val btnRedo = findViewById<ImageButton>(R.id.btnRedo)
         btnRedo.setOnClickListener {
+            modeManager.enter(Mode.None)
             viewModel.redo()
         }
 
         // 转发键逻辑
         val btnShare = findViewById<ImageButton>(R.id.btnShare)
         btnShare.setOnClickListener {
+            modeManager.enter(Mode.None)
             shareCurrentImage()
         }
 
         // 图片复制键逻辑
         val btnCopy = findViewById<ImageButton>(R.id.btnCopy)
         btnCopy.setOnClickListener {
+            modeManager.enter(Mode.None)
             // 执行复制图片操作
             copyImageToClipboard()
         }
@@ -171,22 +190,25 @@ class ScreenshotActivity : AppCompatActivity() {
         // 保存键逻辑
         val btnSave = findViewById<ImageButton>(R.id.btnSave)
         btnSave.setOnClickListener {
-            showControlView(ControlViewStatus.OtherMode.ordinal)
+            modeManager.enter(Mode.None)
             saveCurrentImage()
         }
 
         // 退出键逻辑
         val btnExit = findViewById<ImageButton>(R.id.btnExit)
         btnExit.setOnClickListener {
-            showControlView(ControlViewStatus.OtherMode.ordinal)
+            modeManager.enter(Mode.None)
             finish()
         }
 
         //  裁剪开关逻辑
         val btnIfCanSelect = findViewById<ImageButton>(R.id.btnIsCanSelect)
         btnIfCanSelect.setOnClickListener {
-            showControlView(ControlViewStatus.OtherMode.ordinal)
-            toggleSelectionMode()
+            if(modeManager.getCurrentMode() == Mode.Crop){
+                modeManager.enter(Mode.None)
+            }else {
+                modeManager.enter(Mode.Crop)
+            }
         }
 
         // 水印开关逻辑
@@ -202,19 +224,21 @@ class ScreenshotActivity : AppCompatActivity() {
         // 涂鸦按钮逻辑
         val btnGraffiti = findViewById<ImageButton>(R.id.btnDraw)
         btnGraffiti.setOnClickListener {
-            if (isSelectionEnabled) {
-                toggleSelectionMode()
+            if(modeManager.getCurrentMode() == Mode.Graffiti){
+                modeManager.enter(Mode.None)
+            }else {
+                modeManager.enter(Mode.Graffiti)
             }
-            showControlView(ControlViewStatus.GraffitiMode.ordinal)
         }
 
         // 马赛克按钮逻辑
         val btnMosaic = findViewById<ImageButton>(R.id.btnMosaic)
         btnMosaic.setOnClickListener {
-            if (isSelectionEnabled) {
-                toggleSelectionMode()
+            if(modeManager.getCurrentMode() == Mode.Mosaic){
+                modeManager.enter(Mode.None)
+            }else {
+                modeManager.enter(Mode.Mosaic)
             }
-            showControlView(ControlViewStatus.MosaicMode.ordinal)
         }
 
         graffitiView.setOnBitmapChangeListener(object : GraffitiView.onBitmapChangeListener {
@@ -246,7 +270,8 @@ class ScreenshotActivity : AppCompatActivity() {
             Toast.makeText(this, "截图数据为空或已释放", Toast.LENGTH_SHORT).show()
         }
 
-
+        //  由于裁剪功能默认时开启的，在所有组件完成初始化之后进入裁剪模式
+        modeManager.enter(Mode.Crop)
     }
 
     //  二次裁剪的框选设置触摸监听器
@@ -310,12 +335,12 @@ class ScreenshotActivity : AppCompatActivity() {
         if (viewModel.isSelectionEnabled.value == true) {
             findViewById<TextView>(R.id.selectionHint).visibility = View.VISIBLE
             btnIfCanSelect.setImageResource(R.drawable.ic_reselect_on)
-            Toast.makeText(this, "裁剪功能已开启", Toast.LENGTH_SHORT).show()
+//            Toast.makeText(this, "裁剪功能已开启", Toast.LENGTH_SHORT).show()
         } else {
             selectView.clearSelection()
             findViewById<TextView>(R.id.selectionHint).visibility = View.GONE
             btnIfCanSelect.setImageResource(R.drawable.ic_reselect)
-            Toast.makeText(this, "裁剪功能已关闭", Toast.LENGTH_SHORT).show()
+//            Toast.makeText(this, "裁剪功能已关闭", Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -665,6 +690,53 @@ class ScreenshotActivity : AppCompatActivity() {
     override fun finish() {
         super.finish()
         //overridePendingTransition(R.anim.fade_out, R.anim.fade_out)
+    }
+
+    // OnAndOffMode
+    // 这里下面都是功能按钮的启动与关闭
+    //启动文字编辑
+    override fun enterAddText() {
+        isEditingText = true
+        editScreenshot = EditScreenshot(this, findViewById(R.id.imageContainer), intent).apply {
+            addText(findViewById(R.id.btnText), exControlFrame, imageView)
+        }
+    }
+
+    //关闭文字编辑
+    override fun exitAddText() {
+        isEditingText = false
+        editScreenshot.exitAddTextMode()
+        findViewById<ImageButton>(R.id.btnText).setImageResource(R.drawable.ic_addtext_textbox)
+    }
+
+    //启动涂鸦
+    override fun enterGraffiti() {
+        showControlView(ControlViewStatus.GraffitiMode.ordinal)
+    }
+
+    //关闭涂鸦
+    override fun exitGraffiti() {
+        showControlView(ControlViewStatus.OtherMode.ordinal)
+    }
+
+    //启动马赛克
+    override fun enterMosaic() {
+        showControlView(ControlViewStatus.MosaicMode.ordinal)
+    }
+
+    //关闭马赛克
+    override fun exitMosaic() {
+        showControlView(ControlViewStatus.OtherMode.ordinal)
+    }
+
+    // 切换裁剪开关
+    override fun toggleCrop() {
+        toggleSelectionMode()
+    }
+
+    // 启动OCR
+    override fun onEnterOCR() {
+        viewModel.recognize(croppedBitmap)
     }
 
     // 快捷键触发功能
