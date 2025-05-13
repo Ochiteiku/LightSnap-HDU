@@ -11,6 +11,7 @@ import android.util.AttributeSet
 import android.util.Log
 import android.view.MotionEvent
 import android.view.View
+import android.widget.ImageView
 import android.widget.Toast
 
 // 负责绘制以及触摸控制
@@ -97,18 +98,42 @@ class EditAddTextView @JvmOverloads constructor(
         invalidate()
     }
 
-    fun getFinalBitmap(originalBitmap: Bitmap): Bitmap{
-        val bitmap = originalBitmap.copy(Bitmap.Config.ARGB_8888,true)
+    fun getFinalBitmap(originalBitmap: Bitmap, imageView: ImageView): Bitmap {
+        val bitmap = originalBitmap.copy(Bitmap.Config.ARGB_8888, true)
         val canvas = Canvas(bitmap)
-        drawAllTextItems(canvas)
+
+        // 获取 ImageView 的变换矩阵
+        val matrix = imageView.imageMatrix
+        val values = FloatArray(9).apply { matrix.getValues(this) }
+
+        val scaleX = values[Matrix.MSCALE_X]
+        val scaleY = values[Matrix.MSCALE_Y]
+        val transX = values[Matrix.MTRANS_X]
+        val transY = values[Matrix.MTRANS_Y]
+
+        textItems.forEach { item ->
+            val paint = createTextPaint(item, 255)
+            val fontMetrics = paint.fontMetrics
+            val baselineOffset = (fontMetrics.ascent + fontMetrics.descent) / 2
+
+            // 将 EditAddTextView 坐标转换为原始图片坐标
+            val mappedX = (item.x - transX) / scaleX
+            val mappedY = (item.y - transY) / scaleY
+
+            canvas.drawText(item.text!!, mappedX, mappedY - baselineOffset, paint)
+        }
+
         return bitmap
     }
+
 
     private fun drawAllTextItems(canvas: Canvas){
         textItems.forEach{
                 item ->
             val paint = createTextPaint(item, 255)
-            canvas.drawText(item.text!!, item.x, item.y, paint)
+            val fontMetrics = paint.fontMetrics
+            val baselineOffset = (fontMetrics.ascent + fontMetrics.descent) / 2 // 计算基线偏移量
+            canvas.drawText(item.text!!, item.x, item.y - baselineOffset, paint)
         }
     }
 
@@ -148,7 +173,9 @@ class EditAddTextView @JvmOverloads constructor(
         // 绘制当前正在添加的文字
         currentItem?.let {
             val paint = createTextPaint(it, 150)
-            canvas.drawText(it.text!!, it.x, it.y, paint)
+            val fontMetrics = paint.fontMetrics
+            val baselineOffset = (fontMetrics.ascent + fontMetrics.descent) / 2
+            canvas.drawText(it.text!!, it.x, it.y - baselineOffset, paint)
         }
     }
 
