@@ -1,6 +1,7 @@
 package com.electroboys.lightsnap.ui.main.view
 
 import android.content.Context
+import android.graphics.Color
 import android.text.Editable
 import android.text.TextWatcher
 import android.util.AttributeSet
@@ -12,6 +13,7 @@ import android.widget.LinearLayout
 import android.widget.SeekBar
 import androidx.core.view.isVisible
 import com.electroboys.lightsnap.R
+import com.google.android.material.color.MaterialColors
 
 class EditAddTextBarView @JvmOverloads constructor(
     context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0
@@ -26,7 +28,7 @@ class EditAddTextBarView @JvmOverloads constructor(
 
     var btnIsBoldlistener: (() -> Boolean)? = null
     var btnIsItalicistener: (() -> Boolean)? = null
-    var btnColorPickerlistener: (() -> Unit)? = null
+    var btnColorPickerlistener: (() -> Boolean)? = null
     var btnAddTextDonelistener: (() -> Unit)? = null
     var textSizeSeekBarlistener: ((Float) -> Unit)? = null
     var textInputlistener: ((String) -> Unit)? = null
@@ -57,7 +59,12 @@ class EditAddTextBarView @JvmOverloads constructor(
 
         btnColorPicker = findViewById(R.id.btnColor)
         btnColorPicker.setOnClickListener{
-            //TODO
+            var isColorPicker = btnColorPickerlistener?.invoke()
+            if(isColorPicker!!){
+                btnColorPicker.setImageResource(R.drawable.ic_addtext_uncolorpick)
+            }else{
+                btnColorPicker.setImageResource(R.drawable.ic_addtext_colorpick)
+            }
         }
 
         textSizeSeekBar = findViewById(R.id.textSizeSeekBar)

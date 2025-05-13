@@ -48,6 +48,7 @@ dependencies {
     implementation(libs.androidx.media3.exoplayer)
     implementation("com.github.chrisbanes:PhotoView:2.3.0")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.7.3")
+    implementation("com.github.yukuku:ambilwarna:2.0.1")
     implementation(libs.vision.common)
     implementation(libs.androidx.lifecycle.viewmodel.ktx)
     implementation(libs.androidx.lifecycle.livedata.ktx)
@@ -60,4 +61,5 @@ dependencies {
     implementation(libs.kotlinx.coroutines.core)
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.org.json)
+
 }
