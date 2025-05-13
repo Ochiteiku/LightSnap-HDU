@@ -1,10 +1,9 @@
 package com.electroboys.lightsnap.ui.main.fragment
 
+import android.app.AlertDialog
 import android.content.Context
 import android.content.Intent
-import android.net.Uri
-import androidx.fragment.app.Fragment
-import com.electroboys.lightsnap.R
+import android.graphics.Color
 import android.os.Bundle
 import android.view.KeyEvent
 import android.view.LayoutInflater
@@ -12,13 +11,15 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
 import android.widget.TextView
+import androidx.core.net.toUri
+import androidx.fragment.app.Fragment
+import com.electroboys.lightsnap.R
 import com.electroboys.lightsnap.ui.main.activity.VideoPlayActivity
+import com.electroboys.lightsnap.ui.main.activity.VideoPlayActivity2
 import com.electroboys.lightsnap.utils.KeyEventUtil
+import com.electroboys.lightsnap.utils.UriUtil
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.android.material.switchmaterial.SwitchMaterial
-import androidx.core.net.toUri
-import com.electroboys.lightsnap.ui.main.activity.VideoPlayActivity2
-import com.electroboys.lightsnap.utils.UriUtil
 
 
 class SettingsFragment : Fragment(R.layout.fragment_settings){
@@ -36,6 +37,16 @@ class SettingsFragment : Fragment(R.layout.fragment_settings){
     private lateinit var savePathDisplay: TextView
     private lateinit var savePathContainer: View
     private lateinit var folderPickerLauncher: androidx.activity.result.ActivityResultLauncher<Intent>
+
+    //清理相关设置
+    private lateinit var autoCleanContainer: View
+    private lateinit var autoClean: TextView
+    private lateinit var deadLineDisplay: TextView
+    private lateinit var deadLineContainer: View
+
+    private val cleanupOptions = arrayOf("不清理", "定时删除" , "定时上传至云存储")
+    private val cleanupTimeOptions = arrayOf("超过 1 天", "超过 3 天", "超过 7 天", "超过 14 天", "超过 30 天")
+    private val cleanupValues = intArrayOf(1, 3, 7, 14, 30) // 对应逻辑上的天数，0 表示不清理
 
 
     override fun onCreateView(
@@ -56,11 +67,37 @@ class SettingsFragment : Fragment(R.layout.fragment_settings){
         shortcutKeyContainer = view.findViewById<View>(R.id.shortcutKeyContainer)
         savePathContainer = view.findViewById(R.id.savePathContainer)
         savePathDisplay = view.findViewById(R.id.savePathDisplay)
+        deadLineDisplay = view.findViewById(R.id.deadLineDisplay)
+        deadLineContainer = view.findViewById(R.id.deadlineContainer)
+        autoCleanContainer = view.findViewById(R.id.autoCleanContainer)
+        autoClean = view.findViewById(R.id.autoClean)
 
-        // 从 SharedPreferences 获取值来设置开关状态
+
+        setupUI()
+    }
+
+    //设置UI，并给某些UI组件设置点按监听
+    private fun setupUI() {
         val sharedPreferences = requireActivity().getSharedPreferences("settings", Context.MODE_PRIVATE)
         val screenshotEnabled = sharedPreferences.getBoolean("screenshot_enabled", false)
+        val savedShortcut = sharedPreferences.getString("screenshot_shortcut", "Ctrl+Shift+A")
+        val editor = sharedPreferences.edit()
+        val savedDays = sharedPreferences.getInt("cleanup_deadline", 0)
+        val cleanupOption = sharedPreferences.getString("cleanup","不清理")
+        val initialIndex = cleanupValues.indexOf(savedDays).coerceAtLeast(0)
+
+        //初始化已有参数
         switchScreenshot.isChecked = screenshotEnabled
+        shortcutKeyDisplay.text = savedShortcut ?: "Ctrl+Shift+A"
+        deadLineDisplay.text = cleanupTimeOptions[initialIndex]
+        autoClean.text = cleanupOption ?:  "不清理"
+
+        //如果设置为不清理，则无需设置时间
+        val isDeadlineEnabled = autoClean.text != "不清理"
+        deadLineContainer.isEnabled = isDeadlineEnabled
+        deadLineDisplay.setTextColor(
+            if (isDeadlineEnabled) Color.BLACK else Color.GRAY
+        )
 
         // 显示已保存路径
         folderPickerLauncher = registerForActivityResult(
@@ -77,30 +114,26 @@ class SettingsFragment : Fragment(R.layout.fragment_settings){
 
                 // 保存 Uri.toString() 到 SharedPreferences
                 val pathStr = uri.toString()
-                val prefs = requireActivity().getSharedPreferences("settings", Context.MODE_PRIVATE)
-                prefs.edit().putString("screenshot_save_uri", pathStr).apply()
+                editor.putString("screenshot_save_uri", pathStr).apply()
 
                 // 显示路径（你可以自定义显示格式）
                 savePathDisplay.text = UriUtil.getPathFromUri(requireContext(), uri) ?: pathStr
             }
         }
+        val savedUriStr = sharedPreferences.getString("screenshot_save_uri", null)
+        if (savedUriStr != null) {
+            val uri = savedUriStr.toUri()
+            savePathDisplay.text = UriUtil.getPathFromUri(requireContext(), uri) ?: "已保存路径"
+        } else {
+            savePathDisplay.text = "未设置"
+        }
 
-        setupUI()
-    }
-
-    private fun setupUI() {
         switchScreenshot.setOnCheckedChangeListener { _, isChecked ->
-            val sharedPreferences =
-                requireActivity().getSharedPreferences("settings", Context.MODE_PRIVATE)
-            val editor = sharedPreferences.edit()
             editor.putBoolean("screenshot_enabled", isChecked)
             editor.apply()
         }
 
         buttonReset.setOnClickListener {
-            val sharedPreferences =
-                requireActivity().getSharedPreferences("settings", Context.MODE_PRIVATE)
-            val editor = sharedPreferences.edit()
             editor.putBoolean("screenshot_enabled", false)
             editor.apply()
 
@@ -118,12 +151,6 @@ class SettingsFragment : Fragment(R.layout.fragment_settings){
             startActivity(intent)
         }
 
-        // 每次界面显示时，读取保存的快捷键
-        val sharedPreferences =
-            requireActivity().getSharedPreferences("settings", Context.MODE_PRIVATE)
-        val savedShortcut = sharedPreferences.getString("screenshot_shortcut", "Ctrl+Shift+A")
-
-        shortcutKeyDisplay.text = savedShortcut ?: "Ctrl+Shift+A"
 
         // 点击进入设置模式
         shortcutKeyContainer.setOnClickListener {
@@ -140,14 +167,15 @@ class SettingsFragment : Fragment(R.layout.fragment_settings){
             folderPickerLauncher.launch(intent)
         }
 
-        val savedUriStr = sharedPreferences.getString("screenshot_save_uri", null)
-        if (savedUriStr != null) {
-            val uri = savedUriStr.toUri()
-            savePathDisplay.text = UriUtil.getPathFromUri(requireContext(), uri) ?: "已保存路径"
-        } else {
-            savePathDisplay.text = "未设置"
+        //设置清理方式
+        autoCleanContainer.setOnClickListener {
+            setupCleanupOption(autoClean)
         }
 
+        //设置清理时间
+        deadLineContainer.setOnClickListener {
+            setupCleanupTimeOption(deadLineDisplay)
+        }
     }
 
     private fun setupShortcutKey() {
@@ -191,4 +219,45 @@ class SettingsFragment : Fragment(R.layout.fragment_settings){
             false
         }
     }
+
+    private fun setupCleanupTimeOption(textView: TextView){
+        val prefs = requireContext().getSharedPreferences("settings", Context.MODE_PRIVATE)
+        val currentDays = prefs.getInt("cleanup_deadline", 0)
+        val currentIndex = cleanupValues.indexOf(currentDays).coerceAtLeast(0)
+
+        AlertDialog.Builder(requireContext())
+            .setTitle("清理截图周期")
+            .setSingleChoiceItems(cleanupTimeOptions, currentIndex) { dialog, which ->
+                val selectedDays = cleanupValues[which]
+                prefs.edit().putInt("cleanup_deadline", selectedDays).apply()
+                textView.text = cleanupTimeOptions[which]
+                dialog.dismiss()
+            }
+            .setNegativeButton("取消", null)
+            .show()
+    }
+
+    private fun setupCleanupOption(textView: TextView){
+        val prefs = requireContext().getSharedPreferences("settings", Context.MODE_PRIVATE)
+        val current = prefs.getString("cleanup","不清理")
+        val currentIndex = cleanupOptions.indexOf(current).coerceAtLeast(0)
+
+        AlertDialog.Builder(requireContext())
+            .setTitle("清理截图方式")
+            .setSingleChoiceItems(cleanupOptions, currentIndex) { dialog, which ->
+                val selected = cleanupOptions[which]
+                prefs.edit().putString("cleanup",selected).apply()
+                textView.text = cleanupOptions[which]
+                dialog.dismiss()
+                // 控制 deadLineContainer 是否可用
+                val isDeadlineEnabled = which != 0 // “不清理”对应 index = 0
+                deadLineContainer.isEnabled = isDeadlineEnabled
+                deadLineDisplay.setTextColor(
+                    if (isDeadlineEnabled) Color.BLACK else Color.GRAY
+                )
+            }
+            .setNegativeButton("取消", null)
+            .show()
+    }
+
 }
