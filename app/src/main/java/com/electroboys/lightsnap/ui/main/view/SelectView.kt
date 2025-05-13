@@ -52,16 +52,31 @@ class SelectView @JvmOverloads constructor(
 
 
     fun getSelectedRect(): Rect? {
-        val left = minOf(startPoint.x, endPoint.x).toInt()
-        val top = minOf(startPoint.y, endPoint.y).toInt()
-        val right = maxOf(startPoint.x, endPoint.x).toInt()
-        val bottom = maxOf(startPoint.y, endPoint.y).toInt()
+        var left = minOf(startPoint.x, endPoint.x).toInt()
+        var top = minOf(startPoint.y, endPoint.y).toInt()
+        var right = maxOf(startPoint.x, endPoint.x).toInt()
+        var bottom = maxOf(startPoint.y, endPoint.y).toInt()
+
+        // 获取 View 的宽高（即截图图像的尺寸）
+        val width = width
+        val height = height
+
+        // 确保选区不超出 View 边界
+        left = left.coerceIn(0..width)
+        top = top.coerceIn(0..height)
+        right = right.coerceIn(0..width)
+        bottom = bottom.coerceIn(0..height)
+
+        // 如果选区宽度或高度为0，返回 null 表示无效选区
+        if (right - left <= 0 || bottom - top <= 0) {
+            return null
+        }
 
         val rect = Rect(left, top, right, bottom)
-
         Log.d("SelectView", "有效选区: $rect")
         return rect
     }
+
 
 
     override fun onDraw(canvas: Canvas) {

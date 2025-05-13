@@ -30,8 +30,8 @@ open class BaseActivity : AppCompatActivity() {
     private lateinit var screenshotResultLauncher: ActivityResultLauncher<Intent>
 
     // 标志：是否处于截图模式
-    private var isTakingScreenshot = false
-    private var currentScreenshotHelper: ScreenshotActivityForBase? = null
+    var isTakingScreenshot = false
+    var currentScreenshotHelper: ScreenshotActivityForBase? = null
     // 快捷键监听事件
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
         if (event.action == KeyEvent.ACTION_DOWN) {

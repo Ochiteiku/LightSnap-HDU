@@ -15,6 +15,7 @@ import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.RecyclerView
 import com.electroboys.lightsnap.R
+import com.electroboys.lightsnap.ui.main.activity.BaseActivity.BaseActivity
 import com.electroboys.lightsnap.ui.main.adapter.LibraryPictureAdapter
 import com.electroboys.lightsnap.ui.main.view.SelectView
 import com.electroboys.lightsnap.utils.ScreenshotUtil
@@ -97,13 +98,22 @@ class ScreenshotActivityForBase(private val activity: AppCompatActivity) {
                                 Toast.makeText(activity, "已取消截图", Toast.LENGTH_SHORT).show()
                                 cleanup(container)
                                 onCaptureListener?.invoke(null)
+
+                                // 主动重置 BaseActivity 的截图状态
+                                activity.runOnUiThread {
+                                    val baseActivity = activity as? BaseActivity
+                                    baseActivity?.isTakingScreenshot = false
+                                    baseActivity?.currentScreenshotHelper = null
+                                }
+
                                 return@OnTouchListener true
                             }
 
                             val selectedRect = selectionOverlayView.getSelectedRect()
                             val croppedBitmap = if (selectedRect != null &&
-                                selectedRect.width() > 0 && selectedRect.height() > 0
-                            ) {
+                                selectedRect.left >= 0 && selectedRect.top >= 0 &&
+                                selectedRect.right <= fullScreenshot.width &&
+                                selectedRect.bottom <= fullScreenshot.height) {
                                 Bitmap.createBitmap(
                                     fullScreenshot,
                                     selectedRect.left, selectedRect.top,
