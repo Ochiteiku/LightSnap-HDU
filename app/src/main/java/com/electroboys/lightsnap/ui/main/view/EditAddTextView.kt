@@ -112,7 +112,13 @@ class EditAddTextView @JvmOverloads constructor(
         val transY = values[Matrix.MTRANS_Y]
 
         textItems.forEach { item ->
-            val paint = createTextPaint(item, 255)
+            // 根据缩放比例调整字体大小
+            val scaledTextSize = item.size / scaleX
+
+            val paint = createTextPaint(item, 255).apply {
+                textSize = scaledTextSize
+            }
+
             val fontMetrics = paint.fontMetrics
             val baselineOffset = (fontMetrics.ascent + fontMetrics.descent) / 2
 
