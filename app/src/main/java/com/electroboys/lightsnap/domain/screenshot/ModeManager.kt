@@ -11,13 +11,6 @@ class ModeManager(private val actions: ModeActions) {
     private var currentMode: Mode = Mode.None
     fun enter(mode: Mode) {
 
-        // 和OCR一样不允许其它功能中途介入启动的模式，参照下面的OCR模式的互斥，copy一下修改弹窗内容就行了
-        // 如果是 OCR 模式，则不允许其他模式同时运行
-        if (currentMode == Mode.OCR && mode != Mode.None) {
-            Toast.makeText(actions as Context, "请先进行文字选取", Toast.LENGTH_SHORT).show()
-            return
-        }
-
         // 关闭已有模式
         exitCurrentMode()
 

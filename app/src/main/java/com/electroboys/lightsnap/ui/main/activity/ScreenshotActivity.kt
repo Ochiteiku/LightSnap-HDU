@@ -13,6 +13,8 @@ import android.graphics.PointF
 import android.graphics.drawable.BitmapDrawable
 import android.graphics.drawable.GradientDrawable
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.util.Log
 import android.view.Gravity
 import android.view.MotionEvent
@@ -100,9 +102,36 @@ class ScreenshotActivity : AppCompatActivity() , ModeActions {
     private lateinit var viewModel: ScreenshotViewModel
     private val cropRepository = ImageCropRepository()
 
+    private var dotCount = 0
+    private val handler = Handler(Looper.getMainLooper())
+    private lateinit var textViewSummaryStatus: TextView
+
     // dp转换扩展函数
     private fun Int.dpToPx(): Int = (this * resources.displayMetrics.density).toInt()
     private fun Float.dpToPx(): Float = this * resources.displayMetrics.density
+
+    private val updateDotsRunnable = object : Runnable {
+        override fun run() {
+            val text = "摘要生成中" + ".".repeat(dotCount)
+            textViewSummaryStatus.text = text
+            dotCount = (dotCount + 1) % 4
+            handler.postDelayed(this, 500)
+        }
+    }
+
+    private fun startSummaryLoading() {
+        dotCount = 1
+        handler.post(updateDotsRunnable)
+        textViewSummaryStatus.visibility = View.VISIBLE
+    }
+
+    private fun stopSummaryLoading() {
+        handler.removeCallbacks(updateDotsRunnable)
+        textViewSummaryStatus.text = "摘要生成完成"
+        handler.postDelayed({
+            textViewSummaryStatus.visibility = View.GONE
+        }, 1500) // 可选：延迟隐藏提示
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -133,14 +162,13 @@ class ScreenshotActivity : AppCompatActivity() , ModeActions {
 
         // 摘要键逻辑
         val btnSummary = findViewById<ImageButton>(R.id.btnSummary)
-        val textViewSummaryStatus = findViewById<TextView>(R.id.textViewSummaryStatus)
+        textViewSummaryStatus = findViewById<TextView>(R.id.textViewSummaryStatus)
         btnSummary.setOnClickListener {
             viewModel.isGeneratingSummary.observe(this) { isLoading ->
                 if (isLoading) {
-                    textViewSummaryStatus.text = "摘要生成中..." // 你自己定义的 TextView
-                    textViewSummaryStatus.visibility = View.VISIBLE
+                    startSummaryLoading()
                 } else {
-                    textViewSummaryStatus.visibility = View.GONE
+                    stopSummaryLoading()
                 }
             }
 
@@ -513,7 +541,6 @@ class ScreenshotActivity : AppCompatActivity() , ModeActions {
                 val selected = viewModel.selectedTexts.value.orEmpty()
                 if (selected.isEmpty()) {
                     Toast.makeText(this@ScreenshotActivity, "未选中任何内容", Toast.LENGTH_SHORT).show()
-                    finish()
                 }
 
                 val combinedText = selected.joinToString("\n")
@@ -532,8 +559,6 @@ class ScreenshotActivity : AppCompatActivity() , ModeActions {
                     parent.removeView(this@apply)
                 }
                 textViews.clear()
-                // 退出截图页面
-                finish()
             }
         }
 
@@ -734,6 +759,7 @@ class ScreenshotActivity : AppCompatActivity() , ModeActions {
         // 清理 Bitmap 缓存
         val currentKey = intent.getStringExtra(EXTRA_SCREENSHOT_KEY)
         BitmapCache.clearExcept(currentKey)
+        handler.removeCallbacks(updateDotsRunnable)
     }
 
     override fun finish() {
@@ -849,11 +875,9 @@ class ScreenshotActivity : AppCompatActivity() , ModeActions {
                 clipboard.setPrimaryClip(clip)
                 Toast.makeText(this, "摘要已复制", Toast.LENGTH_SHORT).show()
                 dialog.dismiss()
-                finish()
             }
             .setNegativeButton("关闭") { dialog, _ ->
                 dialog.dismiss()
-                finish()
             }
             .create()
             .show()
