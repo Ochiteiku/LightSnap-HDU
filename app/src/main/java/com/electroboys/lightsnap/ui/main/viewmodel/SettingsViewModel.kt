@@ -4,7 +4,7 @@ import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import com.electroboys.lightsnap.domain.settings.SettingsRepository
 
-class SettingsViewModel(private val repository: SettingsRepository) : ViewModel() {
+class SettingsViewModel(internal val repository: SettingsRepository) : ViewModel() {
     val isScreenshotEnabled = MutableLiveData<Boolean>()
     val shortcutKey = MutableLiveData<String>()
     val savePath = MutableLiveData<String>()
