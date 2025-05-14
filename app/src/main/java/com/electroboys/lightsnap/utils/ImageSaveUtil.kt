@@ -4,13 +4,13 @@ import android.annotation.SuppressLint
 import android.content.Context
 import android.graphics.Bitmap
 import android.net.Uri
-import androidx.documentfile.provider.DocumentFile
 import android.view.LayoutInflater
 import android.view.View
 import android.widget.Button
 import android.widget.EditText
 import android.widget.TextView
 import android.widget.Toast
+import androidx.documentfile.provider.DocumentFile
 import com.electroboys.lightsnap.R
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import java.io.IOException
@@ -52,7 +52,7 @@ object ImageSaveUtil {
         treeUri: Uri,
         onResult: ((success: Boolean) -> Unit)? = null
     ) {
-        val timestamp = SimpleDateFormat("yyyyMMddHHmmss", Locale.getDefault()).format(Date())
+        val timestamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
         val defaultName = "Img_$timestamp"
         var isSaved = false
 

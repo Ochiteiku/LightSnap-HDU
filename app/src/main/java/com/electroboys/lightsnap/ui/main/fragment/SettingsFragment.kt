@@ -50,9 +50,9 @@ class SettingsFragment : Fragment(R.layout.fragment_settings) {
     private lateinit var deadLineDisplay: TextView
     private lateinit var deadLineContainer: View
 
-    private val cleanupOptions = arrayOf("不清理", "定时删除" , "定时上传至云存储")
-    private val cleanupTimeOptions = arrayOf("超过 1 天", "超过 3 天", "超过 7 天", "超过 14 天", "超过 30 天")
-    private val cleanupValues = intArrayOf(1, 3, 7, 14, 30)
+    private val cleanupOptions get() = SettingsConstants.CLEANUP_OPTIONS
+    private val cleanupTimeOptions get() = SettingsConstants.CLEANUP_TIME_OPTIONS
+    private val cleanupValues get() = SettingsConstants.CLEANUP_VALUES
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
         return inflater.inflate(R.layout.fragment_settings, container, false)

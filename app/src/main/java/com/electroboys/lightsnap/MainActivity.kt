@@ -1,21 +1,25 @@
 package com.electroboys.lightsnap
 
+import android.content.SharedPreferences
+import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Bundle
 import android.view.View
 import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
+import androidx.core.app.NotificationManagerCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.fragment.app.Fragment
+import com.electroboys.lightsnap.data.entity.SettingsConstants
+import com.electroboys.lightsnap.service.ScreenshotCleanupService
+import com.electroboys.lightsnap.ui.main.activity.BaseActivity.BaseActivity
+import com.electroboys.lightsnap.ui.main.fragment.DocumentDetailFragment
 import com.electroboys.lightsnap.ui.main.fragment.DocumentFragment
+import com.electroboys.lightsnap.ui.main.fragment.LibraryFragment
 import com.electroboys.lightsnap.ui.main.fragment.MessageFragment
 import com.electroboys.lightsnap.ui.main.fragment.SettingsFragment
-import com.electroboys.lightsnap.ui.main.fragment.LibraryFragment
-import androidx.activity.viewModels
-import com.electroboys.lightsnap.ui.main.activity.BaseActivity.BaseActivity
-import com.electroboys.lightsnap.ui.main.activity.ScreenshotActivityForBase
-import com.electroboys.lightsnap.ui.main.fragment.DocumentDetailFragment
-import com.electroboys.lightsnap.ui.main.viewmodel.MainViewModel
+import com.electroboys.lightsnap.utils.COSUtil
 import com.electroboys.lightsnap.utils.SecretUtil
 
 
@@ -35,7 +39,7 @@ class MainActivity : BaseActivity() {
     private lateinit var navDocument: View
     private lateinit var navSettings: View
     private lateinit var navLibrary: View
-    private val viewModel: MainViewModel by viewModels()
+    private lateinit var sharedPreferences: SharedPreferences
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -54,8 +58,26 @@ class MainActivity : BaseActivity() {
         navSettings = findViewById(R.id.navSettings)
         navLibrary = findViewById(R.id.navLibrary)
 
-        //初始化截图
-//        screenshotHelper = ScreenshotActivity(this)
+        sharedPreferences = getSharedPreferences(SettingsConstants.PREF_NAME, MODE_PRIVATE)
+
+        //初始化COS
+        var cleanOption = sharedPreferences.getString(SettingsConstants.KEY_CLEANUP,
+            SettingsConstants.CLEANUP_OFF)
+        if(cleanOption == SettingsConstants.CLEANUP_DELANDUPLOAD){
+            if(COSUtil.initCOS(
+                    context = this,
+                    secretId = "AKIDfDlJiCE9tTDdptvNhpqhSI0VnsjeXK0Z",
+                    secretKey = "hR2Tm25vkU2PYYTLAsRxMpGWbTBi1LQU",
+                    region = "ap-shanghai",
+                    bucket = "lightsnap-1318767045"
+                )){
+                startCleanupService()
+            }else{
+                Toast.makeText(this, "COS初始化失败", Toast.LENGTH_SHORT).show()
+            }
+        }else if(cleanOption==SettingsConstants.CLEANUP_DEL){
+            startCleanupService()
+        }
 
         // 默认显示 MessageFragment
         replaceFragment(MessageFragment::class.java)
@@ -91,26 +113,6 @@ class MainActivity : BaseActivity() {
             replaceFragment(LibraryFragment::class.java)
             highlightNavItem(navLibrary)
         }
-
-//        // 监听 ViewModel 中的快捷键事件
-//        viewModel.shortcutEvent.observe(this) { shortcut ->
-//            // 获取保存的设置
-//            val sharedPreferences = getSharedPreferences("settings", Context.MODE_PRIVATE)
-//            val screenshotEnabled = sharedPreferences.getBoolean("screenshot_enabled", false)
-//            if(screenshotEnabled){
-//                Toast.makeText(this, "监听到快捷键：$shortcut", Toast.LENGTH_SHORT).show()
-//                screenshotHelper.enableBoxSelectOnce { bitmap ->
-//                    if (bitmap != null) {
-//                        Toast.makeText(this, "截图成功", Toast.LENGTH_SHORT).show()
-//                        // 你可以在这里显示到某个 ImageView 或保存文件
-//                    } else {
-//                        Toast.makeText(this, "截图取消或失败", Toast.LENGTH_SHORT).show()
-//                    }
-//                }
-//            }else{
-//                Toast.makeText(this, "灵截功能未启用", Toast.LENGTH_SHORT).show()
-//            }
-//        }
     }
 
 
@@ -146,6 +148,23 @@ class MainActivity : BaseActivity() {
 
         // 给选中的那个设置选中背景
         selectedView.setBackgroundResource(R.drawable.bg_nav_selected)
+    }
+
+    private fun startCleanupService() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            val permission = android.Manifest.permission.POST_NOTIFICATIONS
+            if (checkSelfPermission(permission) != PackageManager.PERMISSION_GRANTED) {
+                requestPermissions(arrayOf(permission), 1001)
+                return
+            }
+        } else {
+            val areEnabled = NotificationManagerCompat.from(this).areNotificationsEnabled()
+            if (!areEnabled) {
+                Toast.makeText(this, "通知已被禁用，可能影响部分功能显示", Toast.LENGTH_LONG).show()
+                return
+            }
+        }
+        ScreenshotCleanupService.startService(this)
     }
 
 }
