@@ -477,6 +477,26 @@ class ScreenshotActivity : AppCompatActivity() , ModeActions {
         }
     }
 
+    // 导出图片时将带水印加载到图片上（如果开启了水印功能）
+    private fun getBitmapWithIsWatermark(): Bitmap? {
+        val imageView = findViewById<ImageView>(R.id.imageViewScreenshot)
+        val bitmap = (imageView.drawable as? BitmapDrawable)?.bitmap
+            ?: run {
+                Toast.makeText(this, "无法获取图片", Toast.LENGTH_SHORT).show()
+                return null
+            }
+        if(isWatermarkVisible){
+            val watermarkedBitmap = WatermarkUtil.addWatermark(
+                originalBitmap = bitmap,
+                config = watermarkConfig
+            )
+            return watermarkedBitmap
+        }else{
+            return bitmap
+        }
+    }
+
+
     //OCR功能用，绘制OCR识别界面
     private fun showTextOnScreenshotWithInteraction(visionText: Text) {
         val textBlocks = visionText.textBlocks
@@ -659,12 +679,11 @@ class ScreenshotActivity : AppCompatActivity() , ModeActions {
 
     //分享图片用，不用拆分
     private fun shareCurrentImage(){
-        val imageView = findViewById<ImageView>(R.id.imageViewScreenshot)
-        val bitmap = (imageView.drawable as? BitmapDrawable)?.bitmap
-            ?: run {
-                Toast.makeText(this, "无法获取图片", Toast.LENGTH_SHORT).show()
-                return
-            }
+        val bitmap = getBitmapWithIsWatermark()
+        if (bitmap == null){
+            Toast.makeText(this, "图片不存在", Toast.LENGTH_SHORT).show()
+            return
+        }
 
         // 将 Bitmap 保存到缓存文件
         val cacheFile = File(cacheDir, "share_temp.png")
@@ -699,31 +718,13 @@ class ScreenshotActivity : AppCompatActivity() , ModeActions {
 
     //保存图片，不用拆分
     private fun saveCurrentImage() {
-        val imageView = findViewById<ImageView>(R.id.imageViewScreenshot)
-        val bitmap = (imageView.drawable as? BitmapDrawable)?.bitmap
-            ?: run {
-                Toast.makeText(this, "无法获取图片", Toast.LENGTH_SHORT).show()
-                return
-            }
-
-
-        if(isWatermarkVisible){
-            // 将水印实际添加到图片中
-            val watermarkedBitmap = WatermarkUtil.addWatermark(
-                originalBitmap = bitmap,
-                config = watermarkConfig
-            )
-
-            // 将更新图片和key
-            val newKey = BitmapCache.cacheBitmap(watermarkedBitmap)
-//            imageView.setImageBitmap(watermarkedBitmap)
-            intent.putExtra(EXTRA_SCREENSHOT_KEY, newKey)
-//            ImageHistory.push(newKey)
-        }else{
-            // 将更新图片和key
-            val newKey = BitmapCache.cacheBitmap(bitmap)
-            intent.putExtra(EXTRA_SCREENSHOT_KEY, newKey)
+        val bitmap = getBitmapWithIsWatermark()
+        if (bitmap == null){
+            Toast.makeText(this, "图片不存在", Toast.LENGTH_SHORT).show()
+            return
         }
+        val newKey = BitmapCache.cacheBitmap(bitmap)
+        intent.putExtra(EXTRA_SCREENSHOT_KEY, newKey)
 
         val currentKey = intent.getStringExtra(EXTRA_SCREENSHOT_KEY)
             ?: run {
