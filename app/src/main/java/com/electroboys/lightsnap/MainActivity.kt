@@ -11,6 +11,7 @@ import androidx.core.app.NotificationManagerCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.fragment.app.Fragment
+import androidx.lifecycle.lifecycleScope
 import com.electroboys.lightsnap.data.entity.SettingsConstants
 import com.electroboys.lightsnap.service.ScreenshotCleanupService
 import com.electroboys.lightsnap.ui.main.activity.BaseActivity.BaseActivity
@@ -21,6 +22,9 @@ import com.electroboys.lightsnap.ui.main.fragment.MessageFragment
 import com.electroboys.lightsnap.ui.main.fragment.SettingsFragment
 import com.electroboys.lightsnap.utils.COSUtil
 import com.electroboys.lightsnap.utils.SecretUtil
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 
 class MainActivity : BaseActivity() {
@@ -61,22 +65,30 @@ class MainActivity : BaseActivity() {
         sharedPreferences = getSharedPreferences(SettingsConstants.PREF_NAME, MODE_PRIVATE)
 
         //初始化COS
-        var cleanOption = sharedPreferences.getString(SettingsConstants.KEY_CLEANUP,
-            SettingsConstants.CLEANUP_OFF)
-        if(cleanOption == SettingsConstants.CLEANUP_DELANDUPLOAD){
-            if(COSUtil.initCOS(
-                    context = this,
-                    secretId = "AKIDfDlJiCE9tTDdptvNhpqhSI0VnsjeXK0Z",
-                    secretKey = "hR2Tm25vkU2PYYTLAsRxMpGWbTBi1LQU",
-                    region = "ap-shanghai",
-                    bucket = "lightsnap-1318767045"
-                )){
+        //这里改为了协程，如果直接调用初始化，会阻塞主线程，且失败就可能导致无响应
+        lifecycleScope.launch {
+            val cleanOption = sharedPreferences.getString(
+                SettingsConstants.KEY_CLEANUP,
+                SettingsConstants.CLEANUP_OFF
+            )
+            if (cleanOption == SettingsConstants.CLEANUP_DELANDUPLOAD) {
+                val success = withContext(Dispatchers.IO) {
+                    COSUtil.initCOS(
+                        context = this@MainActivity,
+                        secretId = "AKIDfDlJiCE9tTDdptvNhpqhSI0VnsjeXK0Z",
+                        secretKey = "hR2Tm25vkU2PYYTLAsRxMpGWbTBi1LQU",
+                        region = "ap-shanghai",
+                        bucket = "lightsnap-1318767045"
+                    )
+                }
+                if (success) {
+                    startCleanupService()
+                } else {
+                    Toast.makeText(this@MainActivity, "COS初始化失败", Toast.LENGTH_SHORT).show()
+                }
+            } else if (cleanOption == SettingsConstants.CLEANUP_DEL) {
                 startCleanupService()
-            }else{
-                Toast.makeText(this, "COS初始化失败", Toast.LENGTH_SHORT).show()
             }
-        }else if(cleanOption==SettingsConstants.CLEANUP_DEL){
-            startCleanupService()
         }
 
         // 默认显示 MessageFragment

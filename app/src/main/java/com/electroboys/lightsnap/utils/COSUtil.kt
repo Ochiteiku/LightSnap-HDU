@@ -12,13 +12,14 @@ import com.tencent.cos.xml.model.CosXmlResult
 import com.tencent.cos.xml.model.bucket.HeadBucketRequest
 import com.tencent.cos.xml.model.bucket.HeadBucketResult
 import com.tencent.cos.xml.transfer.COSXMLDownloadTask
-import com.tencent.cos.xml.transfer.COSXMLUploadTask
 import com.tencent.cos.xml.transfer.TransferConfig
 import com.tencent.cos.xml.transfer.TransferManager
 import com.tencent.cos.xml.transfer.TransferStateListener
 import com.tencent.qcloud.core.auth.QCloudCredentialProvider
 import com.tencent.qcloud.core.auth.ShortTimeCredentialProvider
+import kotlinx.coroutines.suspendCancellableCoroutine
 import java.io.File
+import kotlin.coroutines.resume
 
 object COSUtil {
 
@@ -26,12 +27,20 @@ object COSUtil {
     private var transferManager: TransferManager? = null
     private var bucket: String? = null
 
-    fun initCOS(context: Context, secretId: String, secretKey: String, region: String, bucket: String): Boolean {
+
+    //用于初始化腾讯云服务，并检查是否可用
+    suspend fun initCOS(
+        context: Context,
+        secretId: String,
+        secretKey: String,
+        region: String,
+        bucket: String
+    ): Boolean {
         return try {
             val credentialProvider: QCloudCredentialProvider = ShortTimeCredentialProvider(
                 secretId,
                 secretKey,
-                300
+                300 // 凭证有效期 5 分钟
             )
 
             val serviceConfig = CosXmlServiceConfig.Builder()
@@ -50,28 +59,24 @@ object COSUtil {
             transferManager = TransferManager(cosXmlService, transferConfig)
 
             COSUtil.bucket = bucket
-            // 验证与 COS 桶的连接
-            if (!checkCosBucketAvailable()) {
-                Log.e("TEST1", "initCOS: 123", )
-                return false
-            }
 
-            true // 初始化成功
+            // 使用协程方式异步检查 COS 桶可用性
+            checkCosBucketAvailable()
         } catch (e: Exception) {
             e.printStackTrace()
-            false // 初始化失败
+            false
         }
     }
 
-    fun checkCosBucketAvailable(): Boolean {
-        val headBucketRequest = HeadBucketRequest(bucket)
 
-        cosXmlService?.headBucketAsync(headBucketRequest, object : CosXmlResultListener {
+    //检查桶是否可用，使用suspendCancellableCoroutine转化为挂起函数
+    suspend fun checkCosBucketAvailable(): Boolean = suspendCancellableCoroutine { continuation ->
+        val request = HeadBucketRequest(bucket)
+        cosXmlService?.headBucketAsync(request, object : CosXmlResultListener {
             override fun onSuccess(request: CosXmlRequest, result: CosXmlResult) {
-                val headBucketResult = result as HeadBucketResult
-                // 你可以在这里处理 headBucketResult 里的其他信息
-                Log.e("TEST1", "initCOS: ${headBucketResult.httpCode}")
-                true
+                val headResult = result as HeadBucketResult
+                Log.i("COSUtil", "桶可用: ${headResult.httpCode}")
+                continuation.resume(true)
             }
 
             override fun onFail(
@@ -81,28 +86,34 @@ object COSUtil {
             ) {
                 clientException?.printStackTrace()
                 serviceException?.printStackTrace()
-                val message = clientException?.message ?: serviceException?.message ?: "未知错误"
-                false
+                continuation.resume(false)
             }
-        })
-        return true
+        }) ?: continuation.resume(false) // 如果 cosXmlService 为 null，也返回 false
     }
 
-
-
-
-    fun uploadFile(
+    //上传文件，采用协程的方式，这样可以获取上传的结果
+    suspend fun uploadFile(
         cosPath: String,
         localFile: File,
-        uploadId: String? = null,
-        stateListener: TransferStateListener? = null
-    ): COSXMLUploadTask? {
-        val tm = transferManager ?: return null
+        uploadId: String? = null
+    ): Boolean = suspendCancellableCoroutine { continuation ->
+        val tm = transferManager ?: run {
+            continuation.resume(false)
+            return@suspendCancellableCoroutine
+        }
+
         val uploadTask = tm.upload(bucket, cosPath, localFile.absolutePath, uploadId)
-        stateListener?.let { uploadTask.setTransferStateListener(it) }
-        return uploadTask
+        uploadTask.setTransferStateListener { state ->
+            when (state) {
+                com.tencent.cos.xml.transfer.TransferState.COMPLETED -> continuation.resume(true)
+                com.tencent.cos.xml.transfer.TransferState.FAILED,
+                com.tencent.cos.xml.transfer.TransferState.CANCELED -> continuation.resume(false)
+                else -> Unit // 其他状态忽略
+            }
+        }
     }
 
+    //下载文件
     fun downloadFile(
         context: Context,
         cosPath: String,

@@ -7,7 +7,6 @@ import android.app.Service
 import android.content.Context
 import android.content.Intent
 import android.os.Build
-import android.os.Handler
 import android.os.IBinder
 import android.widget.Toast
 import androidx.core.app.NotificationCompat
@@ -15,12 +14,16 @@ import androidx.core.net.toUri
 import androidx.documentfile.provider.DocumentFile
 import com.electroboys.lightsnap.data.entity.SettingsConstants
 import com.electroboys.lightsnap.utils.COSUtil
-import com.tencent.cos.xml.transfer.TransferStateListener
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
-
 
 class ScreenshotCleanupService : Service() {
 
@@ -38,6 +41,8 @@ class ScreenshotCleanupService : Service() {
         }
     }
 
+    private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+
     override fun onCreate() {
         super.onCreate()
         createNotificationChannel()
@@ -45,7 +50,8 @@ class ScreenshotCleanupService : Service() {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        Thread {
+        // 使用协程代替线程
+        serviceScope.launch {
             val sharedPrefs = getSharedPreferences("settings", Context.MODE_PRIVATE)
             val option = sharedPrefs.getString("cleanup", SettingsConstants.CLEANUP_OFF)
             val daysThreshold = sharedPrefs.getInt("cleanup_deadline", 0)
@@ -53,8 +59,13 @@ class ScreenshotCleanupService : Service() {
                 cleanOldScreenshots(daysThreshold, option.toString())
             }
             stopSelf()
-        }.start()
+        }
         return START_NOT_STICKY
+    }
+
+    override fun onDestroy() {
+        serviceScope.cancel()
+        super.onDestroy()
     }
 
     override fun onBind(intent: Intent?): IBinder? = null
@@ -80,7 +91,7 @@ class ScreenshotCleanupService : Service() {
         }
     }
 
-    private fun cleanOldScreenshots(daysThreshold: Int, option: String) {
+    private suspend fun cleanOldScreenshots(daysThreshold: Int, option: String) {
         val sharedPrefs = getSharedPreferences("settings", Context.MODE_PRIVATE)
         val savedUriStr = sharedPrefs.getString("screenshot_save_uri", null) ?: return
         val folderUri = savedUriStr.toUri()
@@ -91,73 +102,55 @@ class ScreenshotCleanupService : Service() {
         val format = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault())
         val uploadList = mutableListOf<DocumentFile>()
         var deletedCount = 0
-        var completedCount = 0
 
+        //由于需要保证删除和上传的原子性，所以这里先找出需要上传或删除的文件
         for (file in folder.listFiles()) {
             val name = file.name ?: continue
-            val match =
-                Regex("""Img_(\d{8}_\d{6})\.(jpg|png)""", RegexOption.IGNORE_CASE).matchEntire(name)
-                    ?: continue
+            val match = Regex("""Img_(\d{8}_\d{6})\.(jpg|png)""", RegexOption.IGNORE_CASE).matchEntire(name)
+                ?: continue
             try {
                 val date = format.parse(match.groupValues[1]) ?: continue
                 if (now - date.time > thresholdMillis) {
-                    if (option == SettingsConstants.CLEANUP_DEL) {
-                        if (file.delete()) {
-                            deletedCount++
+                    when (option) {
+                        SettingsConstants.CLEANUP_DEL -> {
+                            if (file.delete()) deletedCount++
                         }
-                    } else if (option == SettingsConstants.CLEANUP_DELANDUPLOAD) {
-                        uploadList.add(file)
+
+                        SettingsConstants.CLEANUP_DELANDUPLOAD -> {
+                            uploadList.add(file)
+                        }
                     }
                 }
             } catch (_: Exception) {
             }
         }
 
+        //首先保证上传成功，然后再执行删除操作，COSUtil已对上传操作进行协程处理
         if (option == SettingsConstants.CLEANUP_DELANDUPLOAD && uploadList.isNotEmpty()) {
             for (file in uploadList) {
                 val dateStr = SimpleDateFormat("yyyyMMdd", Locale.getDefault()).format(Date())
                 val remotePath = "$dateStr/${file.name}"
-
                 val tempFile = File.createTempFile("upload_", file.name ?: "", cacheDir)
+
+                // 将文件复制到本地临时文件进行上传操作
                 contentResolver.openInputStream(file.uri)?.use { input ->
-                    tempFile.outputStream().use { output ->
-                        input.copyTo(output)
-                    }
+                    tempFile.outputStream().use { output -> input.copyTo(output) }
                 }
-                COSUtil.uploadFile(
-                    cosPath = remotePath,
-                    localFile = tempFile,
-                    stateListener = object : TransferStateListener {
-                        override fun onStateChanged(state: com.tencent.cos.xml.transfer.TransferState?) {
-                            if (state == com.tencent.cos.xml.transfer.TransferState.COMPLETED) {
-                                if (file.delete()) {
-                                    deletedCount++
-                                }
-                                completedCount++
-                            }
-                            // 所有上传任务以及清理任务完成后再 Toast
-                            if (deletedCount == uploadList.size && completedCount == uploadList.size) {
-                                Handler(mainLooper).post {
-                                    Toast.makeText(
-                                        applicationContext,
-                                        "上传并清理完成，共删除 $deletedCount 张截图",
-                                        Toast.LENGTH_SHORT
-                                    ).show()
-                                }
-                            }
-                        }
-                    }
-                )
+
+                val success = COSUtil.uploadFile(remotePath, tempFile)
+                if (success && file.delete()) {
+                    deletedCount++
+                }
             }
-        } else {
-            // 非上传任务，立即回主线程显示 Toast
-            Handler(mainLooper).post {
-                Toast.makeText(
-                    applicationContext,
-                    "清理完成，共删除 $deletedCount 张截图",
-                    Toast.LENGTH_SHORT
-                ).show()
-            }
+        }
+
+        // 主线程弹出提示
+        withContext(Dispatchers.Main) {
+            Toast.makeText(
+                applicationContext,
+                "清理完成，共删除 $deletedCount 张截图",
+                Toast.LENGTH_SHORT
+            ).show()
         }
     }
 }
