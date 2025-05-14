@@ -15,9 +15,11 @@ import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.net.toUri
 import com.electroboys.lightsnap.R
+import com.electroboys.lightsnap.data.entity.SettingsConstants
 import com.electroboys.lightsnap.data.screenshot.BitmapCache
 import com.electroboys.lightsnap.ui.main.activity.ScreenshotActivity
 import com.electroboys.lightsnap.ui.main.activity.ScreenshotActivityForBase
+import com.electroboys.lightsnap.ui.main.view.FloatingView
 import com.electroboys.lightsnap.ui.main.viewmodel.MainViewModel
 import com.electroboys.lightsnap.utils.ImageSaveUtil
 import com.electroboys.lightsnap.utils.KeyEventUtil
@@ -28,7 +30,7 @@ open class BaseActivity : AppCompatActivity() {
     private val viewModel: MainViewModel by viewModels()
 
     private lateinit var screenshotResultLauncher: ActivityResultLauncher<Intent>
-
+    private  var floatingView: FloatingView? = null;
     // 标志：是否处于截图模式
     var isTakingScreenshot = false
     var currentScreenshotHelper: ScreenshotActivityForBase? = null
@@ -152,4 +154,64 @@ open class BaseActivity : AppCompatActivity() {
             super.onBackPressed()
         }
     }
+
+
+    override fun onResume() {
+        super.onResume()
+        showFloatingView()
+    }
+
+    override fun onStop() {
+        super.onStop()
+        if (floatingView != null) {
+            floatingView!!.dismissFloatView()
+            floatingView = null
+        }
+    }
+
+    //
+    /***
+     * app内浮动悬浮窗
+     */
+    private fun showFloatingView() {
+        if (SettingsConstants.PicIsHangUp) {
+            if (this.javaClass.simpleName == "ScreenshotActivity") return  //如果是聊天室
+            if (null == floatingView) {
+                floatingView = FloatingView(this)
+                floatingView?.showFloat()
+                floatingView?.setOnClickListener {
+                    Toast.makeText(this, "悬浮窗点击", Toast.LENGTH_SHORT).show()
+                    if (SettingsConstants.floatBitmapKey == null)return@setOnClickListener
+                    // 继续原有截图流程
+                    val bitmapKey = SettingsConstants.floatBitmapKey
+                    val intent = Intent(this, ScreenshotActivity::class.java).apply {
+                        putExtra(ScreenshotActivity.EXTRA_SCREENSHOT_KEY, bitmapKey)
+                    }
+
+                    val options = ActivityOptions.makeCustomAnimation(
+                        this,
+                        R.anim.shot_enter,
+                        R.anim.shot_exit
+                    )
+                    screenshotResultLauncher.launch(intent)
+                }
+            }
+        } else {
+            if (floatingView != null) {
+                floatingView?.dismissFloatView()
+            }
+        }
+    }
+    //
+    /***
+     * 隐藏浮窗并关闭悬浮窗
+     */
+    fun dismissFloating() {
+        if (floatingView != null) {
+            floatingView?.dismissFloatView()
+            floatingView = null
+        }
+
+    }
+
 }

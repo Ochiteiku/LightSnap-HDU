@@ -3,6 +3,7 @@ package com.electroboys.lightsnap.ui.main.viewmodel
 import android.graphics.Bitmap
 import android.graphics.PointF
 import android.graphics.Rect
+import android.util.Log
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
@@ -159,5 +160,26 @@ class ScreenshotViewModel(private val ocrRepository: OcrRepository) : ViewModel(
 
     fun toggleSelectionEnabled() {
         isSelectionEnabled.value = !(isSelectionEnabled.value ?: true)
+    }
+
+    //OCR逻辑用
+    fun recognizeAndCallback(bitmap: Bitmap ,callback: OnTextRecognizedListener) {
+        viewModelScope.launch {
+            val result = ocrRepository.recognizeText(bitmap)
+            result.onSuccess { text ->
+
+                callback.onTextRecognized(text)
+                Log.d("OCR", "text recognized: $text")
+                Log.d("OCR", "text blocks: ${text.text}")
+
+            }.onFailure {
+                it.printStackTrace()
+                callback.onTextRecognized(null)
+            }
+        }
+    }
+    interface OnTextRecognizedListener {
+        suspend fun onTextRecognized(text: Text?)
+
     }
 }

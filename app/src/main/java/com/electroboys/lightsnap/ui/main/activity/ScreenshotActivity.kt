@@ -31,6 +31,7 @@ import androidx.core.content.FileProvider
 import androidx.core.view.isGone
 import androidx.lifecycle.ViewModelProvider
 import com.electroboys.lightsnap.R
+import com.electroboys.lightsnap.data.entity.SettingsConstants
 import com.electroboys.lightsnap.data.screenshot.BitmapCache
 import com.electroboys.lightsnap.data.screenshot.ControlViewStatus
 import com.electroboys.lightsnap.data.screenshot.ImageHistory
@@ -42,6 +43,8 @@ import com.electroboys.lightsnap.domain.screenshot.repository.OcrRepository
 import com.electroboys.lightsnap.domain.screenshot.watermark.WatermarkConfig
 import com.electroboys.lightsnap.ui.main.view.ArrowTabView
 import com.electroboys.lightsnap.ui.main.view.EditAddTextView
+import com.electroboys.lightsnap.ui.main.view.FrameSelectTabView
+import com.electroboys.lightsnap.ui.main.view.FrameSelectView
 import com.electroboys.lightsnap.ui.main.view.GraffitiTabView
 import com.electroboys.lightsnap.ui.main.view.GraffitiView
 import com.electroboys.lightsnap.ui.main.view.MosaicTabView
@@ -52,6 +55,7 @@ import com.electroboys.lightsnap.ui.main.viewmodel.factory.ScreenshotViewModelFa
 import com.electroboys.lightsnap.utils.WatermarkUtil
 import com.google.mlkit.vision.text.Text
 import com.electroboys.lightsnap.ui.main.view.WatermarkSettingBarView
+import com.electroboys.lightsnap.utils.BaiduTranslator
 import java.io.File
 import java.io.FileOutputStream
 import java.io.IOException
@@ -68,7 +72,7 @@ class ScreenshotActivity : AppCompatActivity() , ModeActions {
     private lateinit var selectView: SelectView
     private lateinit var imageView: ImageView
     private lateinit var btnConfirmSelection: ImageButton
-
+    private lateinit var frameSelectView: FrameSelectView
     private lateinit var editScreenshot: EditScreenshot
 
     private lateinit var watermarkOverlay: WatermarkOverlayView
@@ -153,6 +157,7 @@ class ScreenshotActivity : AppCompatActivity() , ModeActions {
         watermarkOverlay = findViewById(R.id.watermarkOverlay)
         graffitiView = findViewById(R.id.graffitiView)
         exControlFrame = findViewById(R.id.exControlFrame)
+        frameSelectView = findViewById(R.id.frameSelectView)
         overlayView = imageView
 
         // OCR键逻辑
@@ -206,6 +211,7 @@ class ScreenshotActivity : AppCompatActivity() , ModeActions {
         viewModel.currentBitmap.observe(this) { bitmap ->
             imageView.setImageBitmap(bitmap)
             graffitiView.setBitmap(bitmap)
+            frameSelectView.setBitmap(bitmap)
             selectView.clearSelection()
             btnConfirmSelection.visibility = View.GONE
             findViewById<TextView>(R.id.selectionHint).visibility = View.VISIBLE
@@ -296,8 +302,72 @@ class ScreenshotActivity : AppCompatActivity() , ModeActions {
                 modeManager.enter(Mode.Arrow)
             }
         }
+        findViewById<View>(R.id.btnFixed).setOnClickListener {
+            if (isSelectionEnabled) {
+                toggleSelectionMode()
+            }
+            SettingsConstants.PicIsHangUp=true
+            val bitmap = (imageView.drawable as? BitmapDrawable)?.bitmap
+            val bitmapKey = bitmap?.let { it1 -> BitmapCache.cacheBitmap(it1) }
+            SettingsConstants.floatBitmapKey=bitmapKey
+            finish()
+        }
 
+        val btnTranslate = findViewById<View>(R.id.btnTranslate)
+        btnTranslate.setOnClickListener {
+            if (isSelectionEnabled) {
+                toggleSelectionMode()
+            }
+            val bitmap = (imageView.drawable as? BitmapDrawable)?.bitmap
+            bitmap?.let { it1 ->
+                viewModel.recognizeAndCallback(it1,
+                    object : ScreenshotViewModel.OnTextRecognizedListener {
+                        override suspend fun onTextRecognized(text: Text?) {
+                            text?.text?.let { it2 ->
+                                BaiduTranslator.translate(this@ScreenshotActivity,it2,
+                                    object : BaiduTranslator.TranslationCallback {
+                                        override fun onSuccess(translatedText: String) {
+                                            imageView.post {
+                                                Toast.makeText(
+                                                    baseContext,
+                                                    "翻译成功" + translatedText,
+                                                    Toast.LENGTH_SHORT
+                                                ).show()
+                                            }
+
+                                        }
+                                        override fun onFailure(error: String) {
+                                            imageView.post {
+                                                Toast.makeText(
+                                                    baseContext,
+                                                    "翻译失败"+error,
+                                                    Toast.LENGTH_SHORT
+                                                ).show()
+                                            }
+                                        }
+                                    })
+                            }
+                        }
+                    })
+            }
+
+        }
+        val btnBox = findViewById<View>(R.id.btnBox)
+        btnBox.setOnClickListener {
+            if (isSelectionEnabled) {
+                toggleSelectionMode()
+            }
+            showControlView(ControlViewStatus.FramingMode.ordinal)
+        }
         graffitiView.setOnBitmapChangeListener(object : GraffitiView.onBitmapChangeListener {
+            override fun onBitmapChange(bitmap: Bitmap) {
+                val newKey = BitmapCache.cacheBitmap(bitmap)
+                intent.putExtra(EXTRA_SCREENSHOT_KEY, newKey)
+                ImageHistory.push(newKey)
+                imageView.setImageBitmap(bitmap)
+            }
+        })
+        frameSelectView.setOnBitmapChangeListener(object : GraffitiView.onBitmapChangeListener {
             override fun onBitmapChange(bitmap: Bitmap) {
                 val newKey = BitmapCache.cacheBitmap(bitmap)
                 intent.putExtra(EXTRA_SCREENSHOT_KEY, newKey)
@@ -746,6 +816,7 @@ class ScreenshotActivity : AppCompatActivity() , ModeActions {
                 graffitiView.setDrawMode(GraffitiView.DrawMode.GRAFFITI)
 
                 graffitiView.visibility = View.VISIBLE
+                frameSelectView.visibility = View.GONE
 
                 val graffitiTabView = GraffitiTabView(this)
                 exControlFrame.removeAllViews()
@@ -771,6 +842,8 @@ class ScreenshotActivity : AppCompatActivity() , ModeActions {
                 graffitiView.setDrawMode(GraffitiView.DrawMode.MOSAIC)
 
                 graffitiView.visibility = View.VISIBLE
+                frameSelectView.visibility = View.GONE
+
                 graffitiView.isClickable
                 // 显示涂鸦模式
                 val doodleTabView = MosaicTabView(this)
@@ -819,8 +892,34 @@ class ScreenshotActivity : AppCompatActivity() , ModeActions {
                     }
                 })
             }
+            ControlViewStatus.FramingMode.ordinal -> {
+                val currentBitmap = (imageView.drawable as? BitmapDrawable)?.bitmap ?: return
+                frameSelectView.setBitmap(currentBitmap) // 强制刷新为当前 imageView 的 bitmap
+                graffitiView.visibility = View.GONE
+                frameSelectView.visibility = View.VISIBLE
+                val mFrameSelectTabView = FrameSelectTabView(this)
+                // 显示其他模式
+                exControlFrame.removeAllViews()
+                exControlFrame.addView(mFrameSelectTabView)
+                mFrameSelectTabView.setOnSelectedListener(object :
+                    FrameSelectTabView.OnSelectedListener {
+                    override fun onColorSelected(color: Int) {
+                        frameSelectView.setLineColor(color)
+                    }
+
+                    override fun onSelectSize(size: Int) {
+                        frameSelectView.setLineWidth(size)
+                    }
+
+                    override fun OnSelectedStyle(style: Int) {
+                        frameSelectView.setShapeType(style)
+                    }
+
+                })
+            }
             ControlViewStatus.OtherMode.ordinal -> {
                 graffitiView.visibility = View.GONE
+                frameSelectView.visibility = View.GONE
                 // 显示其他模式
                 exControlFrame.removeAllViews()
             }
@@ -830,9 +929,13 @@ class ScreenshotActivity : AppCompatActivity() , ModeActions {
     override fun onDestroy() {
         super.onDestroy()
         // 清理 Bitmap 缓存
-        val currentKey = intent.getStringExtra(EXTRA_SCREENSHOT_KEY)
+        if (!SettingsConstants.PicIsHangUp){
+
+            val currentKey = intent.getStringExtra(EXTRA_SCREENSHOT_KEY)
         BitmapCache.clearExcept(currentKey)
         handler.removeCallbacks(updateDotsRunnable)
+        }
+
     }
 
     override fun finish() {

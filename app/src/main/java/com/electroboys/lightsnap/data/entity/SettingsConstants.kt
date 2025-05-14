@@ -13,6 +13,8 @@ object SettingsConstants {
     //默认值
     const val DEFAULT_SHORTCUT = "Ctrl+Shift+A"
     const val DEFAULT_CLEANUP = "不清理"
+    var PicIsHangUp = false
+    var floatBitmapKey:String?= null
 
     //清理相关
     val CLEANUP_OPTIONS = arrayOf("不清理", "定时删除", "定时上传至云存储")
