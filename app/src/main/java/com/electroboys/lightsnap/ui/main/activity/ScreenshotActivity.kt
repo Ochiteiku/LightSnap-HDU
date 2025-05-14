@@ -47,6 +47,7 @@ import com.electroboys.lightsnap.ui.main.view.GraffitiView
 import com.electroboys.lightsnap.ui.main.view.MosaicTabView
 import com.electroboys.lightsnap.ui.main.view.SelectView
 import com.electroboys.lightsnap.ui.main.view.WatermarkOverlayView
+import com.electroboys.lightsnap.ui.main.view.WatermarkSettingBarView
 import com.electroboys.lightsnap.ui.main.viewmodel.ScreenshotViewModel
 import com.electroboys.lightsnap.ui.main.viewmodel.factory.ScreenshotViewModelFactory
 import com.electroboys.lightsnap.utils.WatermarkUtil
@@ -71,6 +72,7 @@ class ScreenshotActivity : AppCompatActivity() , ModeActions {
     private lateinit var editScreenshot: EditScreenshot
 
     private lateinit var watermarkOverlay: WatermarkOverlayView
+    private lateinit var watermarkSettingBar: WatermarkSettingBarView
 
     companion object {
         const val EXTRA_SCREENSHOT_KEY = "screenshot_key"
@@ -260,14 +262,6 @@ class ScreenshotActivity : AppCompatActivity() , ModeActions {
             }
         }
 
-        // 水印开关逻辑
-        val btnWatermark = findViewById<ImageButton>(R.id.btnWatermark)
-        btnWatermark.setOnClickListener {
-            toggleWatermarkMode()
-            // TODO: 修改水印高亮图标
-            // TODO: 水印设置
-        }
-
         showControlView(ControlViewStatus.OtherMode.ordinal)
 
         // 涂鸦按钮逻辑
@@ -298,6 +292,32 @@ class ScreenshotActivity : AppCompatActivity() , ModeActions {
                 imageView.setImageBitmap(bitmap)
             }
         })
+
+        // 水印开关逻辑
+        val btnWatermark = findViewById<ImageButton>(R.id.btnWatermark)
+        btnWatermark.setOnClickListener {
+            toggleWatermarkMode()
+        }
+        // 水印设置栏初始化
+        watermarkSettingBar = WatermarkSettingBarView(this).apply {
+            layoutParams = FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT
+            ).apply {
+                gravity = Gravity.TOP or Gravity.END
+            }
+            // 监听器设置
+            onTextChanged = { text ->
+                watermarkConfig.setText(text)
+                refreshWatermark()
+            }
+            onAlphaChanged = { alpha ->
+                watermarkConfig.setAlpha(alpha)
+                refreshWatermark()
+            }
+        }
+        findViewById<FrameLayout>(R.id.imageContainer).addView(watermarkSettingBar)
+        watermarkSettingBar.updateUIState(false)
 
         // 获取传入的 key
         val key = intent.getStringExtra(EXTRA_SCREENSHOT_KEY)
@@ -430,12 +450,21 @@ class ScreenshotActivity : AppCompatActivity() , ModeActions {
                 }
                 btnWatermark.setImageResource(R.drawable.ic_watermark_on)
                 watermarkOverlay.visibility = View.VISIBLE
-                Toast.makeText(this, "已添加水印", Toast.LENGTH_SHORT).show()
+                watermarkSettingBar.updateUIState(true)
+                watermarkSettingBar.setConfig(watermarkConfig)
+//                Toast.makeText(this, "已添加水印", Toast.LENGTH_SHORT).show()
             } else {
                 btnWatermark.setImageResource(R.drawable.ic_watermark)
                 watermarkOverlay.visibility = View.INVISIBLE
-                Toast.makeText(this, "已取消添加水印", Toast.LENGTH_SHORT).show()
+                watermarkSettingBar.updateUIState(false)
+//                Toast.makeText(this, "已取消添加水印", Toast.LENGTH_SHORT).show()
             }
+        }
+    }
+    // 水印功能刷新
+    private fun refreshWatermark() {
+        if (isWatermarkVisible) {
+            watermarkOverlay.setWatermark(watermarkConfig)
         }
     }
 
