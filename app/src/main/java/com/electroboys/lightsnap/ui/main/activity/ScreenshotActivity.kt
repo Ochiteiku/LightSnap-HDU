@@ -266,6 +266,28 @@ class ScreenshotActivity : AppCompatActivity() , ModeActions {
             croppedBitmap = bitmap
             imageView.setImageBitmap(bitmap)
             graffitiView.setBitmap(croppedBitmap)
+
+            // QR
+            QRScannerUtil.detectQRCode(
+                context = this,
+                bitmap = bitmap,
+                listener = object: QRScannerUtil.QRDialogListener{
+                    override fun onIgnore() {
+                        // 用户点击忽略，不做任何操作
+                    }
+                    override fun onCopyRequested(content: String) {
+                        val clipboard = getSystemService(CLIPBOARD_SERVICE) as ClipboardManager
+                        clipboard.setPrimaryClip(ClipData.newPlainText("二维码内容", content))
+                        Toast.makeText(this@ScreenshotActivity,
+                            "已复制二维码内容", Toast.LENGTH_SHORT).show()
+                    }
+                },
+                onNoQRCode = {
+                    // 无二维码时直接进入编辑模式
+                    modeManager.enter(Mode.Crop)
+                }
+            )
+
         } else {
             Toast.makeText(this, "截图数据为空或已释放", Toast.LENGTH_SHORT).show()
         }

@@ -32,6 +32,7 @@ open class BaseActivity : AppCompatActivity() {
     // 标志：是否处于截图模式
     var isTakingScreenshot = false
     var currentScreenshotHelper: ScreenshotActivityForBase? = null
+
     // 快捷键监听事件
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
         if (event.action == KeyEvent.ACTION_DOWN) {
@@ -108,25 +109,18 @@ open class BaseActivity : AppCompatActivity() {
                 screenshotHelper.enableBoxSelectOnce { bitmap ->
                     runOnUiThread {
                         if (bitmap != null) {
+                            // 继续原有截图流程
+                            val bitmapKey = BitmapCache.cacheBitmap(bitmap)
+                            val intent = Intent(this, ScreenshotActivity::class.java).apply {
+                                putExtra(ScreenshotActivity.EXTRA_SCREENSHOT_KEY, bitmapKey)
+                            }
 
-                            QRScannerUtil.detectQRCode(
-                                context = this@BaseActivity,
-                                bitmap = bitmap,
-                                onContinueScreenshot = {
-                                    // 继续原有截图流程
-                                    val bitmapKey = BitmapCache.cacheBitmap(bitmap)
-                                    val intent = Intent(this, ScreenshotActivity::class.java).apply {
-                                        putExtra(ScreenshotActivity.EXTRA_SCREENSHOT_KEY, bitmapKey)
-                                    }
-
-                                    val options = ActivityOptions.makeCustomAnimation(
-                                        this,
-                                        R.anim.shot_enter,
-                                        R.anim.shot_exit
-                                    )
-                                    screenshotResultLauncher.launch(intent)
-                                }
+                            val options = ActivityOptions.makeCustomAnimation(
+                                this,
+                                R.anim.shot_enter,
+                                R.anim.shot_exit
                             )
+                            screenshotResultLauncher.launch(intent)
                         } else {
                             Toast.makeText(this, "截图已取消", Toast.LENGTH_SHORT).show()
                         }

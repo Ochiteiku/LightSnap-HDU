@@ -63,5 +63,6 @@ dependencies {
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.org.json)
     implementation("com.google.mlkit:barcode-scanning:17.3.0")
+    implementation("androidx.appcompat:appcompat:1.7.0")
 
 }

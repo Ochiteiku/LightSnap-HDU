@@ -1,19 +1,27 @@
-import android.content.ClipData
-import android.content.ClipboardManager
+import android.app.Dialog
 import android.content.Context
 import android.graphics.Bitmap
-import android.widget.Toast
-import androidx.appcompat.app.AlertDialog
-import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import android.graphics.Color
+import android.graphics.drawable.ColorDrawable
+import android.view.Gravity
+import android.view.Window
+import android.view.WindowManager
+import android.widget.Button
+import com.electroboys.lightsnap.R
 import com.google.mlkit.vision.barcode.BarcodeScanning
 import com.google.mlkit.vision.common.InputImage
 
 object QRScannerUtil {
+    interface QRDialogListener {
+        fun onIgnore()
+        fun onCopyRequested(content: String)
+    }
 
     fun detectQRCode(
         context: Context,
         bitmap: Bitmap,
-        onContinueScreenshot: () -> Unit
+        listener: QRDialogListener,
+        onNoQRCode: () -> Unit
     ) {
         val scanner = BarcodeScanning.getClient()
         val image = InputImage.fromBitmap(bitmap, 0)
@@ -21,56 +29,53 @@ object QRScannerUtil {
         scanner.process(image)
             .addOnSuccessListener { barcodes ->
                 if (barcodes.isNotEmpty()) {
-                    val qrContent = barcodes.first().rawValue ?: ""
-                    showQRResultDialog(context, qrContent, onContinueScreenshot)
+                    showQRNotification(
+                        context = context,
+                        content = barcodes.first().rawValue ?: "",
+                        listener = listener
+                    )
                 } else {
-                    onContinueScreenshot()
+                    onNoQRCode()
                 }
             }
-            .addOnFailureListener {
-                onContinueScreenshot()
-            }
+            .addOnFailureListener { onNoQRCode() }
     }
 
-    private fun showQRResultDialog(
+    private fun showQRNotification(
         context: Context,
-        qrContent: String,
-        onContinueScreenshot: () -> Unit
+        content: String,
+        listener: QRDialogListener
     ) {
-        val displayText = if (qrContent.length > 50) {
-            "${qrContent.substring(0, 50)}..."
-        } else {
-            qrContent
-        }
+        Dialog(context, R.style.QRDialogTheme).apply {
+            // 基础设置
+            requestWindowFeature(Window.FEATURE_NO_TITLE)
+            setContentView(R.layout.dialog_qr_detected)
+            setCancelable(true)
 
-        // 创建对话框但不立即显示
-        val dialog = MaterialAlertDialogBuilder(context)
-            .setTitle("检测到二维码内容")
-            .setMessage(displayText)
-            // 1. 忽略按钮（继续进入截图编辑）
-            .setNeutralButton("忽略") { dialog, _ ->
-                dialog.dismiss()
-                onContinueScreenshot()
+            // 窗口定位和样式
+            window?.apply {
+                setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
+                setGravity(Gravity.TOP or Gravity.END)
+                attributes = attributes?.apply {
+                    width = 280.dpToPx(context)
+                    height = WindowManager.LayoutParams.WRAP_CONTENT
+                    y = 32.dpToPx(context)
+                    x = 16.dpToPx(context)
+                }
             }
-            // 2. 返回按钮（取消对话框，不做任何操作）
-            .setNegativeButton("返回") { dialog, _ ->
-                dialog.dismiss()
+
+            // 按钮事件
+            findViewById<Button>(R.id.btn_ignore).setOnClickListener {
+                listener.onIgnore()
+                dismiss()
             }
-            // 3. 复制（先设置 PositiveButton 为 null，后面再写监听事件）
-            .setPositiveButton("复制内容", null)
-            .create()
-
-        // 显示对话框
-        dialog.show()
-
-        // 获取 PositiveButton 并重新设置点击事件
-        dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
-            val clipboard =
-                context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-            val clip = ClipData.newPlainText("二维码内容", qrContent)
-            clipboard.setPrimaryClip(clip)
-            Toast.makeText(context, "已复制到剪贴板", Toast.LENGTH_SHORT).show()
-            // 注意：这里不调用dialog.dismiss()
-        }
+            findViewById<Button>(R.id.btn_copy).setOnClickListener {
+                listener.onCopyRequested(content)
+                dismiss()
+            }
+        }.show()
     }
+
+    private fun Int.dpToPx(context: Context): Int =
+        (this * context.resources.displayMetrics.density).toInt()
 }
