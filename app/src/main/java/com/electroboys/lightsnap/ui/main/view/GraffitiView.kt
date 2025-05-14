@@ -7,15 +7,40 @@ import android.util.Log
 import android.view.MotionEvent
 import android.view.View
 import androidx.core.graphics.withMatrix
-import kotlin.math.abs
+import kotlin.math.*
 
 
 class GraffitiView @JvmOverloads constructor(
     context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0
 ) : View(context, attrs, defStyleAttr) {
 
+    // 绘制模式枚举
+    enum class DrawMode {
+        GRAFFITI,   // 涂鸦模式
+        ARROW,      // 箭头模式
+        MOSAIC      // 马赛克模式
+    }
+
+    // 箭头数据类
+    data class Arrow(
+        val startX: Float,
+        val startY: Float,
+        val endX: Float,
+        val endY: Float,
+        var color: Int,
+        val width: Float,
+        val style: Int
+    )
+
+    // 当前绘制模式
+    private var currentMode = DrawMode.GRAFFITI
+
+    // 共享 Bitmap 和 Canvas
+    private var bitmap: Bitmap? = null
+    private var canvas: Canvas? = null
+
     private var style: Int = 0
-    private var paint = Paint().apply {
+    private var graffitiPaint = Paint().apply {
         isAntiAlias = true
         isDither = true
         color = Color.WHITE
@@ -24,18 +49,46 @@ class GraffitiView @JvmOverloads constructor(
         strokeJoin = Paint.Join.ROUND
         strokeCap = Paint.Cap.ROUND
     }
+    private val currentPath = Path()
 
-    private val path = Path()
-    private var bitmap: Bitmap? = null
-    private var canvas: Canvas? = null
+    // 箭头相关属性
+    private val arrowPaint = Paint().apply {
+        style = Paint.Style.STROKE
+        strokeCap = Paint.Cap.ROUND
+        isAntiAlias = true
+        color = Color.RED
+        strokeWidth = 5f
+    }
+    private val arrows = mutableListOf<Arrow>()
+    private var currentArrow: Arrow? = null
+    private val arrowHeadSize = 30f
+    private var arrowStyle = 0 // 0: 实线, 1: 虚线
+
     private var isMosaicMode = false
     private var maskBlur: Float = 50f // 默认模糊度为50
     private var mosaicRadius: Int = 5 // 默认马赛克半径为20
     private var blurStyle = BlurMaskFilter.Blur.NORMAL // 0为实心，1为描边，2为虚线
+
+    // 矩阵变换相关
+    private val drawMatrix = Matrix()
+    private val srcRect = RectF()
+    private val dstRect = RectF()
+    private val inverseMatrix = Matrix()
+
+    // 初始化
     init {
+        setLayerType(LAYER_TYPE_SOFTWARE, null) // 马赛克需要软件渲染
     }
 
-    // 设置bitmap时需要更新矩阵
+    // 设置绘制模式
+    fun setDrawMode(mode: DrawMode) {
+        currentMode = mode
+        currentPath.reset()
+        currentArrow = null
+        invalidate()
+    }
+
+    // 设置Bitmap
     fun setBitmap(externalBitmap: Bitmap) {
         bitmap = externalBitmap.copy(Bitmap.Config.ARGB_8888, true)
         canvas = Canvas(bitmap!!)
@@ -51,8 +104,95 @@ class GraffitiView @JvmOverloads constructor(
         }
     }
 
+    // 绘制箭头
+    private fun drawArrow(canvas: Canvas, arrow: Arrow) {
+        val points = floatArrayOf(arrow.startX, arrow.startY, arrow.endX, arrow.endY)
+        drawMatrix.mapPoints(points) // 坐标变换适配视图
+
+        arrowPaint.color = arrow.color
+        arrowPaint.strokeWidth = arrow.width
+
+        // 设置箭头样式
+        arrowPaint.pathEffect = if (arrow.style == 1) {
+            DashPathEffect(floatArrayOf(20f, 10f), 0f)
+        } else {
+            null
+        }
+
+        // 绘制箭身
+        canvas.drawLine(arrow.startX, arrow.startY, arrow.endX, arrow.endY, arrowPaint)
+
+        // 绘制箭头头部
+        val angle = atan2(arrow.endY - arrow.startY, arrow.endX - arrow.startX)
+        val path = Path().apply {
+            moveTo(arrow.endX, arrow.endY)
+            lineTo(
+                arrow.endX - arrowHeadSize * cos(angle - Math.PI / 6).toFloat(),
+                arrow.endY - arrowHeadSize * sin(angle - Math.PI / 6).toFloat()
+            )
+            moveTo(arrow.endX, arrow.endY)
+            lineTo(
+                arrow.endX - arrowHeadSize * cos(angle + Math.PI / 6).toFloat(),
+                arrow.endY - arrowHeadSize * sin(angle + Math.PI / 6).toFloat()
+            )
+        }
+        canvas.drawPath(path, arrowPaint)
+    }
+
+    // 处理箭头触摸事件
+    private fun handleArrowTouch(event: MotionEvent, x: Float, y: Float) {
+        when (event.action) {
+            MotionEvent.ACTION_DOWN -> {
+                currentArrow = Arrow(
+                    x, y, x, y,
+                    arrowPaint.color,
+                    arrowPaint.strokeWidth,
+                    arrowStyle
+                )
+            }
+
+            MotionEvent.ACTION_MOVE -> {
+                currentArrow = currentArrow?.copy(endX = x, endY = y)
+                invalidate()
+            }
+
+            MotionEvent.ACTION_UP -> {
+                currentArrow?.let {
+                    // 将箭头绘制到Bitmap上
+                    drawArrow(canvas!!, it)
+                    arrows.add(it)
+                    currentArrow = null
+                    notifyBitmapChanged()
+                }
+            }
+        }
+    }
+
+    // 箭头相关设置方法
+    fun setArrowColor(color: Int) {
+        arrowPaint.color = color
+        invalidate()
+    }
+
+    fun setArrowWidth(width: Float) {
+        arrowPaint.strokeWidth = width
+        invalidate()
+    }
+
+    fun setArrowStyle(style: Int) {
+        arrowStyle = style
+        invalidate()
+    }
+
+    fun removeLastArrow() {
+        if (arrows.isNotEmpty()) {
+            arrows.removeAt(arrows.size - 1)
+            redrawAll()
+        }
+    }
+
     private fun initPaint() {
-        paint = Paint().apply {
+        graffitiPaint = Paint().apply {
             isAntiAlias = true
             isDither = true
             color = Color.WHITE
@@ -93,16 +233,16 @@ class GraffitiView @JvmOverloads constructor(
         }
     }
 
-    // 新增矩阵相关参数
-    private val drawMatrix = Matrix()
-    private val srcRect = RectF()
-    private val dstRect = RectF()
-    private val inverseMatrix = Matrix()
+
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
-        bitmap?.let {
+        bitmap?.let { bmp ->
             canvas.withMatrix(drawMatrix) {
-                drawBitmap(it, 0f, 0f, null)
+                // 1. 绘制底层Bitmap
+                drawBitmap(bmp, 0f, 0f, null)
+
+                // 3. 绘制当前拖拽中的临时箭头
+                currentArrow?.let { drawArrow(this, it) }
             }
         }
     }
@@ -111,45 +251,44 @@ class GraffitiView @JvmOverloads constructor(
         // 转换触摸坐标到bitmap坐标系
         val adjustedEvent = MotionEvent.obtain(event)
         adjustedEvent.transform(inverseMatrix)
+        val x = adjustedEvent.x.coerceIn(0f, bitmap?.width?.toFloat() ?: 0f)
+        val y = adjustedEvent.y.coerceIn(0f, bitmap?.height?.toFloat() ?: 0f)
 
-        val x = adjustedEvent.x.coerceIn(0f, bitmap?.width?.toFloat() ?: 0f).toInt()
-        val y = adjustedEvent.y.coerceIn(0f, bitmap?.height?.toFloat() ?: 0f).toInt()
-
-
-        when (event.action) {
-            MotionEvent.ACTION_DOWN -> {
-                path.moveTo(x.toFloat(), y.toFloat())
-                canvas?.save()
+        return when (currentMode) {
+            DrawMode.ARROW -> {
+                handleArrowTouch(adjustedEvent, x, y)
+                true
             }
-
-            MotionEvent.ACTION_MOVE -> {
-                path.lineTo(x.toFloat(), y.toFloat())
-                if (isMosaicMode) {
-                    drawMosaic(x, y)
-                } else {
-                    drawPathOnBitmap()
+            else -> {
+                when (event.action) {
+                    MotionEvent.ACTION_DOWN -> {
+                        currentPath.moveTo(x, y)
+                        canvas?.save()
+                        true
+                    }
+                    MotionEvent.ACTION_MOVE -> {
+                        currentPath.lineTo(x, y)
+                        if (isMosaicMode) drawMosaic(x.toInt(), y.toInt())
+                        else drawPathOnBitmap()
+                        invalidate()
+                        true
+                    }
+                    MotionEvent.ACTION_UP -> {
+                        canvas?.restore()
+                        if (!isMosaicMode) drawPathOnBitmap()
+                        currentPath.reset()
+                        notifyBitmapChanged()
+                        true
+                    }
+                    else -> false
                 }
-                invalidate()
             }
-
-            MotionEvent.ACTION_UP -> {
-                canvas?.restore()
-                if (!isMosaicMode) {
-                    drawPathOnBitmap() // 仅在非马赛克模式下确保路径被绘制到Bitmap上
-                }
-                path.reset()
-                // 确保获取最新bitmap
-                bitmap?.let {
-                    bitmapChangeListener?.onBitmapChange(it.copy(Bitmap.Config.ARGB_8888, false))
-                }
-            }
-        }
-        return true
+        }.also { adjustedEvent.recycle() }
     }
 
     private fun drawPathOnBitmap() {
-        paint.xfermode = null
-        canvas?.drawPath(path, paint)
+        graffitiPaint.xfermode = null
+        canvas?.drawPath(currentPath, graffitiPaint)
     }
 
     private fun drawMosaic(x: Int, y: Int) {
@@ -175,8 +314,8 @@ class GraffitiView @JvmOverloads constructor(
                 )
 
                 // 配置绘制参数
-                paint.color = avgColor
-                paint.maskFilter = BlurMaskFilter(blurRadius, blurStyle)
+                graffitiPaint.color = avgColor
+                graffitiPaint.maskFilter = BlurMaskFilter(blurRadius, blurStyle)
 
                 // 绘制无缝衔接的色块
                 val drawEndX = minOf(i + blockSize, endX)
@@ -186,7 +325,7 @@ class GraffitiView @JvmOverloads constructor(
                     j.toFloat(),
                     drawEndX.toFloat(),
                     drawEndY.toFloat(),
-                    paint
+                    graffitiPaint
                 )
             }
         }
@@ -222,15 +361,15 @@ class GraffitiView @JvmOverloads constructor(
     fun setStrokeWidth(style: Int) {
         when (style) {
             0 -> {
-                paint.strokeWidth = 6f
+                graffitiPaint.strokeWidth = 6f
             }
 
             1 -> {
-                paint.strokeWidth = 14f
+                graffitiPaint.strokeWidth = 14f
             }
 
             2 -> {
-                paint.strokeWidth = 24f
+                graffitiPaint.strokeWidth = 24f
             }
         }
         invalidate() // 刷新视图以应用新的笔刷大小
@@ -238,7 +377,7 @@ class GraffitiView @JvmOverloads constructor(
 
     //设置笔刷颜色
     fun setStrokeColor(color: Int) {
-        paint.color = color
+        graffitiPaint.color = color
 
         invalidate()     //刷新视图
     }
@@ -285,15 +424,28 @@ class GraffitiView @JvmOverloads constructor(
 
     fun setMosaicStyle(style: Int) {
         this.style = style;
-        if (style == 0){
+        if (style == 0) {
             blurStyle = BlurMaskFilter.Blur.INNER
-        }else{
+        } else {
             blurStyle = BlurMaskFilter.Blur.NORMAL
         }
 //        setMosaicBlur(blur)
 //        Log.d("GraffitiView", "setMosaicStyle: $maskBlur")
         invalidate() // 刷新视图以应用新的马赛克半径
 
+    }
+
+    private fun notifyBitmapChanged() {
+        bitmap?.let {
+            bitmapChangeListener?.onBitmapChange(it.copy(Bitmap.Config.ARGB_8888, false))
+        }
+    }
+
+    // 重新绘制所有内容到Bitmap
+    private fun redrawAll() {
+        bitmap?.eraseColor(Color.TRANSPARENT)
+        arrows.forEach { drawArrow(canvas!!, it) }
+        invalidate()
     }
 
 }

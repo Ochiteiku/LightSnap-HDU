@@ -15,7 +15,6 @@ import android.graphics.drawable.GradientDrawable
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
-import android.util.Log
 import android.view.Gravity
 import android.view.MotionEvent
 import android.view.View
@@ -41,17 +40,18 @@ import com.electroboys.lightsnap.domain.screenshot.ModeManager
 import com.electroboys.lightsnap.domain.screenshot.repository.ImageCropRepository
 import com.electroboys.lightsnap.domain.screenshot.repository.OcrRepository
 import com.electroboys.lightsnap.domain.screenshot.watermark.WatermarkConfig
+import com.electroboys.lightsnap.ui.main.view.ArrowTabView
 import com.electroboys.lightsnap.ui.main.view.EditAddTextView
 import com.electroboys.lightsnap.ui.main.view.GraffitiTabView
 import com.electroboys.lightsnap.ui.main.view.GraffitiView
 import com.electroboys.lightsnap.ui.main.view.MosaicTabView
 import com.electroboys.lightsnap.ui.main.view.SelectView
 import com.electroboys.lightsnap.ui.main.view.WatermarkOverlayView
-import com.electroboys.lightsnap.ui.main.view.WatermarkSettingBarView
 import com.electroboys.lightsnap.ui.main.viewmodel.ScreenshotViewModel
 import com.electroboys.lightsnap.ui.main.viewmodel.factory.ScreenshotViewModelFactory
 import com.electroboys.lightsnap.utils.WatermarkUtil
 import com.google.mlkit.vision.text.Text
+import com.electroboys.lightsnap.ui.main.view.WatermarkSettingBarView
 import java.io.File
 import java.io.FileOutputStream
 import java.io.IOException
@@ -64,7 +64,7 @@ import kotlin.math.sqrt
 class ScreenshotActivity : AppCompatActivity() , ModeActions {
 
     private lateinit var graffitiView: GraffitiView
-    private lateinit var exControlFrame: FrameLayout// 扩展控制面板
+    private lateinit var exControlFrame: FrameLayout // 扩展控制面板
     private lateinit var selectView: SelectView
     private lateinit var imageView: ImageView
     private lateinit var btnConfirmSelection: ImageButton
@@ -82,6 +82,7 @@ class ScreenshotActivity : AppCompatActivity() , ModeActions {
             None,
             AddText,
             Graffiti,
+            Arrow,
             Mosaic,
             Crop,
             OCR
@@ -107,6 +108,7 @@ class ScreenshotActivity : AppCompatActivity() , ModeActions {
     private var dotCount = 0
     private val handler = Handler(Looper.getMainLooper())
     private lateinit var textViewSummaryStatus: TextView
+
 
     // dp转换扩展函数
     private fun Int.dpToPx(): Int = (this * resources.displayMetrics.density).toInt()
@@ -164,13 +166,14 @@ class ScreenshotActivity : AppCompatActivity() , ModeActions {
 
         // 摘要键逻辑
         val btnSummary = findViewById<ImageButton>(R.id.btnSummary)
-        textViewSummaryStatus = findViewById<TextView>(R.id.textViewSummaryStatus)
+        val textViewSummaryStatus = findViewById<TextView>(R.id.textViewSummaryStatus)
         btnSummary.setOnClickListener {
             viewModel.isGeneratingSummary.observe(this) { isLoading ->
                 if (isLoading) {
-                    startSummaryLoading()
+                    textViewSummaryStatus.text = "摘要生成中..." // 你自己定义的 TextView
+                    textViewSummaryStatus.visibility = View.VISIBLE
                 } else {
-                    stopSummaryLoading()
+                    textViewSummaryStatus.visibility = View.GONE
                 }
             }
 
@@ -284,6 +287,16 @@ class ScreenshotActivity : AppCompatActivity() , ModeActions {
             }
         }
 
+        // 箭头按钮逻辑
+        val btnArrow = findViewById<ImageButton>(R.id.btnArrow)
+        btnArrow.setOnClickListener {
+            if(modeManager.getCurrentMode() == Mode.Arrow){
+                modeManager.enter(Mode.None)
+            }else {
+                modeManager.enter(Mode.Arrow)
+            }
+        }
+
         graffitiView.setOnBitmapChangeListener(object : GraffitiView.onBitmapChangeListener {
             override fun onBitmapChange(bitmap: Bitmap) {
                 val newKey = BitmapCache.cacheBitmap(bitmap)
@@ -325,8 +338,6 @@ class ScreenshotActivity : AppCompatActivity() , ModeActions {
         key?.let {
             ImageHistory.push(it)
         }
-
-
 
         // 从缓存中取出 Bitmap
         val bitmap = key?.let { BitmapCache.getBitmap(it) }
@@ -450,17 +461,15 @@ class ScreenshotActivity : AppCompatActivity() , ModeActions {
                 }
                 btnWatermark.setImageResource(R.drawable.ic_watermark_on)
                 watermarkOverlay.visibility = View.VISIBLE
-                watermarkSettingBar.updateUIState(true)
-                watermarkSettingBar.setConfig(watermarkConfig)
-//                Toast.makeText(this, "已添加水印", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, "已添加水印", Toast.LENGTH_SHORT).show()
             } else {
                 btnWatermark.setImageResource(R.drawable.ic_watermark)
                 watermarkOverlay.visibility = View.INVISIBLE
-                watermarkSettingBar.updateUIState(false)
-//                Toast.makeText(this, "已取消添加水印", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, "已取消添加水印", Toast.LENGTH_SHORT).show()
             }
         }
     }
+
     // 水印功能刷新
     private fun refreshWatermark() {
         if (isWatermarkVisible) {
@@ -570,6 +579,7 @@ class ScreenshotActivity : AppCompatActivity() , ModeActions {
                 val selected = viewModel.selectedTexts.value.orEmpty()
                 if (selected.isEmpty()) {
                     Toast.makeText(this@ScreenshotActivity, "未选中任何内容", Toast.LENGTH_SHORT).show()
+                    finish()
                 }
 
                 val combinedText = selected.joinToString("\n")
@@ -588,6 +598,8 @@ class ScreenshotActivity : AppCompatActivity() , ModeActions {
                     parent.removeView(this@apply)
                 }
                 textViews.clear()
+                // 退出截图页面
+                finish()
             }
         }
 
@@ -731,13 +743,17 @@ class ScreenshotActivity : AppCompatActivity() , ModeActions {
             ControlViewStatus.GraffitiMode.ordinal -> {
                 val currentBitmap = (imageView.drawable as? BitmapDrawable)?.bitmap ?: return
                 graffitiView.setBitmap(currentBitmap) // 刷新为当前 imageView 的 bitmap
+                graffitiView.setDrawMode(GraffitiView.DrawMode.GRAFFITI)
 
                 graffitiView.visibility = View.VISIBLE
+
                 val graffitiTabView = GraffitiTabView(this)
                 exControlFrame.removeAllViews()
                 exControlFrame.addView(graffitiTabView)
+
                 graffitiView.setMosaicMode(false)
-                graffitiTabView.setOnSelectedListener(listener = object : GraffitiTabView.OnSelectedListener {
+                graffitiTabView.setOnSelectedListener(listener = object :
+                    GraffitiTabView.OnSelectedListener {
                     override fun onColorSelected(color: Int) {
                         graffitiView.setStrokeColor(color)
                     }
@@ -748,9 +764,11 @@ class ScreenshotActivity : AppCompatActivity() , ModeActions {
 
                 })
             }
+
             ControlViewStatus.MosaicMode.ordinal -> {
                 val currentBitmap = (imageView.drawable as? BitmapDrawable)?.bitmap ?: return
                 graffitiView.setBitmap(currentBitmap) // 强制刷新为当前 imageView 的 bitmap
+                graffitiView.setDrawMode(GraffitiView.DrawMode.MOSAIC)
 
                 graffitiView.visibility = View.VISIBLE
                 graffitiView.isClickable
@@ -760,7 +778,8 @@ class ScreenshotActivity : AppCompatActivity() , ModeActions {
                 exControlFrame.addView(doodleTabView)
                 // 显示马赛克模式
                 graffitiView.setMosaicMode(true)
-                doodleTabView.setOnMosaicTabClickListener(listener = object : MosaicTabView.OnMosaicTabClickListener {
+                doodleTabView.setOnMosaicTabClickListener(listener = object :
+                    MosaicTabView.OnMosaicTabClickListener {
                     override fun onMosaicSelectedClick(tabIndex: Int) {
                         graffitiView.setMosaicRadius(tabIndex)
                     }
@@ -772,7 +791,32 @@ class ScreenshotActivity : AppCompatActivity() , ModeActions {
                     override fun onMosaicStyleSelectedClick(i: Int) {
                         graffitiView.setMosaicStyle(style = i)
                     }
+                })
+            }
 
+            ControlViewStatus.ArrowMode.ordinal -> {
+                val currentBitmap = (imageView.drawable as? BitmapDrawable)?.bitmap ?: return
+                graffitiView.setBitmap(currentBitmap)
+                graffitiView.setDrawMode(GraffitiView.DrawMode.ARROW)
+                Toast.makeText(this, "箭头箭头", Toast.LENGTH_SHORT).show()
+
+                graffitiView.visibility = View.VISIBLE
+
+                val arrowTabView = ArrowTabView(this)
+                exControlFrame.removeAllViews()
+                exControlFrame.addView(arrowTabView)
+
+                graffitiView.setMosaicMode(false)
+                arrowTabView.setOnArrowStyleSelectedListener(object : ArrowTabView.OnArrowStyleSelectedListener {
+                    override fun onColorSelected(color: Int) {
+                        graffitiView.setArrowColor(color)
+                    }
+                    override fun onWidthSelected(width: Float) {
+                        graffitiView.setArrowWidth(width)
+                    }
+                    override fun onStyleSelected(style: Int) {
+                        graffitiView.setArrowStyle(style)
+                    }
                 })
             }
             ControlViewStatus.OtherMode.ordinal -> {
@@ -820,6 +864,17 @@ class ScreenshotActivity : AppCompatActivity() , ModeActions {
 
     //关闭涂鸦
     override fun exitGraffiti() {
+        showControlView(ControlViewStatus.OtherMode.ordinal)
+    }
+
+    //启动箭头
+    override fun enterArrow() {
+        Toast.makeText(this, "箭头箭头箭头", Toast.LENGTH_SHORT).show()
+        showControlView(ControlViewStatus.ArrowMode.ordinal)
+    }
+
+    //关闭箭头
+    override fun exitArrow() {
         showControlView(ControlViewStatus.OtherMode.ordinal)
     }
 
@@ -904,9 +959,11 @@ class ScreenshotActivity : AppCompatActivity() , ModeActions {
                 clipboard.setPrimaryClip(clip)
                 Toast.makeText(this, "摘要已复制", Toast.LENGTH_SHORT).show()
                 dialog.dismiss()
+                finish()
             }
             .setNegativeButton("关闭") { dialog, _ ->
                 dialog.dismiss()
+                finish()
             }
             .create()
             .show()

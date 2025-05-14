@@ -7,6 +7,7 @@ import android.view.Gravity
 import android.view.Window
 import android.view.WindowManager
 import android.widget.Button
+import android.widget.TextView
 import com.electroboys.lightsnap.R
 import com.google.mlkit.vision.barcode.BarcodeScanning
 import com.google.mlkit.vision.common.InputImage
@@ -57,12 +58,15 @@ object QRScannerUtil {
                 setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
                 setGravity(Gravity.TOP or Gravity.END)
                 attributes = attributes?.apply {
-                    width = 280.dpToPx(context)
-                    height = WindowManager.LayoutParams.WRAP_CONTENT
-                    y = 32.dpToPx(context)
+                    width = 180.dpToPx(context)
+                    height = 180.dpToPx(context)
+                    y = 16.dpToPx(context)
                     x = 16.dpToPx(context)
                 }
             }
+            // 设置二维码内容
+            findViewById<TextView>(R.id.tv_qr_content)?.text =
+                if (content.length > 30) "${content.substring(0, 30)}..." else content
 
             // 按钮事件
             findViewById<Button>(R.id.btn_ignore).setOnClickListener {

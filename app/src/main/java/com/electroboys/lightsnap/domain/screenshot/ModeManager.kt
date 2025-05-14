@@ -18,6 +18,7 @@ class ModeManager(private val actions: ModeActions) {
         when (mode) {
             Mode.AddText -> actions.enterAddText()
             Mode.Graffiti -> actions.enterGraffiti()
+            Mode.Arrow -> actions.enterArrow()
             Mode.Mosaic -> actions.enterMosaic()
             Mode.Crop -> {
                 if ((actions as? ScreenshotActivity)?.isSelectionEnabled == false) {
@@ -36,6 +37,7 @@ class ModeManager(private val actions: ModeActions) {
         when (currentMode) {
             Mode.AddText -> actions.exitAddText()
             Mode.Graffiti -> actions.exitGraffiti()
+            Mode.Arrow -> actions.exitArrow()
             Mode.Mosaic -> actions.exitMosaic()
             Mode.Crop -> {
                 Log.d("ModeManager", "CropExitUsed")
