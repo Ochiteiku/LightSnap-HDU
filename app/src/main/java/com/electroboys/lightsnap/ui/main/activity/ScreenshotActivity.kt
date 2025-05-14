@@ -1,6 +1,7 @@
 package com.electroboys.lightsnap.ui.main.activity
 
 import android.annotation.SuppressLint
+import android.app.AlertDialog
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
@@ -18,6 +19,7 @@ import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
+import android.widget.EditText
 import android.widget.FrameLayout
 import android.widget.ImageButton
 import android.widget.ImageView
@@ -50,6 +52,7 @@ import com.google.mlkit.vision.text.Text
 import java.io.File
 import java.io.FileOutputStream
 import java.io.IOException
+import java.util.concurrent.TimeUnit
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.sqrt
@@ -130,8 +133,26 @@ class ScreenshotActivity : AppCompatActivity() , ModeActions {
 
         // 摘要键逻辑
         val btnSummary = findViewById<ImageButton>(R.id.btnSummary)
+        val textViewSummaryStatus = findViewById<TextView>(R.id.textViewSummaryStatus)
         btnSummary.setOnClickListener {
-            //TODO 摘要
+            viewModel.isGeneratingSummary.observe(this) { isLoading ->
+                if (isLoading) {
+                    textViewSummaryStatus.text = "摘要生成中..." // 你自己定义的 TextView
+                    textViewSummaryStatus.visibility = View.VISIBLE
+                } else {
+                    textViewSummaryStatus.visibility = View.GONE
+                }
+            }
+
+            // 监听摘要内容并弹出对话框
+            viewModel.summaryText.observe(this) { summary ->
+                if (summary.isNotBlank()) {
+                    showSummaryDialog(summary)
+                }
+            }
+
+            // 传入当前截图 bitmap，执行识别 + 摘要流程
+            viewModel.recognizeAndSummarize(croppedBitmap)
         }
 
         // 添加文字键逻辑
@@ -492,7 +513,7 @@ class ScreenshotActivity : AppCompatActivity() , ModeActions {
                 val selected = viewModel.selectedTexts.value.orEmpty()
                 if (selected.isEmpty()) {
                     Toast.makeText(this@ScreenshotActivity, "未选中任何内容", Toast.LENGTH_SHORT).show()
-                    return@setOnClickListener
+                    finish()
                 }
 
                 val combinedText = selected.joinToString("\n")
@@ -511,6 +532,8 @@ class ScreenshotActivity : AppCompatActivity() , ModeActions {
                     parent.removeView(this@apply)
                 }
                 textViews.clear()
+                // 退出截图页面
+                finish()
             }
         }
 
@@ -558,9 +581,13 @@ class ScreenshotActivity : AppCompatActivity() , ModeActions {
             clipboardManager.setPrimaryClip(clipData)
 
             Toast.makeText(this, "图片已复制到剪贴板", Toast.LENGTH_SHORT).show()
+            // 退出截图页面
+            finish()
         } catch (e: IOException) {
             e.printStackTrace()
             Toast.makeText(this, "复制失败: ${e.message}", Toast.LENGTH_SHORT).show()
+            // 退出截图页面
+            finish()
         }
     }
 
@@ -802,6 +829,34 @@ class ScreenshotActivity : AppCompatActivity() , ModeActions {
         }
 
         return super.dispatchKeyEvent(event)
+    }
+
+    private fun showSummaryDialog(summary: String) {
+        val editText = EditText(this)
+        editText.setText(summary)
+        editText.setTextIsSelectable(true)
+        editText.isFocusable = false
+        editText.isClickable = false
+        editText.setPadding(32, 32, 32, 32)
+        editText.setBackgroundColor(Color.TRANSPARENT)
+
+        AlertDialog.Builder(this)
+            .setTitle("内容摘要")
+            .setView(editText)
+            .setPositiveButton("复制") { dialog, _ ->
+                val clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                val clip = ClipData.newPlainText("摘要", summary)
+                clipboard.setPrimaryClip(clip)
+                Toast.makeText(this, "摘要已复制", Toast.LENGTH_SHORT).show()
+                dialog.dismiss()
+                finish()
+            }
+            .setNegativeButton("关闭") { dialog, _ ->
+                dialog.dismiss()
+                finish()
+            }
+            .create()
+            .show()
     }
 
 }

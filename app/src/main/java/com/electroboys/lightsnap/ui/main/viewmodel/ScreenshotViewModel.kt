@@ -9,6 +9,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.electroboys.lightsnap.data.screenshot.BitmapCache
 import com.electroboys.lightsnap.data.screenshot.ImageHistory
+import com.electroboys.lightsnap.domain.screenshot.repository.AbstractRepository
 import com.electroboys.lightsnap.domain.screenshot.repository.OcrRepository
 import com.google.mlkit.vision.text.Text
 import kotlinx.coroutines.launch
@@ -24,6 +25,16 @@ class ScreenshotViewModel(private val ocrRepository: OcrRepository) : ViewModel(
 
     private val _selectedTexts = MutableLiveData<MutableList<String>>(mutableListOf())
     val selectedTexts: LiveData<List<String>> = _selectedTexts as LiveData<List<String>>
+
+    // 用于存储生成的摘要
+    private val abstractRepository = AbstractRepository()
+
+    private val _summaryText = MutableLiveData<String>()
+    val summaryText: LiveData<String> = _summaryText
+
+    // 摘要生成时的状态标记
+    private val _isGeneratingSummary = MutableLiveData<Boolean>()
+    val isGeneratingSummary: LiveData<Boolean> = _isGeneratingSummary
 
     //撤回和重做逻辑用
     private val _currentBitmap = MutableLiveData<Bitmap>()
@@ -49,6 +60,32 @@ class ScreenshotViewModel(private val ocrRepository: OcrRepository) : ViewModel(
                 _recognizedBlocks.value = text
             }.onFailure {
                 it.printStackTrace()
+            }
+        }
+    }
+
+    fun recognizeAndSummarize(bitmap: Bitmap) {
+        // 使用 viewModelScope 来确保是在后台线程执行
+        viewModelScope.launch {
+            _isGeneratingSummary.value = true // 开始时设为 true
+            try {
+                // 识别图片中的文本
+                val result = ocrRepository.recognizeText(bitmap)
+
+                // 成功识别后处理文本
+                result.onSuccess { textResult ->
+                    val summary = abstractRepository.getSummary(textResult.text)
+                    _summaryText.value = summary
+                }.onFailure {
+                    it.printStackTrace()
+                    // 处理 OCR 错误
+                    _summaryText.value = "OCR识别失败"
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+                _summaryText.value = "摘要生成失败"
+            } finally {
+                _isGeneratingSummary.value = false // 结束时设为 false
             }
         }
     }

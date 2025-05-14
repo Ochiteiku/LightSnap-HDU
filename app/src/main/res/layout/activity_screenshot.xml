@@ -40,6 +40,19 @@
             android:layout_gravity="top|center_horizontal"
             android:layout_marginTop="20dp" />
 
+        <TextView
+            android:id="@+id/textViewSummaryStatus"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="摘要生成中..."
+            android:visibility="gone"
+            android:textColor="#FFFFFF"
+            android:textSize="16sp"
+            android:background="#66000000"
+            android:padding="8dp"
+            android:layout_gravity="bottom|center_horizontal"
+            android:layout_marginBottom="20dp" />
+
         <com.electroboys.lightsnap.ui.main.view.SelectView
             android:id="@+id/selectView"
             android:layout_width="match_parent"
