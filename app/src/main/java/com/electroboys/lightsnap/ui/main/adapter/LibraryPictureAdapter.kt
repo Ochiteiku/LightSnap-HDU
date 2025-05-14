@@ -6,13 +6,14 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageView
 import androidx.media3.common.text.TextAnnotation.Position
+import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.RecyclerView
 import androidx.recyclerview.widget.RecyclerView.Adapter
 import coil.load
 import com.electroboys.lightsnap.R
 import com.github.chrisbanes.photoview.PhotoView
 
-class LibraryPictureAdapter(private val images: List<Uri>) : Adapter<LibraryPictureAdapter.ImageViewHolder>(){
+class LibraryPictureAdapter(private var images: MutableList<Uri>) : Adapter<LibraryPictureAdapter.ImageViewHolder>(){
 
     companion object {
         var isScreenshotMode = false
@@ -64,5 +65,11 @@ class LibraryPictureAdapter(private val images: List<Uri>) : Adapter<LibraryPict
 
     override fun onBindViewHolder(holder: ImageViewHolder, position: Int) {
         holder.bind(images[position])
+    }
+
+    fun updateData(newData: List<Uri>) {
+        images.clear()
+        images.addAll(newData)
+        notifyDataSetChanged() // 通知 RecyclerView 数据已变更
     }
 }

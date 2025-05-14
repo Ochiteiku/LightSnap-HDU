@@ -13,9 +13,7 @@ import android.widget.ImageButton
 import android.widget.LinearLayout
 import android.widget.SeekBar
 import android.widget.Spinner
-import androidx.core.view.isVisible
 import com.electroboys.lightsnap.R
-import com.electroboys.lightsnap.domain.screenshot.EditScreenshot.Companion.systemFonts
 
 class EditAddTextBarView @JvmOverloads constructor(
     context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0
@@ -108,7 +106,7 @@ class EditAddTextBarView @JvmOverloads constructor(
         val adapter = ArrayAdapter(
             context,
             android.R.layout.simple_spinner_item,
-            systemFonts
+            resources.getStringArray(R.array.systemFonts)
         ).apply {
             setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
         }
@@ -132,20 +130,9 @@ class EditAddTextBarView @JvmOverloads constructor(
 
     }
 
-    fun updateUIState(isAddingText: Boolean){
-        btnColorPicker.isVisible = isAddingText
-        btnIsBold.isVisible = isAddingText
-        btnIsItalic.isVisible = isAddingText
-        textSizeSeekBar.isVisible = isAddingText
-        textInput.isVisible = isAddingText
-        btnAddTextDone.isVisible = isAddingText
-        fontPicker.isVisible = isAddingText
-    }
-
     fun clearState() {
         textInput.setText("") // 清空输入框
         btnIsBold.setImageResource(R.drawable.ic_addtext_unbold) // 重置按钮图标
         btnIsItalic.setImageResource(R.drawable.ic_addtext_unitalic)
-
     }
 }

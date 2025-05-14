@@ -14,8 +14,6 @@ import android.widget.Button
 import android.widget.FrameLayout
 import android.widget.ImageButton
 import android.widget.ImageView
-import android.widget.Toast
-import androidx.core.content.ContextCompat
 import com.electroboys.lightsnap.R
 import com.electroboys.lightsnap.data.screenshot.BitmapCache
 import com.electroboys.lightsnap.data.screenshot.ImageHistory
@@ -33,15 +31,6 @@ class EditScreenshot(
     private var editAddTextView: EditAddTextView = EditAddTextView(context)
     private var editAddTextBarView: EditAddTextBarView = EditAddTextBarView(context)
 
-    companion object {
-        val systemFonts = arrayOf(
-            "sans-serif",           // 默认
-            "sans-serif-light",     // 细体
-            "casual",               // 休闲
-            "cursive"               // 手写
-        )
-    }
-
     // 当前文本的编辑项
     private var currentText: String? = null
     private var currentTextSize = 40f
@@ -55,31 +44,26 @@ class EditScreenshot(
 
     init {
         editAddTextBarView.apply {
-
             btnIsBoldlistener = {
                 isBold = !isBold
                 updateCurrentTextProperties()
                 isBold
             }
-
             btnIsItalicistener = {
                 isItalic = !isItalic
                 updateCurrentTextProperties()
                 isItalic
             }
-
             btnColorPickerlistener = {
                 isColorpicker = !isColorpicker
                 showColorPickerDialog()
                 isColorpicker
             }
-
             textSizeSeekBarlistener = {
                     textsize ->
                 currentTextSize = textsize
                 updateCurrentTextProperties()
             }
-
             textInputlistener = {
                     textInput ->
                 currentText = textInput
@@ -92,10 +76,9 @@ class EditScreenshot(
                     typeface = typeface
                 )
             }
-
             fontPickerlistener = {
                     position: Int ->
-                val SelectedFont = systemFonts[position]
+                val SelectedFont = (resources.getStringArray(R.array.systemFonts))[position]
                 typeface = Typeface.create(SelectedFont, Typeface.NORMAL)
                 updateCurrentTextProperties()
             }
@@ -121,18 +104,21 @@ class EditScreenshot(
                     bitmapChanged(imageView)
                     clearAllText()
                     btnText.setImageResource(R.drawable.ic_addtext_textbox)
-                    updateUIState(false)
+                    editAddTextView.visibility = View.GONE
+                    editAddTextBarView.visibility = View.GONE
                 }
             }
             exControlFrame.addView(editAddTextBarView)
         }else if(isAddingTextFlag % 2 == 1){
             // 2、4、6...点击btnText 隐藏addtextbar
             btnText.setImageResource(R.drawable.ic_addtext_textbox)
-            editAddTextBarView.updateUIState(false)
+            editAddTextView.visibility = View.GONE
+            editAddTextBarView.visibility = View.GONE
         }else{
             // 3、5、7...点击btnText 显示addtextbar
             btnText.setImageResource(R.drawable.ic_addtext_textboxfilled)
-            editAddTextBarView.updateUIState(true)
+            editAddTextView.visibility = View.VISIBLE
+            editAddTextBarView.visibility = View.VISIBLE
         }
         isAddingTextFlag++
     }

@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string-array name="systemFonts">
+        <item>sans-serif</item>
+        <item>sans-serif-light</item>
+        <item>casual</item>
+        <item>cursive</item>
+    </string-array>
+    <string-array name="librarySortMenus">
+        <item>按日期排序</item>
+        <item>按图片大小排序</item>
+    </string-array>
+</resources>

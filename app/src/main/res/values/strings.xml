@@ -1,4 +1,12 @@
 <resources>
     <string name="app_name">灵截beta</string>
+    <!--   addTextToolBar    -->
     <string name="fontPicker">选择字体</string>
+    <string name="textInput">请输入文字</string>
+    <string name="IsBold">加粗</string>
+    <string name="IsItalic">斜体</string>
+    <string name="ColorPicker">选择文字颜色</string>
+    <string name="AddTextDone">完成添加</string>
+<!--    fragmentLibraryToolBar-->
+    <string name="searchEditText">请输入文件名</string>
 </resources>

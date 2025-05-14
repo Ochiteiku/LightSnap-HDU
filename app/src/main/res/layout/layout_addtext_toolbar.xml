@@ -14,13 +14,20 @@
         android:id="@+id/textInput"
         android:layout_width="200dp"
         android:layout_height="40dp"
-        android:background="#ffffff"
-        android:hint="请输入文字"/>
+        android:background="@drawable/bg_addtext_textinput"
+        android:hint="@string/textInput"/>
+
+    <!-- 分隔线 -->
+    <View
+        android:layout_width="2dp"
+        android:layout_height="match_parent"
+        android:layout_marginHorizontal="20dp"
+        android:background="#CCCCCC" />
 
     <!--调节文字大小-->
     <SeekBar
         android:id="@+id/textSizeSeekBar"
-        android:layout_width="200dp"
+        android:layout_width="150dp"
         android:layout_height="wrap_content"
         android:max="200"
         android:progress="40"
@@ -29,34 +36,41 @@
 
     <Spinner
         android:id="@+id/fontPicker"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:background="#ffffff"
+        android:layout_width="150dp"
+        android:layout_height="match_parent"
+        android:background="@drawable/bg_addtext_fontpicker"
         android:prompt="@string/fontPicker"/>
+
+    <!-- 分隔线 -->
+    <View
+        android:layout_width="2dp"
+        android:layout_height="match_parent"
+        android:layout_marginHorizontal="20dp"
+        android:background="#CCCCCC" />
 
     <ImageButton
         android:id="@+id/btnIsBold"
-        style="@style/ToolButtonStyle"
+        style="@style/AddTextToolButtonStyle"
         android:src="@drawable/ic_addtext_unbold"
-        android:contentDescription="加粗"/>
+        android:contentDescription="@string/IsBold"/>
 
     <ImageButton
         android:id="@+id/btnIsItalic"
-        style="@style/ToolButtonStyle"
+        style="@style/AddTextToolButtonStyle"
         android:src="@drawable/ic_addtext_unitalic"
-        android:contentDescription="斜体"/>
+        android:contentDescription="@string/IsItalic"/>
 
     <ImageButton
         android:id="@+id/btnColor"
-        style="@style/ToolButtonStyle"
+        style="@style/AddTextToolButtonStyle"
         android:src="@drawable/ic_addtext_uncolorpick"
-        android:contentDescription="文字颜色选择"/>
+        android:contentDescription="@string/ColorPicker"/>
 
     <ImageButton
         android:id="@+id/btnAddTextDone"
-        style="@style/ToolButtonStyle"
+        style="@style/AddTextToolButtonStyle"
         android:src="@drawable/ic_addtext_done"
-        android:contentDescription="完成添加"/>
+        android:contentDescription="@string/AddTextDone"/>
 
 
 </LinearLayout>

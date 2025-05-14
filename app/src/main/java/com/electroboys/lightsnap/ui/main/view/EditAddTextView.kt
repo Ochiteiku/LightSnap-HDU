@@ -5,15 +5,11 @@ import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Matrix
 import android.graphics.Paint
-import android.graphics.Rect
 import android.graphics.Typeface
 import android.util.AttributeSet
-import android.util.Log
 import android.view.MotionEvent
 import android.view.View
 import android.widget.ImageView
-import android.widget.Toast
-import com.electroboys.lightsnap.domain.screenshot.EditScreenshot.Companion.systemFonts
 
 // 负责绘制以及触摸控制
 class EditAddTextView @JvmOverloads constructor(
@@ -104,6 +100,9 @@ class EditAddTextView @JvmOverloads constructor(
         invalidate()
     }
 
+    // 获取当前添加的所有文字
+    fun getTextItems(): List<TextItem> = textItems.toList()
+
     fun getFinalBitmap(originalBitmap: Bitmap, imageView: ImageView): Bitmap {
         val bitmap = originalBitmap.copy(Bitmap.Config.ARGB_8888, true)
         val canvas = Canvas(bitmap)
@@ -149,8 +148,38 @@ class EditAddTextView @JvmOverloads constructor(
         }
     }
 
-    // 获取当前添加的所有文字
-    fun getTextItems(): List<TextItem> = textItems.toList()
+    private fun createTextPaint(
+        item: TextItem,
+        alpha: Int
+    ): Paint{
+        return Paint().apply {
+            color = item.color
+            textSize = item.size
+            isAntiAlias = true
+            this.alpha =alpha
+            typeface = when {
+                item.isBold && item.isItalic ->
+                    if(item.typeface != null) {
+                        Typeface.create(item.typeface, Typeface.BOLD_ITALIC)
+                    }else{
+                        Typeface.create(Typeface.DEFAULT, Typeface.BOLD_ITALIC)
+                    }
+                item.isBold ->
+                    if(item.typeface != null) {
+                        Typeface.create(item.typeface, Typeface.BOLD)
+                    }else{
+                        Typeface.DEFAULT_BOLD
+                    }
+                item.isItalic ->
+                    if(item.typeface != null) {
+                        Typeface.create(item.typeface, Typeface.ITALIC)
+                    }else{
+                        Typeface.create(Typeface.DEFAULT, Typeface.ITALIC)
+                    }
+                else -> Typeface.DEFAULT
+            }
+        }
+    }
 
     override fun onTouchEvent(event: MotionEvent?): Boolean {
         if(!isAddingText) return false
@@ -187,31 +216,6 @@ class EditAddTextView @JvmOverloads constructor(
             val fontMetrics = paint.fontMetrics
             val baselineOffset = (fontMetrics.ascent + fontMetrics.descent) / 2
             canvas.drawText(it.text!!, it.x, it.y - baselineOffset, paint)
-        }
-    }
-
-    private fun createTextPaint(
-        item: TextItem,
-        alpha: Int
-    ): Paint{
-        return Paint().apply {
-            color = item.color
-            textSize = item.size
-            isAntiAlias = true
-            this.alpha =alpha
-//            typeface = when {
-//                item.typeface != null -> item.typeface
-//                item.isBold -> Typeface.DEFAULT_BOLD
-//                item.isItalic -> Typeface.ITALIC
-//                else -> Typeface.DEFAULT
-//            }
-            typeface = when {
-                item.typeface != null -> item.typeface
-                item.isBold == true && item.isItalic == true -> Typeface.create(Typeface.DEFAULT, Typeface.BOLD_ITALIC)
-                item.isBold == true -> Typeface.DEFAULT_BOLD
-                item.isItalic == true -> Typeface.create(Typeface.DEFAULT, Typeface.ITALIC)
-                else -> Typeface.DEFAULT
-            }
         }
     }
 

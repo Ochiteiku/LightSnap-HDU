@@ -1,25 +1,130 @@
 <?xml version="1.0" encoding="utf-8"?>
 <androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
-    android:layout_height="wrap_content"
+    android:layout_height="match_parent"
+    android:padding="15dp"
     xmlns:app="http://schemas.android.com/apk/res-auto">
 
-    <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/library_picture"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        app:layout_constraintBaseline_toBottomOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"/>
+    <LinearLayout
+        android:id="@+id/libraryTooBar"
+        android:layout_width="0dp"
+        android:layout_height="50dp"
+        android:orientation="horizontal"
+        android:layout_marginBottom="15dp"
+        app:layout_constraintBottom_toTopOf="@+id/cardLibrary"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent">
 
-    <com.github.chrisbanes.photoview.PhotoView
-        android:id="@+id/photoView"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        app:layout_constraintBaseline_toBottomOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
+        <!-- 筛选功能 -->
+
+        <com.google.android.material.chip.Chip
+            android:id="@+id/Filter"
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:textColor="@color/gray"
+            android:textAlignment="center"
+            android:textSize="20dp"
+            app:chipStrokeWidth="0dp"
+            app:chipIcon="@drawable/ic_library_calendar"
+            app:chipIconSize="40dp"
+            app:chipBackgroundColor="@color/white"/>
+
+        <!--查询功能-->
+        <LinearLayout
+            android:id="@+id/librarySearchTooBar"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="5"
+            android:layout_marginLeft="10dp"
+            android:layout_marginRight="10dp"
+            android:background="@drawable/bg_library_searchtoolbar"
+            android:orientation="horizontal">
+            <ImageView
+                android:id="@+id/SearchImage"
+                android:layout_width="30dp"
+                android:layout_height="30dp"
+                android:layout_margin="6dp"
+                android:scaleType="centerInside"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:src="@drawable/ic_library_search" />
+
+            <EditText
+                android:id="@+id/SearchEditText"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:layout_marginRight="10dp"
+                android:layout_marginBottom="5dp"
+                android:hint="@string/searchEditText" />
+
+        </LinearLayout>
+
+        <!-- 分隔线 -->
+        <View
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="0.02"
+            android:layout_marginHorizontal="10dp"
+            android:background="#CCCCCC" />
+
+        <!-- 排序功能 -->
+        <ImageButton
+            android:id="@+id/StartSortMenu"
+            style="@style/FragmentLibraryToolButtonStyle"
+            android:src="@drawable/ic_library_sort" />
+
+        <Spinner
+            android:id="@+id/SortPicker"
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:background="@color/white"
+            android:visibility="gone" />
+
+    </LinearLayout>
+
+
+    <com.google.android.material.card.MaterialCardView
+        android:id="@+id/cardLibrary"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:background="#95d1e3ff"
+        app:cardCornerRadius="8dp"
+        app:cardBackgroundColor="@color/white"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"/>
+        app:layout_constraintTop_toTopOf="@+id/libraryTooBar">
+
+        <!-- 存放截图容器-->
+        <FrameLayout
+            android:id="@+id/LibraryImageContainer"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:clickable="true"
+            android:focusableInTouchMode="true"
+            android:focusable="true">
+
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/library_picture"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:background="#cccccc"
+                app:layout_constraintBaseline_toBottomOf="parent"
+                app:layout_constraintTop_toTopOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"/>
+
+            <com.github.chrisbanes.photoview.PhotoView
+                android:id="@+id/photoView"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:background="#cccccc"
+                app:layout_constraintBaseline_toBottomOf="parent"
+                app:layout_constraintTop_toTopOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"/>
+
+        </FrameLayout>
+
+    </com.google.android.material.card.MaterialCardView>
 
 </androidx.constraintlayout.widget.ConstraintLayout>
