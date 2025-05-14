@@ -11,15 +11,15 @@
         android:id="@+id/iv_mosaic_style_one"
         android:layout_width="40dp"
         android:layout_height="30dp"
-        android:src="@mipmap/iv_mosaic_one"
         android:background="@drawable/bg_select_common"
-
+        android:src="@mipmap/iv_mosaic_two"
         />
     <ImageView
         android:id="@+id/iv_mosaic_style_two"
         android:layout_width="40dp"
         android:layout_height="30dp"
-        android:src="@mipmap/iv_mosaic_two"
+        android:src="@mipmap/iv_mosaic_one"
+
         android:layout_marginEnd="4dp"
         android:padding="1dp"
         android:background="@drawable/bg_select_common"

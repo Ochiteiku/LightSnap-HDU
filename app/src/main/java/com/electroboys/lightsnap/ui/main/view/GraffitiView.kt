@@ -39,7 +39,7 @@ class GraffitiView @JvmOverloads constructor(
     private var bitmap: Bitmap? = null
     private var canvas: Canvas? = null
 
-    private var style: Int = 0
+    private var style: Int = 1
     private var graffitiPaint = Paint().apply {
         isAntiAlias = true
         isDither = true
@@ -303,21 +303,26 @@ class GraffitiView @JvmOverloads constructor(
         val startY = maxOf(0, y - sampleRadius)
         val endY = minOf(bitmap?.height ?: 0, y + sampleRadius)
 
-        // 分步绘制马赛克
         for (i in startX until endX step blockSize) {
             for (j in startY until endY step blockSize) {
-                // 获取当前区块平均色（扩大采样范围）
                 val avgColor = getAverageColorAroundPoint(
                     i + blockSize / 2,
                     j + blockSize / 2,
                     sampleRadius
                 )
 
-                // 配置绘制参数
                 graffitiPaint.color = avgColor
-                graffitiPaint.maskFilter = BlurMaskFilter(blurRadius, blurStyle)
 
-                // 绘制无缝衔接的色块
+                // 根据样式设置不同的绘制效果
+                if (style == MOSAIC_STYLE_BLUR) {
+                    graffitiPaint.maskFilter = BlurMaskFilter(blurRadius, blurStyle)
+                    Log.d("GraffitiView", "drawMosaic: blurRadius: $blurRadius, blurStyle: $style")
+                } else {
+                    graffitiPaint.maskFilter = null  // 禁用模糊
+                    graffitiPaint.style = Paint.Style.FILL_AND_STROKE
+                    Log.d("GraffitiView", "drawMosaic: blurRadius: $blurRadius, blurStyle: $style")
+                }
+
                 val drawEndX = minOf(i + blockSize, endX)
                 val drawEndY = minOf(j + blockSize, endY)
                 canvas?.drawRect(
@@ -401,7 +406,12 @@ class GraffitiView @JvmOverloads constructor(
     fun setMosaicBlur(blur: Int) {
         Log.d("GraffitiView", "setMosaicBlur: $blur")
         maskBlur = abs(blur - 100f);
-        maskBlur = maskBlur.coerceIn(1f, 50f)
+        if (style == MOSAIC_STYLE_BLUR){
+            maskBlur = maskBlur.coerceIn(10f, 30f)
+        }else{
+            maskBlur = maskBlur.coerceIn(1f, 50f)
+
+        }
 
         Log.d("GraffitiView", "maskBlur: $maskBlur")
 
@@ -421,16 +431,22 @@ class GraffitiView @JvmOverloads constructor(
     fun saveBitmap(): Bitmap? {
         return bitmap
     }
-
+    // 新增马赛克样式常量
+    companion object {
+        const val MOSAIC_STYLE_BLUR = 0   // 模糊马赛克
+        const val MOSAIC_STYLE_BLOCK = 1  // 方块马赛克
+    }
     fun setMosaicStyle(style: Int) {
-        this.style = style;
-        if (style == 0) {
-            blurStyle = BlurMaskFilter.Blur.INNER
-        } else {
-            blurStyle = BlurMaskFilter.Blur.NORMAL
+        this.style = style
+        when (style) {
+            MOSAIC_STYLE_BLUR -> {
+                blurStyle = BlurMaskFilter.Blur.NORMAL
+                mosaicRadius = 5  // 模糊马赛克推荐尺寸
+            }
+            MOSAIC_STYLE_BLOCK -> {
+                mosaicRadius = 8  // 方块马赛克推荐尺寸
+            }
         }
-//        setMosaicBlur(blur)
-//        Log.d("GraffitiView", "setMosaicStyle: $maskBlur")
         invalidate() // 刷新视图以应用新的马赛克半径
 
     }
