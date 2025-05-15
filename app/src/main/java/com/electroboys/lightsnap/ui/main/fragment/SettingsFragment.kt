@@ -5,6 +5,7 @@ import android.app.AlertDialog
 import android.content.Intent
 import android.graphics.Color
 import android.os.Bundle
+import android.os.Environment
 import android.view.KeyEvent
 import android.view.LayoutInflater
 import android.view.View
@@ -27,6 +28,7 @@ import com.electroboys.lightsnap.utils.KeyEventUtil
 import com.electroboys.lightsnap.utils.UriUtil
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.android.material.switchmaterial.SwitchMaterial
+import java.io.File
 
 
 class SettingsFragment : Fragment(R.layout.fragment_settings) {
@@ -125,6 +127,13 @@ class SettingsFragment : Fragment(R.layout.fragment_settings) {
             viewModel.setShortcutKey(SettingsConstants.DEFAULT_SHORTCUT)
             viewModel.setCleanupOption(SettingsConstants.DEFAULT_CLEANUP)
             viewModel.setCleanupDeadline(0)
+
+            // 设置默认保存路径：安卓默认Picture媒体库下的LightSnap
+            val picturesDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES)
+            val defaultDir = File(picturesDir, SettingsConstants.DEFAULT_FOLDER_NAME)
+            if (!defaultDir.exists()) defaultDir.mkdirs()
+            val defaultPath = defaultDir.absolutePath
+            viewModel.setSavePath(defaultPath)
         }
 
         buttonVideoTest.setOnClickListener {

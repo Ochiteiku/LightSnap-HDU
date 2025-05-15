@@ -91,66 +91,95 @@ class ScreenshotCleanupService : Service() {
         }
     }
 
+    //清理主要逻辑
     private suspend fun cleanOldScreenshots(daysThreshold: Int, option: String) {
         val sharedPrefs = getSharedPreferences("settings", Context.MODE_PRIVATE)
         val savedUriStr = sharedPrefs.getString("screenshot_save_uri", null) ?: return
-        val folderUri = savedUriStr.toUri()
-        val folder = DocumentFile.fromTreeUri(this, folderUri) ?: return
+        val uri = savedUriStr.toUri()
 
         val now = System.currentTimeMillis()
         val thresholdMillis = daysThreshold * 24 * 60 * 60 * 1000L
         val format = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault())
-        val uploadList = mutableListOf<DocumentFile>()
         var deletedCount = 0
 
-        //由于需要保证删除和上传的原子性，所以这里先找出需要上传或删除的文件
-        for (file in folder.listFiles()) {
-            val name = file.name ?: continue
-            val match = Regex("""Img_(\d{8}_\d{6})\.(jpg|png)""", RegexOption.IGNORE_CASE).matchEntire(name)
-                ?: continue
-            try {
-                val date = format.parse(match.groupValues[1]) ?: continue
-                if (now - date.time > thresholdMillis) {
-                    when (option) {
-                        SettingsConstants.CLEANUP_DEL -> {
-                            if (file.delete()) deletedCount++
-                        }
-
-                        SettingsConstants.CLEANUP_DELANDUPLOAD -> {
-                            uploadList.add(file)
+        //这里是为了适配两种不同的uri格式，SAF路径和普通路径
+        if (uri.scheme == "content") {
+            val folder = DocumentFile.fromTreeUri(this, uri) ?: return
+            for (file in folder.listFiles()) {
+                val name = file.name ?: continue
+                val match = Regex("""Img_(\d{8}_\d{6})\.(jpg|png)""", RegexOption.IGNORE_CASE).matchEntire(name)
+                    ?: continue
+                try {
+                    val date = format.parse(match.groupValues[1]) ?: continue
+                    if (now - date.time > thresholdMillis) {
+                        when (option) {
+                            SettingsConstants.CLEANUP_DEL -> {
+                                if (file.delete()) deletedCount++
+                            }
+                            SettingsConstants.CLEANUP_DELANDUPLOAD -> {
+                                // 上传 -> 成功 -> 删除
+                                val remotePath = "${SimpleDateFormat("yyyyMMdd", Locale.getDefault()).format(Date())}/${file.name}"
+                                val tempFile = convertDocumentFileToTempFile(file)
+                                val success = COSUtil.uploadFile(remotePath, tempFile)
+                                if (success && file.delete()) {
+                                    deletedCount++
+                                }
+                            }
                         }
                     }
+                } catch (_: Exception) {
                 }
-            } catch (_: Exception) {
+            }
+        } else {
+            val folder = File(uri.path ?: return)
+            if (!folder.exists() || !folder.isDirectory) return
+
+            for (file in folder.listFiles() ?: emptyArray()) {
+                if (!file.isFile) continue
+                val name = file.name
+                val match = Regex("""Img_(\d{8}_\d{6})\.(jpg|png)""", RegexOption.IGNORE_CASE).matchEntire(name)
+                    ?: continue
+                try {
+                    val date = format.parse(match.groupValues[1]) ?: continue
+                    if (now - date.time > thresholdMillis) {
+                        when (option) {
+                            SettingsConstants.CLEANUP_DEL -> {
+                                if (file.delete()) deletedCount++
+                            }
+
+                            SettingsConstants.CLEANUP_DELANDUPLOAD -> {
+                                val remotePath = "${SimpleDateFormat("yyyyMMdd", Locale.getDefault()).format(Date())}/${file.name}"
+                                val success = COSUtil.uploadFile(remotePath, file)
+                                if (success && file.delete()) {
+                                    deletedCount++
+                                }
+                            }
+                        }
+                    }
+                } catch (_: Exception) {
+                }
             }
         }
 
-        //首先保证上传成功，然后再执行删除操作，COSUtil已对上传操作进行协程处理
-        if (option == SettingsConstants.CLEANUP_DELANDUPLOAD && uploadList.isNotEmpty()) {
-            for (file in uploadList) {
-                val dateStr = SimpleDateFormat("yyyyMMdd", Locale.getDefault()).format(Date())
-                val remotePath = "$dateStr/${file.name}"
-                val tempFile = File.createTempFile("upload_", file.name ?: "", cacheDir)
-
-                // 将文件复制到本地临时文件进行上传操作
-                contentResolver.openInputStream(file.uri)?.use { input ->
-                    tempFile.outputStream().use { output -> input.copyTo(output) }
-                }
-
-                val success = COSUtil.uploadFile(remotePath, tempFile)
-                if (success && file.delete()) {
-                    deletedCount++
-                }
-            }
-        }
-
-        // 主线程弹出提示
         withContext(Dispatchers.Main) {
             Toast.makeText(
                 applicationContext,
-                "清理完成，共删除 $deletedCount 张截图",
+                "清理完成，共清理 $deletedCount 张截图",
                 Toast.LENGTH_SHORT
             ).show()
         }
     }
+
+    // 用于将 SAF 的 DocumentFile 转为临时 File 上传
+    private fun convertDocumentFileToTempFile(documentFile: DocumentFile): File {
+        val tempFile = File.createTempFile("upload_", documentFile.name ?: "temp.png")
+        val inputStream = applicationContext.contentResolver.openInputStream(documentFile.uri)
+        inputStream?.use { input ->
+            tempFile.outputStream().use { output ->
+                input.copyTo(output)
+            }
+        }
+        return tempFile
+    }
+
 }

@@ -1,15 +1,9 @@
 package com.electroboys.lightsnap.ui.main.fragment
 
-import android.Manifest
 import android.app.AlertDialog
-import android.app.DatePickerDialog
 import android.content.Context
-import android.content.pm.PackageManager
 import android.graphics.Color
-import android.graphics.Rect
-import android.icu.util.Calendar
 import android.net.Uri
-import android.os.Build
 import android.os.Bundle
 import android.text.Editable
 import android.text.TextWatcher
@@ -22,23 +16,20 @@ import android.widget.EditText
 import android.widget.ImageButton
 import android.widget.Spinner
 import android.widget.Toast
+import androidx.core.net.toUri
+import androidx.core.view.isVisible
+import androidx.documentfile.provider.DocumentFile
 import androidx.fragment.app.Fragment
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.electroboys.lightsnap.R
 import com.electroboys.lightsnap.ui.main.adapter.LibraryPictureAdapter
-import androidx.documentfile.provider.DocumentFile
-import androidx.core.net.toUri
-import androidx.core.view.isVisible
 import com.github.chrisbanes.photoview.PhotoView
 import com.google.android.material.chip.Chip
 import com.google.android.material.datepicker.CalendarConstraints
 import com.google.android.material.datepicker.MaterialDatePicker
-import okhttp3.internal.format
-import java.nio.file.Files
-import java.nio.file.attribute.BasicFileAttributes
+import java.io.File
 import java.text.SimpleDateFormat
-import java.time.LocalDate
 import java.util.Date
 import java.util.Locale
 
@@ -268,38 +259,73 @@ class LibraryFragment : Fragment(R.layout.fragment_library){
 
     private fun loadImages() {
         imageUris.clear()
+        imageInformations.clear()
 
         val sharedPreferences = requireContext().getSharedPreferences("settings", Context.MODE_PRIVATE)
-        val savedUriStr = sharedPreferences.getString("screenshot_save_uri", null)
+        val savedPath = sharedPreferences.getString("screenshot_save_uri", null)
 
-        if (savedUriStr == null) {
+        if (savedPath == null) {
             Toast.makeText(requireContext(), "未设置自定义文件夹路径", Toast.LENGTH_SHORT).show()
             return
         }
 
-        val uri = savedUriStr.toUri()
-        val pickedDir = DocumentFile.fromTreeUri(requireContext(), uri)
-
-        if (pickedDir == null || !pickedDir.isDirectory) {
-            Toast.makeText(requireContext(), "文件夹无效或无法访问", Toast.LENGTH_SHORT).show()
-            return
-        }
+        val uri = savedPath.toUri()
 
         val imageMimeTypes = listOf("image/png", "image/jpeg", "image/jpg", "image/webp")
 
-        for (file in pickedDir.listFiles()) {
-            if (file.isFile && file.type in imageMimeTypes) {
-                imageUris.add(file.uri)
-                imageInformations.add(
-                    ImageInformation(
-                        imageUri = file.uri,
-                        imageDate = Date(file.lastModified()),
-                        imageSize = file.length(),
-                        imageName = file.name!!
+        if (uri.scheme == "content") {
+            // SAF 模式
+            val pickedDir = DocumentFile.fromTreeUri(requireContext(), uri)
+            if (pickedDir == null || !pickedDir.isDirectory) {
+                Toast.makeText(requireContext(), "文件夹无效或无法访问", Toast.LENGTH_SHORT).show()
+                return
+            }
+
+            for (file in pickedDir.listFiles()) {
+                if (file.isFile && file.type in imageMimeTypes) {
+                    imageUris.add(file.uri)
+                    imageInformations.add(
+                        ImageInformation(
+                            imageUri = file.uri,
+                            imageDate = Date(file.lastModified()),
+                            imageSize = file.length(),
+                            imageName = file.name ?: "unknown"
+                        )
                     )
-                )
+                }
+            }
+        } else {
+            // 普通路径模式
+            val dirFile = File(savedPath)
+            if (!dirFile.exists() || !dirFile.isDirectory) {
+                Toast.makeText(requireContext(), "文件夹路径无效", Toast.LENGTH_SHORT).show()
+                return
+            }
+
+            dirFile.listFiles()?.forEach { file ->
+                val mimeType = when {
+                    file.name.endsWith(".png", true) -> "image/png"
+                    file.name.endsWith(".jpg", true) || file.name.endsWith(".jpeg", true) -> "image/jpeg"
+                    file.name.endsWith(".webp", true) -> "image/webp"
+                    else -> null
+                }
+
+                if (file.isFile && mimeType != null) {
+                    val fileUri = file.toUri()
+                    imageUris.add(fileUri)
+                    imageInformations.add(
+                        ImageInformation(
+                            imageUri = fileUri,
+                            imageDate = Date(file.lastModified()),
+                            imageSize = file.length(),
+                            imageName = file.name
+                        )
+                    )
+                }
             }
         }
+
         recyclerImageView.adapter?.notifyDataSetChanged()
     }
+
 }

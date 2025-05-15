@@ -13,6 +13,7 @@ import android.widget.Toast
 import androidx.documentfile.provider.DocumentFile
 import com.electroboys.lightsnap.R
 import com.google.android.material.bottomsheet.BottomSheetDialog
+import java.io.File
 import java.io.IOException
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -27,15 +28,26 @@ object ImageSaveUtil {
         fileName: String
     ) {
         try {
-            val documentFile = DocumentFile.fromTreeUri(context, treeUri)
-            val newFile = documentFile?.createFile("image/png", "$fileName.png")
-                ?: throw IOException("无法创建文件")
+            //兼容两种路径格式
+            if (treeUri.scheme == "content") {
+                // SAF 模式
+                val documentFile = DocumentFile.fromTreeUri(context, treeUri)
+                val newFile = documentFile?.createFile("image/png", "$fileName.png")
+                    ?: throw IOException("无法创建文件")
 
-            context.contentResolver.openOutputStream(newFile.uri, "w")?.use { outputStream ->
-                if (bitmap.compress(Bitmap.CompressFormat.PNG, 100, outputStream)) {
-//                    Toast.makeText(context, "图片已保存为 $fileName.png", Toast.LENGTH_SHORT).show()
-                } else {
-                    Toast.makeText(context, "图片保存失败", Toast.LENGTH_SHORT).show()
+                context.contentResolver.openOutputStream(newFile.uri, "w")?.use { outputStream ->
+                    if (!bitmap.compress(Bitmap.CompressFormat.PNG, 100, outputStream)) {
+                        Toast.makeText(context, "图片保存失败", Toast.LENGTH_SHORT).show()
+                    }
+                }
+            } else {
+                // 普通路径模式：保存到 file:// 或 /storage/emulated/0/ 目录
+                val file = File(treeUri.path, "$fileName.png")
+                file.parentFile?.mkdirs()
+                file.outputStream().use { outputStream ->
+                    if (!bitmap.compress(Bitmap.CompressFormat.PNG, 100, outputStream)) {
+                        Toast.makeText(context, "图片保存失败", Toast.LENGTH_SHORT).show()
+                    }
                 }
             }
         } catch (e: Exception) {
@@ -43,6 +55,7 @@ object ImageSaveUtil {
             Toast.makeText(context, "保存出错：${e.message}", Toast.LENGTH_LONG).show()
         }
     }
+
 
     // 带命名的保存操作
     @SuppressLint("SetTextI18n")

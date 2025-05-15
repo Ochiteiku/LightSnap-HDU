@@ -8,7 +8,19 @@ class SettingsRepository(context: Context) {
 
     fun getScreenshotEnabled() = prefs.getBoolean(SettingsConstants.KEY_SCREENSHOT_ENABLED, false)
     fun getShortcutKey() = prefs.getString(SettingsConstants.KEY_SHORTCUT, SettingsConstants.DEFAULT_SHORTCUT) ?: SettingsConstants.DEFAULT_SHORTCUT
-    fun getSavePath() = prefs.getString(SettingsConstants.KEY_SAVE_URI, "") ?: ""
+    fun getSavePath(): String {
+        val current = prefs.getString(SettingsConstants.KEY_SAVE_URI, null)
+        if (!current.isNullOrBlank()) return current
+
+        // 使用公共图片目录 Pictures/LightSnap 作为默认
+        val picturesDir = android.os.Environment.getExternalStoragePublicDirectory(android.os.Environment.DIRECTORY_PICTURES)
+        val lightSnapDir = java.io.File(picturesDir, SettingsConstants.DEFAULT_FOLDER_NAME)
+        if (!lightSnapDir.exists()) lightSnapDir.mkdirs()
+        val path = lightSnapDir.absolutePath
+        // 设置并持久化默认路径
+        prefs.edit().putString(SettingsConstants.KEY_SAVE_URI, path).apply()
+        return path
+    }
     fun getCleanupOption() = prefs.getString(SettingsConstants.KEY_CLEANUP, SettingsConstants.DEFAULT_CLEANUP) ?: SettingsConstants.DEFAULT_CLEANUP
     fun getCleanupDeadline() = prefs.getInt(SettingsConstants.KEY_CLEANUP_DEADLINE, 0)
 

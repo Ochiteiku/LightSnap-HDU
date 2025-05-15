@@ -7,6 +7,18 @@ import androidx.documentfile.provider.DocumentFile
 object UriUtil {
 
     fun getPathFromUri(context: Context, uri: Uri): String? {
-        return DocumentFile.fromTreeUri(context, uri)?.name
+        return when (uri.scheme) {
+            "content" -> {
+                // SAF 或媒体库中的 uri
+                try {
+                    val docFile = DocumentFile.fromTreeUri(context, uri)
+                    docFile?.name
+                } catch (e: Exception) {
+                    null
+                }
+            }
+            "file" -> uri.path
+            else -> uri.toString()
+        }
     }
 }

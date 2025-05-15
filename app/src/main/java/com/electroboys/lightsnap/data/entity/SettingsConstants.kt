@@ -13,6 +13,7 @@ object SettingsConstants {
     //默认值
     const val DEFAULT_SHORTCUT = "Ctrl+Shift+A"
     const val DEFAULT_CLEANUP = "不清理"
+    const val DEFAULT_FOLDER_NAME = "LightSnap"
     var PicIsHangUp = false
     var floatBitmapKey:String?= null
 
