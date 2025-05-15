@@ -1,5 +1,6 @@
 package com.electroboys.lightsnap.ui.main.activity
 
+import QRScannerUtil
 import android.annotation.SuppressLint
 import android.app.AlertDialog
 import android.content.ClipData
@@ -8,10 +9,8 @@ import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.Color
-import android.graphics.Matrix
 import android.graphics.PointF
 import android.graphics.drawable.BitmapDrawable
-import android.graphics.drawable.GradientDrawable
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
@@ -42,27 +41,23 @@ import com.electroboys.lightsnap.domain.screenshot.repository.ImageCropRepositor
 import com.electroboys.lightsnap.domain.screenshot.repository.OcrRepository
 import com.electroboys.lightsnap.domain.screenshot.watermark.WatermarkConfig
 import com.electroboys.lightsnap.ui.main.view.ArrowTabView
-import com.electroboys.lightsnap.ui.main.view.EditAddTextView
 import com.electroboys.lightsnap.ui.main.view.FrameSelectTabView
 import com.electroboys.lightsnap.ui.main.view.FrameSelectView
 import com.electroboys.lightsnap.ui.main.view.GraffitiTabView
 import com.electroboys.lightsnap.ui.main.view.GraffitiView
 import com.electroboys.lightsnap.ui.main.view.MosaicTabView
+import com.electroboys.lightsnap.ui.main.view.OcrTextOverlayView
 import com.electroboys.lightsnap.ui.main.view.SelectView
 import com.electroboys.lightsnap.ui.main.view.WatermarkOverlayView
+import com.electroboys.lightsnap.ui.main.view.WatermarkSettingBarView
 import com.electroboys.lightsnap.ui.main.viewmodel.ScreenshotViewModel
 import com.electroboys.lightsnap.ui.main.viewmodel.factory.ScreenshotViewModelFactory
+import com.electroboys.lightsnap.utils.BaiduTranslator
 import com.electroboys.lightsnap.utils.WatermarkUtil
 import com.google.mlkit.vision.text.Text
-import com.electroboys.lightsnap.ui.main.view.WatermarkSettingBarView
-import com.electroboys.lightsnap.utils.BaiduTranslator
 import java.io.File
 import java.io.FileOutputStream
 import java.io.IOException
-import java.util.concurrent.TimeUnit
-import kotlin.math.max
-import kotlin.math.min
-import kotlin.math.sqrt
 
 
 class ScreenshotActivity : AppCompatActivity() , ModeActions {
@@ -71,6 +66,7 @@ class ScreenshotActivity : AppCompatActivity() , ModeActions {
     private lateinit var exControlFrame: FrameLayout // 扩展控制面板
     private lateinit var selectView: SelectView
     private lateinit var imageView: ImageView
+    private lateinit var ocrOverlayView: OcrTextOverlayView // ocr展示用界面
     private lateinit var btnConfirmSelection: ImageButton
     private lateinit var frameSelectView: FrameSelectView
     private lateinit var editScreenshot: EditScreenshot
@@ -113,11 +109,6 @@ class ScreenshotActivity : AppCompatActivity() , ModeActions {
     private val handler = Handler(Looper.getMainLooper())
     private lateinit var textViewSummaryStatus: TextView
 
-
-    // dp转换扩展函数
-    private fun Int.dpToPx(): Int = (this * resources.displayMetrics.density).toInt()
-    private fun Float.dpToPx(): Float = this * resources.displayMetrics.density
-
     private val updateDotsRunnable = object : Runnable {
         override fun run() {
             val text = "摘要生成中" + ".".repeat(dotCount)
@@ -158,6 +149,7 @@ class ScreenshotActivity : AppCompatActivity() , ModeActions {
         graffitiView = findViewById(R.id.graffitiView)
         exControlFrame = findViewById(R.id.exControlFrame)
         frameSelectView = findViewById(R.id.frameSelectView)
+        ocrOverlayView = findViewById(R.id.ocrOverlayView)
         overlayView = imageView
 
         // OCR键逻辑
@@ -166,7 +158,18 @@ class ScreenshotActivity : AppCompatActivity() , ModeActions {
             modeManager.enter(Mode.OCR)
         }
         viewModel.recognizedBlocks.observe(this) { text ->
-            showTextOnScreenshotWithInteraction(text)
+            ocrOverlayView.visibility = View.VISIBLE
+
+            ocrOverlayView.renderOcrResults(
+                visionText = text,
+                imageMatrix = overlayView.imageMatrix,
+                imageWidth = overlayView.width,
+                imageHeight = overlayView.height
+            ) {
+                // 复制成功后回调，可做清理或关闭页面
+                ocrOverlayView.visibility = View.GONE
+                finish()
+            }
         }
 
         // 摘要键逻辑
@@ -567,144 +570,7 @@ class ScreenshotActivity : AppCompatActivity() , ModeActions {
         }
     }
 
-
-    //OCR功能用，绘制OCR识别界面
-    private fun showTextOnScreenshotWithInteraction(visionText: Text) {
-        val textBlocks = visionText.textBlocks
-        val rootView = overlayView.parent as? ViewGroup ?: return
-
-        // 清除旧的 TextView
-        textViews.forEach { rootView.removeView(it) }
-        textViews.clear()
-
-        val imageView = overlayView
-        val imageWidth = imageView.width
-        val imageHeight = imageView.height
-
-        val matrix = imageView.imageMatrix
-        val values = FloatArray(9).also { matrix.getValues(it) }
-
-        for (textBlock in textBlocks) {
-            val text = textBlock.text
-            val boundingBox = textBlock.boundingBox ?: continue
-
-            val mappedLeft = (boundingBox.left * values[Matrix.MSCALE_X] + values[Matrix.MTRANS_X])
-            val mappedTop = (boundingBox.top * values[Matrix.MSCALE_Y] + values[Matrix.MTRANS_Y])
-            val mappedRight = (boundingBox.right * values[Matrix.MSCALE_X] + values[Matrix.MTRANS_X])
-            val mappedBottom = (boundingBox.bottom * values[Matrix.MSCALE_Y] + values[Matrix.MTRANS_Y])
-
-            val scaledLeft = max(0f, mappedLeft).toInt()
-            val scaledTop = max(0f, mappedTop).toInt()
-            val scaledRight = max((scaledLeft + 1).toFloat(), min(mappedRight, imageWidth.toFloat())).toInt()
-            val scaledBottom = max((scaledTop + 1).toFloat(), min(mappedBottom, imageHeight.toFloat())).toInt()
-
-            val paddingHorizontal = 4.dpToPx()
-            val paddingVertical = 2.dpToPx()
-
-            val blockWidth = scaledRight - scaledLeft
-            val blockHeight = scaledBottom - scaledTop
-            val extraHeight = (blockHeight * 0.3f).toInt()
-
-            val layoutWidth = blockWidth
-            val layoutHeight = blockHeight + paddingVertical * 2 + extraHeight
-
-            val textView = TextView(this).apply {
-                this.text = text
-                setTextColor(Color.BLACK)
-                setBackgroundColor(Color.parseColor("#E0F0FF"))
-                setPadding(paddingHorizontal, paddingVertical, paddingHorizontal, paddingVertical)
-                gravity = Gravity.CENTER
-                tag = "ocr_text"
-
-                val area = layoutWidth * layoutHeight
-                val estimatedTextSizePx = sqrt(area.toFloat()) * 0.2f
-                val textSizeSp = estimatedTextSizePx / resources.displayMetrics.scaledDensity
-                textSize = textSizeSp.coerceIn(12f, 36f)
-
-                minimumWidth = 32.dpToPx()
-                minimumHeight = 24.dpToPx()
-
-                setOnClickListener {
-                    viewModel.toggleSelectText(text)
-
-                    // 动态修改背景色（使用最新 ViewModel 状态）
-                    val selected = viewModel.selectedTexts.value.orEmpty()
-                    setBackgroundColor(
-                        if (selected.contains(text))
-                            Color.parseColor("#AA66CCFF")
-                        else
-                            Color.parseColor("#E0F0FF")
-                    )
-                }
-            }
-
-            rootView.addView(textView)
-            textViews.add(textView)
-
-            textView.layoutParams = FrameLayout.LayoutParams(
-                layoutWidth,
-                layoutHeight
-            ).apply {
-                leftMargin = scaledLeft
-                topMargin = scaledTop
-            }
-        }
-
-        addCopyButton()
-    }
-
-    //OCR功能用，添加复制按钮
-    private fun addCopyButton() {
-        val rootView = overlayView.parent as? ViewGroup ?: return
-
-        copyButton = Button(this).apply {
-            text = "复制选中内容"
-
-            background = GradientDrawable().apply {
-                shape = GradientDrawable.RECTANGLE
-                cornerRadius = 16f.dpToPx()
-                setColor(Color.WHITE)
-            }
-
-            setOnClickListener {
-                val selected = viewModel.selectedTexts.value.orEmpty()
-                if (selected.isEmpty()) {
-                    Toast.makeText(this@ScreenshotActivity, "未选中任何内容", Toast.LENGTH_SHORT).show()
-                    finish()
-                }
-
-                val combinedText = selected.joinToString("\n")
-                val clipboardManager = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                val clipData = ClipData.newPlainText("Selected OCR Text", combinedText)
-                clipboardManager.setPrimaryClip(clipData)
-
-                Toast.makeText(this@ScreenshotActivity, "已复制${selected.size}条内容", Toast.LENGTH_SHORT).show()
-
-                // 清空选中
-                viewModel.clearSelectedTexts()
-
-                // 清理 UI 元素
-                (overlayView.parent as? ViewGroup)?.let { parent ->
-                    textViews.forEach { parent.removeView(it) }
-                    parent.removeView(this@apply)
-                }
-                textViews.clear()
-                // 退出截图页面
-                finish()
-            }
-        }
-
-        rootView.addView(copyButton, FrameLayout.LayoutParams(
-            ViewGroup.LayoutParams.WRAP_CONTENT,
-            ViewGroup.LayoutParams.WRAP_CONTENT
-        ).apply {
-            gravity = Gravity.BOTTOM or Gravity.END
-            rightMargin = 30
-            bottomMargin = 30
-        })
-    }
-
-    //复制到剪切板用，这里不用拆分，不涉及数据操作
+    //复制到剪切板用
     private fun copyImageToClipboard() {
         // 创建一个临时文件来存储图片
         val tempFile = File(this.cacheDir, "temp_image.png")
@@ -748,7 +614,7 @@ class ScreenshotActivity : AppCompatActivity() , ModeActions {
         }
     }
 
-    //分享图片用，不用拆分
+    //分享图片用
     private fun shareCurrentImage(){
         val bitmap = getBitmapWithIsWatermark()
         if (bitmap == null){
@@ -787,7 +653,7 @@ class ScreenshotActivity : AppCompatActivity() , ModeActions {
 
     }
 
-    //保存图片，不用拆分
+    //保存图片
     private fun saveCurrentImage() {
         val bitmap = getBitmapWithIsWatermark()
         if (bitmap == null){

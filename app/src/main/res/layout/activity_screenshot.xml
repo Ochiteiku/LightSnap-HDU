@@ -281,5 +281,9 @@
         </LinearLayout>
     </LinearLayout>
 
+    <com.electroboys.lightsnap.ui.main.view.OcrTextOverlayView
+        android:id="@+id/ocrOverlayView"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>
