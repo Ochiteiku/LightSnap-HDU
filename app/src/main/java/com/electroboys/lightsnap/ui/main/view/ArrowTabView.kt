@@ -5,6 +5,7 @@ import android.graphics.Color
 import android.view.LayoutInflater
 import android.widget.ImageView
 import android.widget.LinearLayout
+import android.widget.SeekBar
 import android.widget.TextView
 import com.electroboys.lightsnap.R
 
@@ -62,7 +63,25 @@ class ArrowTabView(context: Context) : LinearLayout(context) {
             listener?.onStyleSelected(currentStyle)
         }
 
+        // 初始化宽度控制器
+        val widthSeekBar = findViewById<SeekBar>(R.id.iv_arrow_width)
+        widthSeekBar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+            override fun onProgressChanged(seekBar: SeekBar, progress: Int, fromUser: Boolean) {
+                currentWidth = progress.toFloat()
+                listener?.onWidthSelected(currentWidth)
+            }
+
+            override fun onStartTrackingTouch(seekBar: SeekBar) {
+                // 可选的开始触摸事件处理
+            }
+
+            override fun onStopTrackingTouch(seekBar: SeekBar) {
+                // 可选的结束触摸事件处理
+            }
+        })
+
         // 设置默认选择
+        widthSeekBar.progress = currentWidth.toInt()
         updateSelectedColor(currentColor)
         updateStyleSelection()
     }

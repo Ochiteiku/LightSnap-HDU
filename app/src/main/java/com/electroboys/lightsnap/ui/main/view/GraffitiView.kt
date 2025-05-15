@@ -113,10 +113,11 @@ class GraffitiView @JvmOverloads constructor(
         arrowPaint.strokeWidth = arrow.width
 
         // 设置箭头样式
-        arrowPaint.pathEffect = if (arrow.style == 1) {
-            DashPathEffect(floatArrayOf(20f, 10f), 0f)
+        if (arrow.style == 1) { // 虚线
+            val minGap = max(arrow.width * 1.5f, 10f) // 确保最小间隔为10f
+            arrowPaint.pathEffect = DashPathEffect(floatArrayOf(minGap * 2, minGap), 0f)
         } else {
-            null
+            arrowPaint.pathEffect = null
         }
 
         // 绘制箭身
@@ -174,13 +175,26 @@ class GraffitiView @JvmOverloads constructor(
         invalidate()
     }
 
+    // 设置线宽时同时更新虚线效果
     fun setArrowWidth(width: Float) {
         arrowPaint.strokeWidth = width
+        if (arrowStyle == 1) { // 如果是虚线
+            // 线宽越大，间隔越大
+            val ratio = width * 2.5f
+            arrowPaint.pathEffect = DashPathEffect(floatArrayOf(ratio, ratio/2), 0f)
+        }
         invalidate()
     }
 
     fun setArrowStyle(style: Int) {
         arrowStyle = style
+        arrowPaint.pathEffect = if (style == 1) { // 虚线
+            // 根据线宽动态调整间隔
+            val strokeWidth = arrowPaint.strokeWidth
+            DashPathEffect(floatArrayOf(strokeWidth * 3, strokeWidth * 2), 0f)
+        } else {
+            null // 实线
+        }
         invalidate()
     }
 

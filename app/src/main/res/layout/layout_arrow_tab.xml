@@ -27,6 +27,16 @@
         android:padding="2dp"
         android:src="@drawable/ic_arrow_dashed" />
 
+    <SeekBar
+        android:id="@+id/iv_arrow_width"
+        android:layout_width="80dp"
+        android:layout_height="wrap_content"
+        android:layout_marginEnd="8dp"
+        android:max="20"
+        android:min="1"
+        android:progress="5"
+        android:thumb="@drawable/seekbar_thumb"/>
+
     <!-- Selected Color Display -->
     <TextView
         android:id="@+id/tv_select_color"

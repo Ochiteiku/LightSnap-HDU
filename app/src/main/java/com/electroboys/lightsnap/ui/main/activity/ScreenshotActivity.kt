@@ -872,7 +872,6 @@ class ScreenshotActivity : AppCompatActivity() , ModeActions {
                 val currentBitmap = (imageView.drawable as? BitmapDrawable)?.bitmap ?: return
                 graffitiView.setBitmap(currentBitmap)
                 graffitiView.setDrawMode(GraffitiView.DrawMode.ARROW)
-                Toast.makeText(this, "箭头箭头", Toast.LENGTH_SHORT).show()
 
                 graffitiView.visibility = View.VISIBLE
 
@@ -973,7 +972,6 @@ class ScreenshotActivity : AppCompatActivity() , ModeActions {
 
     //启动箭头
     override fun enterArrow() {
-        Toast.makeText(this, "箭头箭头箭头", Toast.LENGTH_SHORT).show()
         showControlView(ControlViewStatus.ArrowMode.ordinal)
     }
 
