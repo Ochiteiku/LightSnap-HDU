@@ -171,14 +171,13 @@ class ScreenshotActivity : AppCompatActivity() , ModeActions {
 
         // 摘要键逻辑
         val btnSummary = findViewById<ImageButton>(R.id.btnSummary)
-        val textViewSummaryStatus = findViewById<TextView>(R.id.textViewSummaryStatus)
+        textViewSummaryStatus = findViewById<TextView>(R.id.textViewSummaryStatus)
         btnSummary.setOnClickListener {
             viewModel.isGeneratingSummary.observe(this) { isLoading ->
                 if (isLoading) {
-                    textViewSummaryStatus.text = "摘要生成中..." // 你自己定义的 TextView
-                    textViewSummaryStatus.visibility = View.VISIBLE
+                    startSummaryLoading()
                 } else {
-                    textViewSummaryStatus.visibility = View.GONE
+                    stopSummaryLoading()
                 }
             }
 
