@@ -16,6 +16,7 @@
         android:layout_height="match_parent"
         android:background="#ffffff"
         android:hint="请输入水印文字"
+        android:maxLength="20"
         android:paddingStart="8dp"
         tools:ignore="RtlSymmetry" />
 
