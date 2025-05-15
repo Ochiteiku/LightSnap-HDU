@@ -214,7 +214,7 @@ class ScreenshotActivity : AppCompatActivity() , ModeActions {
             selectView.clearSelection()
             btnConfirmSelection.visibility = View.GONE
             findViewById<TextView>(R.id.selectionHint).visibility = View.VISIBLE
-            Toast.makeText(this, "图像已更新", Toast.LENGTH_SHORT).show()
+//            Toast.makeText(this, "图像已更新", Toast.LENGTH_SHORT).show()
         }
 
         // 撤销键逻辑
@@ -530,11 +530,13 @@ class ScreenshotActivity : AppCompatActivity() , ModeActions {
                 }
                 btnWatermark.setImageResource(R.drawable.ic_watermark_on)
                 watermarkOverlay.visibility = View.VISIBLE
-                Toast.makeText(this, "已添加水印", Toast.LENGTH_SHORT).show()
+                watermarkSettingBar.updateUIState(true)
+//                Toast.makeText(this, "已添加水印", Toast.LENGTH_SHORT).show()
             } else {
                 btnWatermark.setImageResource(R.drawable.ic_watermark)
                 watermarkOverlay.visibility = View.INVISIBLE
-                Toast.makeText(this, "已取消添加水印", Toast.LENGTH_SHORT).show()
+                watermarkSettingBar.updateUIState(false)
+//                Toast.makeText(this, "已取消添加水印", Toast.LENGTH_SHORT).show()
             }
         }
     }
