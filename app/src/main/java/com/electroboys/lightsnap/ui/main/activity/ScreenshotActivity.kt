@@ -33,18 +33,14 @@ import com.electroboys.lightsnap.data.entity.SettingsConstants
 import com.electroboys.lightsnap.data.screenshot.BitmapCache
 import com.electroboys.lightsnap.data.screenshot.ControlViewStatus
 import com.electroboys.lightsnap.data.screenshot.ImageHistory
-import com.electroboys.lightsnap.domain.screenshot.EditScreenshot
+import com.electroboys.lightsnap.domain.screenshot.ControlPanelManager
 import com.electroboys.lightsnap.domain.screenshot.ModeActions
 import com.electroboys.lightsnap.domain.screenshot.ModeManager
 import com.electroboys.lightsnap.domain.screenshot.repository.ImageCropRepository
 import com.electroboys.lightsnap.domain.screenshot.repository.OcrRepository
 import com.electroboys.lightsnap.domain.screenshot.watermark.WatermarkConfig
-import com.electroboys.lightsnap.ui.main.view.ArrowTabView
-import com.electroboys.lightsnap.ui.main.view.FrameSelectTabView
 import com.electroboys.lightsnap.ui.main.view.FrameSelectView
-import com.electroboys.lightsnap.ui.main.view.GraffitiTabView
 import com.electroboys.lightsnap.ui.main.view.GraffitiView
-import com.electroboys.lightsnap.ui.main.view.MosaicTabView
 import com.electroboys.lightsnap.ui.main.view.OcrTextOverlayView
 import com.electroboys.lightsnap.ui.main.view.SelectView
 import com.electroboys.lightsnap.ui.main.view.WatermarkOverlayView
@@ -61,6 +57,8 @@ import java.io.IOException
 
 class ScreenshotActivity : AppCompatActivity(), ModeActions {
 
+    private lateinit var controlPanelManager: ControlPanelManager
+
     private lateinit var graffitiView: GraffitiView
     private lateinit var exControlFrame: FrameLayout // 扩展控制面板
     private lateinit var selectView: SelectView
@@ -68,7 +66,6 @@ class ScreenshotActivity : AppCompatActivity(), ModeActions {
     private lateinit var ocrOverlayView: OcrTextOverlayView // ocr展示用界面
     private lateinit var btnConfirmSelection: ImageButton
     private lateinit var frameSelectView: FrameSelectView
-    private lateinit var editScreenshot: EditScreenshot
 
     private lateinit var watermarkOverlay: WatermarkOverlayView
     private lateinit var watermarkSettingBar: WatermarkSettingBarView
@@ -84,7 +81,8 @@ class ScreenshotActivity : AppCompatActivity(), ModeActions {
             Arrow,
             Mosaic,
             Crop,
-            OCR
+            OCR,
+            Framing
         }
     }
 
@@ -93,8 +91,6 @@ class ScreenshotActivity : AppCompatActivity(), ModeActions {
     var isSelectionEnabled = true //框选是否启用,默认开启
     private val watermarkConfig = WatermarkConfig.default() //水印配置
     private var isWatermarkVisible = false // 水印是否显示
-    private var isEditingText = false // 是否正在添加文字
-
     private lateinit var overlayView: ImageView
     private lateinit var croppedBitmap: Bitmap
 
@@ -133,7 +129,6 @@ class ScreenshotActivity : AppCompatActivity(), ModeActions {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_screenshot)
 
-        modeManager = ModeManager(this)
         val factory = ScreenshotViewModelFactory(
             OcrRepository(),
         )
@@ -148,6 +143,15 @@ class ScreenshotActivity : AppCompatActivity(), ModeActions {
         frameSelectView = findViewById(R.id.frameSelectView)
         ocrOverlayView = findViewById(R.id.ocrOverlayView)
         overlayView = imageView
+
+        modeManager = ModeManager(this)
+        controlPanelManager = ControlPanelManager(
+            context = this,
+            imageView = imageView,
+            graffitiView = graffitiView,
+            frameSelectView = frameSelectView,
+            exControlFrame = exControlFrame
+        )
 
         // OCR键逻辑
         val btnOcr = findViewById<ImageButton>(R.id.btnOcr)
@@ -169,7 +173,6 @@ class ScreenshotActivity : AppCompatActivity(), ModeActions {
             }
         }
 
-
         // 摘要键逻辑
         val btnSummary = findViewById<ImageButton>(R.id.btnSummary)
         textViewSummaryStatus = findViewById<TextView>(R.id.textViewSummaryStatus)
@@ -181,14 +184,12 @@ class ScreenshotActivity : AppCompatActivity(), ModeActions {
                     stopSummaryLoading()
                 }
             }
-
             // 监听摘要内容并弹出对话框
             viewModel.summaryText.observe(this) { summary ->
                 if (summary.isNotBlank()) {
                     showSummaryDialog(summary)
                 }
             }
-
             // 传入当前截图 bitmap，执行识别 + 摘要流程
             viewModel.recognizeAndSummarize(croppedBitmap)
         }
@@ -196,11 +197,7 @@ class ScreenshotActivity : AppCompatActivity(), ModeActions {
         // 添加文字键逻辑
         val btnText = findViewById<ImageButton>(R.id.btnText)
         btnText.setOnClickListener {
-            if (modeManager.getCurrentMode() == Mode.AddText) {
-                modeManager.enter(Mode.None)
-            } else {
-                modeManager.enter(Mode.AddText)
-            }
+            modeManager.enter(Mode.AddText)
         }
 
         //设置二次裁剪功能监听器和交互逻辑
@@ -264,44 +261,28 @@ class ScreenshotActivity : AppCompatActivity(), ModeActions {
         //  裁剪开关逻辑
         val btnIfCanSelect = findViewById<ImageButton>(R.id.btnIsCanSelect)
         btnIfCanSelect.setOnClickListener {
-            if (modeManager.getCurrentMode() == Mode.Crop) {
-                modeManager.enter(Mode.None)
-            } else {
-                modeManager.enter(Mode.Crop)
-            }
+            modeManager.enter(Mode.Crop)
         }
-
-        showControlView(ControlViewStatus.OtherMode.ordinal)
 
         // 涂鸦按钮逻辑
         val btnGraffiti = findViewById<ImageButton>(R.id.btnDraw)
         btnGraffiti.setOnClickListener {
-            if (modeManager.getCurrentMode() == Mode.Graffiti) {
-                modeManager.enter(Mode.None)
-            } else {
-                modeManager.enter(Mode.Graffiti)
-            }
+            modeManager.enter(Mode.Graffiti)
         }
 
         // 马赛克按钮逻辑
         val btnMosaic = findViewById<ImageButton>(R.id.btnMosaic)
         btnMosaic.setOnClickListener {
-            if (modeManager.getCurrentMode() == Mode.Mosaic) {
-                modeManager.enter(Mode.None)
-            } else {
-                modeManager.enter(Mode.Mosaic)
-            }
+            modeManager.enter(Mode.Mosaic)
         }
 
         // 箭头按钮逻辑
         val btnArrow = findViewById<ImageButton>(R.id.btnArrow)
         btnArrow.setOnClickListener {
-            if (modeManager.getCurrentMode() == Mode.Arrow) {
-                modeManager.enter(Mode.None)
-            } else {
-                modeManager.enter(Mode.Arrow)
-            }
+            modeManager.enter(Mode.Arrow)
         }
+
+        //钉选逻辑
         findViewById<View>(R.id.btnFixed).setOnClickListener {
             if (isSelectionEnabled) {
                 toggleSelectionMode()
@@ -355,13 +336,15 @@ class ScreenshotActivity : AppCompatActivity(), ModeActions {
             }
 
         }
+
         val btnBox = findViewById<View>(R.id.btnBox)
         btnBox.setOnClickListener {
             if (isSelectionEnabled) {
                 toggleSelectionMode()
             }
-            showControlView(ControlViewStatus.FramingMode.ordinal)
+            modeManager.enter(Mode.Framing)
         }
+
         graffitiView.setOnBitmapChangeListener(object : GraffitiView.onBitmapChangeListener {
             override fun onBitmapChange(bitmap: Bitmap) {
                 val newKey = BitmapCache.cacheBitmap(bitmap)
@@ -723,128 +706,6 @@ class ScreenshotActivity : AppCompatActivity(), ModeActions {
         finish()
     }
 
-    private fun showControlView(mode: Int) {
-        when (mode) {
-            ControlViewStatus.GraffitiMode.ordinal -> {
-                val currentBitmap = (imageView.drawable as? BitmapDrawable)?.bitmap ?: return
-                graffitiView.setBitmap(currentBitmap) // 刷新为当前 imageView 的 bitmap
-                graffitiView.setDrawMode(GraffitiView.DrawMode.GRAFFITI)
-
-                graffitiView.visibility = View.VISIBLE
-                frameSelectView.visibility = View.GONE
-
-                val graffitiTabView = GraffitiTabView(this)
-                exControlFrame.removeAllViews()
-                exControlFrame.addView(graffitiTabView)
-
-                graffitiView.setMosaicMode(false)
-                graffitiTabView.setOnSelectedListener(listener = object :
-                    GraffitiTabView.OnSelectedListener {
-                    override fun onColorSelected(color: Int) {
-                        graffitiView.setStrokeColor(color)
-                    }
-
-                    override fun onSelectSize(size: Int) {
-                        graffitiView.setStrokeWidth(size)
-                    }
-
-                })
-            }
-
-            ControlViewStatus.MosaicMode.ordinal -> {
-                val currentBitmap = (imageView.drawable as? BitmapDrawable)?.bitmap ?: return
-                graffitiView.setBitmap(currentBitmap) // 强制刷新为当前 imageView 的 bitmap
-                graffitiView.setDrawMode(GraffitiView.DrawMode.MOSAIC)
-
-                graffitiView.visibility = View.VISIBLE
-                frameSelectView.visibility = View.GONE
-
-                graffitiView.isClickable
-                // 显示涂鸦模式
-                val doodleTabView = MosaicTabView(this)
-                exControlFrame.removeAllViews()
-                exControlFrame.addView(doodleTabView)
-                // 显示马赛克模式
-                graffitiView.setMosaicMode(true)
-                doodleTabView.setOnMosaicTabClickListener(listener = object :
-                    MosaicTabView.OnMosaicTabClickListener {
-                    override fun onMosaicSelectedClick(tabIndex: Int) {
-                        graffitiView.setMosaicRadius(tabIndex)
-                    }
-
-                    override fun onMosaicSettingClick(progress: Float) {
-                        graffitiView.setMosaicBlur(progress.toInt())
-                    }
-
-                    override fun onMosaicStyleSelectedClick(i: Int) {
-                        graffitiView.setMosaicStyle(style = i)
-                    }
-                })
-            }
-
-            ControlViewStatus.ArrowMode.ordinal -> {
-                val currentBitmap = (imageView.drawable as? BitmapDrawable)?.bitmap ?: return
-                graffitiView.setBitmap(currentBitmap)
-                graffitiView.setDrawMode(GraffitiView.DrawMode.ARROW)
-
-                graffitiView.visibility = View.VISIBLE
-
-                val arrowTabView = ArrowTabView(this)
-                exControlFrame.removeAllViews()
-                exControlFrame.addView(arrowTabView)
-
-                graffitiView.setMosaicMode(false)
-                arrowTabView.setOnArrowStyleSelectedListener(object :
-                    ArrowTabView.OnArrowStyleSelectedListener {
-                    override fun onColorSelected(color: Int) {
-                        graffitiView.setArrowColor(color)
-                    }
-
-                    override fun onWidthSelected(width: Float) {
-                        graffitiView.setArrowWidth(width)
-                    }
-
-                    override fun onStyleSelected(style: Int) {
-                        graffitiView.setArrowStyle(style)
-                    }
-                })
-            }
-
-            ControlViewStatus.FramingMode.ordinal -> {
-                val currentBitmap = (imageView.drawable as? BitmapDrawable)?.bitmap ?: return
-                frameSelectView.setBitmap(currentBitmap) // 强制刷新为当前 imageView 的 bitmap
-                graffitiView.visibility = View.GONE
-                frameSelectView.visibility = View.VISIBLE
-                val mFrameSelectTabView = FrameSelectTabView(this)
-                // 显示其他模式
-                exControlFrame.removeAllViews()
-                exControlFrame.addView(mFrameSelectTabView)
-                mFrameSelectTabView.setOnSelectedListener(object :
-                    FrameSelectTabView.OnSelectedListener {
-                    override fun onColorSelected(color: Int) {
-                        frameSelectView.setLineColor(color)
-                    }
-
-                    override fun onSelectSize(size: Int) {
-                        frameSelectView.setLineWidth(size)
-                    }
-
-                    override fun OnSelectedStyle(style: Int) {
-                        frameSelectView.setShapeType(style)
-                    }
-
-                })
-            }
-
-            ControlViewStatus.OtherMode.ordinal -> {
-                graffitiView.visibility = View.GONE
-                frameSelectView.visibility = View.GONE
-                // 显示其他模式
-                exControlFrame.removeAllViews()
-            }
-        }
-    }
-
     override fun onDestroy() {
         super.onDestroy()
         // 清理 Bitmap 缓存
@@ -864,50 +725,18 @@ class ScreenshotActivity : AppCompatActivity(), ModeActions {
 
     // OnAndOffMode
     // 这里下面都是功能按钮的启动与关闭
-    //启动文字编辑
-    override fun enterAddText() {
-        isEditingText = true
-        editScreenshot = EditScreenshot(this, findViewById(R.id.imageContainer), intent).apply {
-            addText(findViewById(R.id.btnText), exControlFrame, imageView)
-        }
-    }
 
-    //关闭文字编辑
-    override fun exitAddText() {
-        isEditingText = false
-        editScreenshot.exitAddTextMode()
-        findViewById<ImageButton>(R.id.btnText).setImageResource(R.drawable.ic_addtext_textbox)
-    }
+    override fun enterGraffiti() {}
+    override fun exitGraffiti() {}
 
-    //启动涂鸦
-    override fun enterGraffiti() {
-        showControlView(ControlViewStatus.GraffitiMode.ordinal)
-    }
+    override fun enterAddText() {}
+    override fun exitAddText() {}
 
-    //关闭涂鸦
-    override fun exitGraffiti() {
-        showControlView(ControlViewStatus.OtherMode.ordinal)
-    }
+    override fun enterMosaic() {}
+    override fun exitMosaic() {}
 
-    //启动箭头
-    override fun enterArrow() {
-        showControlView(ControlViewStatus.ArrowMode.ordinal)
-    }
-
-    //关闭箭头
-    override fun exitArrow() {
-        showControlView(ControlViewStatus.OtherMode.ordinal)
-    }
-
-    //启动马赛克
-    override fun enterMosaic() {
-        showControlView(ControlViewStatus.MosaicMode.ordinal)
-    }
-
-    //关闭马赛克
-    override fun exitMosaic() {
-        showControlView(ControlViewStatus.OtherMode.ordinal)
-    }
+    override fun enterArrow() {}
+    override fun exitArrow() {}
 
     // 切换裁剪开关
     override fun toggleCrop() {
@@ -917,6 +746,10 @@ class ScreenshotActivity : AppCompatActivity(), ModeActions {
     // 启动OCR
     override fun onEnterOCR() {
         viewModel.recognize(croppedBitmap)
+    }
+
+    override fun showControlPanel(mode: ControlViewStatus) {
+        controlPanelManager.applyMode(mode)
     }
 
     // 快捷键触发功能

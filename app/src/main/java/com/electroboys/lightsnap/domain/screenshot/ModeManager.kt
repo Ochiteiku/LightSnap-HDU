@@ -1,38 +1,48 @@
 package com.electroboys.lightsnap.domain.screenshot
 
-import android.content.Context
-import android.util.Log
-import android.widget.Toast
+import com.electroboys.lightsnap.data.screenshot.ControlViewStatus
 import com.electroboys.lightsnap.ui.main.activity.ScreenshotActivity
 import com.electroboys.lightsnap.ui.main.activity.ScreenshotActivity.Companion.Mode
 
 class ModeManager(private val actions: ModeActions) {
 
     private var currentMode: Mode = Mode.None
-    fun enter(mode: Mode) {
 
-        // 关闭已有模式
+    fun enter(mode: Mode) {
+        // 退出上一个模式
         exitCurrentMode()
 
-        // 进入新模式
+        // 进入新模式并展示控件
         when (mode) {
             Mode.AddText -> actions.enterAddText()
-            Mode.Graffiti -> actions.enterGraffiti()
-            Mode.Arrow -> actions.enterArrow()
-            Mode.Mosaic -> actions.enterMosaic()
+            Mode.Graffiti -> {
+                actions.enterGraffiti()
+                actions.showControlPanel(ControlViewStatus.GraffitiMode)
+            }
+            Mode.Arrow -> {
+                actions.enterArrow()
+                actions.showControlPanel(ControlViewStatus.ArrowMode)
+            }
+            Mode.Mosaic -> {
+                actions.enterMosaic()
+                actions.showControlPanel(ControlViewStatus.MosaicMode)
+            }
             Mode.Crop -> {
                 if ((actions as? ScreenshotActivity)?.isSelectionEnabled == false) {
                     actions.toggleCrop()
                 }
+                // Crop 不展示 ControlPanel，不调用
+            }
+            Mode.Framing -> {
+                actions.showControlPanel(ControlViewStatus.FramingMode)
             }
             Mode.OCR -> actions.onEnterOCR()
-            Mode.None -> {}
+            Mode.None -> actions.showControlPanel(ControlViewStatus.OtherMode)
         }
 
         currentMode = mode
     }
 
-    // 后续有新添加的功能时往里面添加该功能的退出逻辑
     private fun exitCurrentMode() {
         when (currentMode) {
             Mode.AddText -> actions.exitAddText()
@@ -40,13 +50,10 @@ class ModeManager(private val actions: ModeActions) {
             Mode.Arrow -> actions.exitArrow()
             Mode.Mosaic -> actions.exitMosaic()
             Mode.Crop -> {
-                Log.d("ModeManager", "CropExitUsed")
                 if ((actions as? ScreenshotActivity)?.isSelectionEnabled == true) {
                     actions.toggleCrop()
                 }
             }
-            //没有退出逻辑的不需要添加，例如OCR,如果后续有添加退出逻辑可以添加
-//            Mode.OCR -> actions.onEnterOCR()
             else -> {}
         }
         currentMode = Mode.None
