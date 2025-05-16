@@ -15,6 +15,8 @@ class GraffitiTabView @JvmOverloads constructor(
     private var ivMosaicTwo: View
     private var ivMosaicThree: View
     private var tvSelectColorView: View
+    private var ivStraightLine: View
+    private var ivWavyLine: View
     private var listener: OnSelectedListener? = null
 
     init {
@@ -25,6 +27,10 @@ class GraffitiTabView @JvmOverloads constructor(
         ivMosaicOne = findViewById(R.id.iv_mosaic_one)
         ivMosaicTwo = findViewById(R.id.iv_mosaic_two)
         ivMosaicThree = findViewById(R.id.iv_mosaic_three)
+        ivStraightLine = findViewById(R.id.iv_straight_line)
+        ivWavyLine = findViewById(R.id.iv_wavy_line)
+
+        ivStraightLine.isSelected = true
         ivMosaicOne.isSelected = true
 
         // 设置点击事件
@@ -73,6 +79,16 @@ class GraffitiTabView @JvmOverloads constructor(
             listener?.onColorSelected(context.getColor(R.color.gray))
             tvSelectColorView.setBackgroundColor(context.getColor(R.color.gray))
         }
+        findViewById<View>(R.id.iv_straight_line).setOnClickListener {
+            listener?.onLineStyleSelected(0)
+            ivStraightLine.isSelected = true
+            ivWavyLine.isSelected = false
+        }
+        findViewById<View>(R.id.iv_wavy_line).setOnClickListener {
+            listener?.onLineStyleSelected(1)
+            ivWavyLine.isSelected = true
+            ivStraightLine.isSelected = false
+        }
 
 
     }
@@ -91,6 +107,7 @@ class GraffitiTabView @JvmOverloads constructor(
     interface OnSelectedListener {
         fun onColorSelected(color: Int)
         fun onSelectSize(size: Int)
+        fun onLineStyleSelected(style: Int)
     }
 
     fun setOnSelectedListener(listener: OnSelectedListener) {

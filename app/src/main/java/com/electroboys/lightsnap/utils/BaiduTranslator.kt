@@ -3,17 +3,10 @@ package com.electroboys.lightsnap.utils
 import android.app.Activity
 import android.app.Dialog
 import android.content.Context
-import android.graphics.Bitmap
-import android.graphics.Color
-import android.graphics.drawable.ColorDrawable
-import android.net.Uri
 import android.util.Log
 import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.View
-import android.view.WindowManager
-import android.widget.Button
-import android.widget.EditText
 import android.widget.TextView
 import android.widget.Toast
 import com.electroboys.lightsnap.R
@@ -97,10 +90,17 @@ object BaiduTranslator {
                 } else {
                     callback?.onSuccess(it) // 调用回调函数，通知翻译结果
                     val transResult = jsonObject.getJSONArray("trans_result")
-                    val dst = transResult.getJSONObject(0).getString("dst")
-                    callback?.onSuccess(dst) // 调用回调函数，通知翻译结果
+                    val result = StringBuilder()
+                    for (i in 0 until transResult.length()) {
+                        val src = transResult.getJSONObject(i).getString("dst")
+                        if (src.isNotEmpty())
+                        {
+                            result.append(src).append("\n")
+                        }
+                    }
+                    callback?.onSuccess(result.toString()) // 调用回调函数，通知翻译结果
                     context.runOnUiThread {
-                        showTranslationDialog(context, dst) // 显示翻译结果对话框
+                        showTranslationDialog(context,text, result.toString()) // 显示翻译结果对话框
                     }
                 }
 
@@ -128,9 +128,10 @@ object BaiduTranslator {
 
     private fun showTranslationDialog(
         context: Context,
+        fromText: String,
         translatedText: String,
 
-    ) {
+        ) {
         // 使用自定义样式
         val dialog = Dialog(context, R.style.CenterBottomSheet)
         val view = LayoutInflater.from(context).inflate(R.layout.fragment_trans_result, null)
@@ -146,7 +147,11 @@ object BaiduTranslator {
         }
 
         val tvContent = view.findViewById<TextView>(R.id.tv_content)
-        tvContent.text = "翻译结果：$translatedText"
+        val tvTransContent = view.findViewById<TextView>(R.id.tv_trans_content)
+
+        tvContent.text = fromText
+        tvTransContent.text = translatedText
+
         view.findViewById<View>(R.id.tv_tips_copy).setOnClickListener {
             val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
             val clip = android.content.ClipData.newPlainText("translatedText", translatedText)

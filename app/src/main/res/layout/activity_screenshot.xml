@@ -204,6 +204,12 @@
                 style="@style/ToolButtonStyle"
                 android:src="@drawable/ic_detail"
                 android:contentDescription="AI摘要" />
+
+            <ImageButton
+                android:id="@+id/btnQR"
+                style="@style/ToolButtonStyle"
+                android:src="@drawable/ic_qr"
+                android:contentDescription="二维码扫描" />
         </LinearLayout>
 
         <!-- 分隔线 -->
@@ -281,5 +287,9 @@
         </LinearLayout>
     </LinearLayout>
 
+    <com.electroboys.lightsnap.ui.main.view.OcrTextOverlayView
+        android:id="@+id/ocrOverlayView"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

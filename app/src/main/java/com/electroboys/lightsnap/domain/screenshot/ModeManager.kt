@@ -25,6 +25,7 @@ class ModeManager(private val actions: ModeActions) {
                     actions.toggleCrop()
                 }
             }
+            Mode.Box -> actions.enterBox()
             Mode.OCR -> actions.onEnterOCR()
             Mode.None -> {}
         }
@@ -39,6 +40,7 @@ class ModeManager(private val actions: ModeActions) {
             Mode.Graffiti -> actions.exitGraffiti()
             Mode.Arrow -> actions.exitArrow()
             Mode.Mosaic -> actions.exitMosaic()
+            Mode.Box -> actions.exitBox()
             Mode.Crop -> {
                 Log.d("ModeManager", "CropExitUsed")
                 if ((actions as? ScreenshotActivity)?.isSelectionEnabled == true) {

@@ -1,5 +1,6 @@
 package com.electroboys.lightsnap.ui.main.activity
 
+import QRScannerUtil
 import android.annotation.SuppressLint
 import android.app.AlertDialog
 import android.content.ClipData
@@ -8,10 +9,8 @@ import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.Color
-import android.graphics.Matrix
 import android.graphics.PointF
 import android.graphics.drawable.BitmapDrawable
-import android.graphics.drawable.GradientDrawable
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
@@ -19,7 +18,6 @@ import android.view.Gravity
 import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
-import android.widget.Button
 import android.widget.EditText
 import android.widget.FrameLayout
 import android.widget.ImageButton
@@ -42,35 +40,32 @@ import com.electroboys.lightsnap.domain.screenshot.repository.ImageCropRepositor
 import com.electroboys.lightsnap.domain.screenshot.repository.OcrRepository
 import com.electroboys.lightsnap.domain.screenshot.watermark.WatermarkConfig
 import com.electroboys.lightsnap.ui.main.view.ArrowTabView
-import com.electroboys.lightsnap.ui.main.view.EditAddTextView
 import com.electroboys.lightsnap.ui.main.view.FrameSelectTabView
 import com.electroboys.lightsnap.ui.main.view.FrameSelectView
 import com.electroboys.lightsnap.ui.main.view.GraffitiTabView
 import com.electroboys.lightsnap.ui.main.view.GraffitiView
 import com.electroboys.lightsnap.ui.main.view.MosaicTabView
+import com.electroboys.lightsnap.ui.main.view.OcrTextOverlayView
 import com.electroboys.lightsnap.ui.main.view.SelectView
 import com.electroboys.lightsnap.ui.main.view.WatermarkOverlayView
+import com.electroboys.lightsnap.ui.main.view.WatermarkSettingBarView
 import com.electroboys.lightsnap.ui.main.viewmodel.ScreenshotViewModel
 import com.electroboys.lightsnap.ui.main.viewmodel.factory.ScreenshotViewModelFactory
+import com.electroboys.lightsnap.utils.BaiduTranslator
 import com.electroboys.lightsnap.utils.WatermarkUtil
 import com.google.mlkit.vision.text.Text
-import com.electroboys.lightsnap.ui.main.view.WatermarkSettingBarView
-import com.electroboys.lightsnap.utils.BaiduTranslator
 import java.io.File
 import java.io.FileOutputStream
 import java.io.IOException
-import java.util.concurrent.TimeUnit
-import kotlin.math.max
-import kotlin.math.min
-import kotlin.math.sqrt
 
 
-class ScreenshotActivity : AppCompatActivity() , ModeActions {
+class ScreenshotActivity : AppCompatActivity(), ModeActions {
 
     private lateinit var graffitiView: GraffitiView
     private lateinit var exControlFrame: FrameLayout // 扩展控制面板
     private lateinit var selectView: SelectView
     private lateinit var imageView: ImageView
+    private lateinit var ocrOverlayView: OcrTextOverlayView // ocr展示用界面
     private lateinit var btnConfirmSelection: ImageButton
     private lateinit var frameSelectView: FrameSelectView
     private lateinit var editScreenshot: EditScreenshot
@@ -89,7 +84,8 @@ class ScreenshotActivity : AppCompatActivity() , ModeActions {
             Arrow,
             Mosaic,
             Crop,
-            OCR
+            OCR,
+            Box
         }
     }
 
@@ -100,8 +96,6 @@ class ScreenshotActivity : AppCompatActivity() , ModeActions {
     private var isWatermarkVisible = false // 水印是否显示
     private var isEditingText = false // 是否正在添加文字
 
-    private var textViews: MutableList<TextView> = mutableListOf()
-    private lateinit var copyButton: Button
     private lateinit var overlayView: ImageView
     private lateinit var croppedBitmap: Bitmap
 
@@ -112,11 +106,6 @@ class ScreenshotActivity : AppCompatActivity() , ModeActions {
     private var dotCount = 0
     private val handler = Handler(Looper.getMainLooper())
     private lateinit var textViewSummaryStatus: TextView
-
-
-    // dp转换扩展函数
-    private fun Int.dpToPx(): Int = (this * resources.displayMetrics.density).toInt()
-    private fun Float.dpToPx(): Float = this * resources.displayMetrics.density
 
     private val updateDotsRunnable = object : Runnable {
         override fun run() {
@@ -158,6 +147,7 @@ class ScreenshotActivity : AppCompatActivity() , ModeActions {
         graffitiView = findViewById(R.id.graffitiView)
         exControlFrame = findViewById(R.id.exControlFrame)
         frameSelectView = findViewById(R.id.frameSelectView)
+        ocrOverlayView = findViewById(R.id.ocrOverlayView)
         overlayView = imageView
 
         // OCR键逻辑
@@ -166,19 +156,30 @@ class ScreenshotActivity : AppCompatActivity() , ModeActions {
             modeManager.enter(Mode.OCR)
         }
         viewModel.recognizedBlocks.observe(this) { text ->
-            showTextOnScreenshotWithInteraction(text)
+            ocrOverlayView.visibility = View.VISIBLE
+
+            ocrOverlayView.renderOcrResults(
+                visionText = text,
+                imageMatrix = overlayView.imageMatrix,
+                imageWidth = overlayView.width,
+                imageHeight = overlayView.height
+            ) {
+                // 复制成功后回调，可做清理或关闭页面
+                ocrOverlayView.visibility = View.GONE
+                finish()
+            }
         }
+
 
         // 摘要键逻辑
         val btnSummary = findViewById<ImageButton>(R.id.btnSummary)
-        val textViewSummaryStatus = findViewById<TextView>(R.id.textViewSummaryStatus)
+        textViewSummaryStatus = findViewById<TextView>(R.id.textViewSummaryStatus)
         btnSummary.setOnClickListener {
             viewModel.isGeneratingSummary.observe(this) { isLoading ->
                 if (isLoading) {
-                    textViewSummaryStatus.text = "摘要生成中..." // 你自己定义的 TextView
-                    textViewSummaryStatus.visibility = View.VISIBLE
+                    startSummaryLoading()
                 } else {
-                    textViewSummaryStatus.visibility = View.GONE
+                    stopSummaryLoading()
                 }
             }
 
@@ -195,10 +196,10 @@ class ScreenshotActivity : AppCompatActivity() , ModeActions {
 
         // 添加文字键逻辑
         val btnText = findViewById<ImageButton>(R.id.btnText)
-        btnText.setOnClickListener{
-            if(modeManager.getCurrentMode() == Mode.AddText){
+        btnText.setOnClickListener {
+            if (modeManager.getCurrentMode() == Mode.AddText) {
                 modeManager.enter(Mode.None)
-            }else {
+            } else {
                 modeManager.enter(Mode.AddText)
             }
         }
@@ -215,7 +216,7 @@ class ScreenshotActivity : AppCompatActivity() , ModeActions {
             selectView.clearSelection()
             btnConfirmSelection.visibility = View.GONE
             findViewById<TextView>(R.id.selectionHint).visibility = View.VISIBLE
-            Toast.makeText(this, "图像已更新", Toast.LENGTH_SHORT).show()
+//            Toast.makeText(this, "图像已更新", Toast.LENGTH_SHORT).show()
         }
 
         // 撤销键逻辑
@@ -264,9 +265,9 @@ class ScreenshotActivity : AppCompatActivity() , ModeActions {
         //  裁剪开关逻辑
         val btnIfCanSelect = findViewById<ImageButton>(R.id.btnIsCanSelect)
         btnIfCanSelect.setOnClickListener {
-            if(modeManager.getCurrentMode() == Mode.Crop){
+            if (modeManager.getCurrentMode() == Mode.Crop) {
                 modeManager.enter(Mode.None)
-            }else {
+            } else {
                 modeManager.enter(Mode.Crop)
             }
         }
@@ -276,9 +277,9 @@ class ScreenshotActivity : AppCompatActivity() , ModeActions {
         // 涂鸦按钮逻辑
         val btnGraffiti = findViewById<ImageButton>(R.id.btnDraw)
         btnGraffiti.setOnClickListener {
-            if(modeManager.getCurrentMode() == Mode.Graffiti){
+            if (modeManager.getCurrentMode() == Mode.Graffiti) {
                 modeManager.enter(Mode.None)
-            }else {
+            } else {
                 modeManager.enter(Mode.Graffiti)
             }
         }
@@ -286,9 +287,9 @@ class ScreenshotActivity : AppCompatActivity() , ModeActions {
         // 马赛克按钮逻辑
         val btnMosaic = findViewById<ImageButton>(R.id.btnMosaic)
         btnMosaic.setOnClickListener {
-            if(modeManager.getCurrentMode() == Mode.Mosaic){
+            if (modeManager.getCurrentMode() == Mode.Mosaic) {
                 modeManager.enter(Mode.None)
-            }else {
+            } else {
                 modeManager.enter(Mode.Mosaic)
             }
         }
@@ -296,9 +297,9 @@ class ScreenshotActivity : AppCompatActivity() , ModeActions {
         // 箭头按钮逻辑
         val btnArrow = findViewById<ImageButton>(R.id.btnArrow)
         btnArrow.setOnClickListener {
-            if(modeManager.getCurrentMode() == Mode.Arrow){
+            if (modeManager.getCurrentMode() == Mode.Arrow) {
                 modeManager.enter(Mode.None)
-            }else {
+            } else {
                 modeManager.enter(Mode.Arrow)
             }
         }
@@ -306,10 +307,10 @@ class ScreenshotActivity : AppCompatActivity() , ModeActions {
             if (isSelectionEnabled) {
                 toggleSelectionMode()
             }
-            SettingsConstants.PicIsHangUp=true
+            SettingsConstants.PicIsHangUp = true
             val bitmap = (imageView.drawable as? BitmapDrawable)?.bitmap
             val bitmapKey = bitmap?.let { it1 -> BitmapCache.cacheBitmap(it1) }
-            SettingsConstants.floatBitmapKey=bitmapKey
+            SettingsConstants.floatBitmapKey = bitmapKey
             finish()
         }
 
@@ -320,27 +321,30 @@ class ScreenshotActivity : AppCompatActivity() , ModeActions {
             }
             val bitmap = (imageView.drawable as? BitmapDrawable)?.bitmap
             bitmap?.let { it1 ->
-                viewModel.recognizeAndCallback(it1,
+                viewModel.recognizeAndCallback(
+                    it1,
                     object : ScreenshotViewModel.OnTextRecognizedListener {
                         override suspend fun onTextRecognized(text: Text?) {
                             text?.text?.let { it2 ->
-                                BaiduTranslator.translate(this@ScreenshotActivity,it2,
+                                BaiduTranslator.translate(
+                                    this@ScreenshotActivity, it2,
                                     object : BaiduTranslator.TranslationCallback {
                                         override fun onSuccess(translatedText: String) {
                                             imageView.post {
                                                 Toast.makeText(
                                                     baseContext,
-                                                    "翻译成功" + translatedText,
+                                                    "翻译成功",
                                                     Toast.LENGTH_SHORT
                                                 ).show()
                                             }
 
                                         }
+
                                         override fun onFailure(error: String) {
                                             imageView.post {
                                                 Toast.makeText(
                                                     baseContext,
-                                                    "翻译失败"+error,
+                                                    "翻译失败" + error,
                                                     Toast.LENGTH_SHORT
                                                 ).show()
                                             }
@@ -354,10 +358,11 @@ class ScreenshotActivity : AppCompatActivity() , ModeActions {
         }
         val btnBox = findViewById<View>(R.id.btnBox)
         btnBox.setOnClickListener {
-            if (isSelectionEnabled) {
-                toggleSelectionMode()
+            if (modeManager.getCurrentMode() == Mode.Box) {
+                modeManager.enter(Mode.None)
+            } else {
+                modeManager.enter(Mode.Box)
             }
-            showControlView(ControlViewStatus.FramingMode.ordinal)
         }
         graffitiView.setOnBitmapChangeListener(object : GraffitiView.onBitmapChangeListener {
             override fun onBitmapChange(bitmap: Bitmap) {
@@ -412,6 +417,38 @@ class ScreenshotActivity : AppCompatActivity() , ModeActions {
         // 从缓存中取出 Bitmap
         val bitmap = key?.let { BitmapCache.getBitmap(it) }
 
+        // QR按键逻辑
+        val btnQR = findViewById<ImageButton>(R.id.btnQR)
+        btnQR.setOnClickListener {
+            val currentBitmap = (imageView.drawable as? BitmapDrawable)?.bitmap
+            if (currentBitmap != null) {
+                QRScannerUtil.detectQRCode(
+                    context = this,
+                    bitmap = currentBitmap,
+                    listener = object : QRScannerUtil.QRDialogListener {
+                        override fun onIgnore() {
+                            // 用户忽略二维码的处理
+                        }
+
+                        override fun onCopyRequested(content: String) {
+                            val clipboard = getSystemService(CLIPBOARD_SERVICE) as ClipboardManager
+                            clipboard.setPrimaryClip(ClipData.newPlainText("二维码内容", content))
+                            Toast.makeText(
+                                this@ScreenshotActivity,
+                                "已复制二维码内容", Toast.LENGTH_SHORT
+                            ).show()
+                        }
+                    },
+                    onNoQRCode = {
+                        // 未检测到二维码时显示Toast
+                        Toast.makeText(this, "未检测到二维码", Toast.LENGTH_SHORT).show()
+                    }
+                )
+            }else{
+                Toast.makeText(this, "无图片", Toast.LENGTH_SHORT).show()
+            }
+        }
+
         if (bitmap != null) {
             croppedBitmap = bitmap
             imageView.setImageBitmap(bitmap)
@@ -421,15 +458,18 @@ class ScreenshotActivity : AppCompatActivity() , ModeActions {
             QRScannerUtil.detectQRCode(
                 context = this,
                 bitmap = bitmap,
-                listener = object: QRScannerUtil.QRDialogListener{
+                listener = object : QRScannerUtil.QRDialogListener {
                     override fun onIgnore() {
                         // 用户点击忽略，不做任何操作
                     }
+
                     override fun onCopyRequested(content: String) {
                         val clipboard = getSystemService(CLIPBOARD_SERVICE) as ClipboardManager
                         clipboard.setPrimaryClip(ClipData.newPlainText("二维码内容", content))
-                        Toast.makeText(this@ScreenshotActivity,
-                            "已复制二维码内容", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(
+                            this@ScreenshotActivity,
+                            "已复制二维码内容", Toast.LENGTH_SHORT
+                        ).show()
                     }
                 },
                 onNoQRCode = {
@@ -456,14 +496,22 @@ class ScreenshotActivity : AppCompatActivity() , ModeActions {
 
                 when (event.action) {
                     MotionEvent.ACTION_DOWN -> viewModel.startDrag(event.x, event.y)
-                    MotionEvent.ACTION_MOVE -> if (viewModel.isDragging.value == true) viewModel.updateDrag(event.x, event.y)
+                    MotionEvent.ACTION_MOVE -> if (viewModel.isDragging.value == true) viewModel.updateDrag(
+                        event.x,
+                        event.y
+                    )
+
                     MotionEvent.ACTION_UP -> {
                         viewModel.endDrag(event.x, event.y)
 
                         val drawable = imageView.drawable as? BitmapDrawable
                         val rect = viewModel.selectionRect.value
                         if (drawable != null && rect != null && !rect.isEmpty) {
-                            val croppedBitmap = cropRepository.cropBitmap(drawable.bitmap, rect, imageView.imageMatrix)
+                            val croppedBitmap = cropRepository.cropBitmap(
+                                drawable.bitmap,
+                                rect,
+                                imageView.imageMatrix
+                            )
                             if (croppedBitmap != null) {
                                 imageView.setImageBitmap(croppedBitmap)
                                 val newKey = BitmapCache.cacheBitmap(croppedBitmap)
@@ -474,7 +522,8 @@ class ScreenshotActivity : AppCompatActivity() , ModeActions {
                                 graffitiView.setBitmap(croppedBitmap)
                                 Toast.makeText(this, "已裁剪并更新图像", Toast.LENGTH_SHORT).show()
                             } else {
-                                Toast.makeText(this, "裁剪失败或区域无效", Toast.LENGTH_SHORT).show()
+                                Toast.makeText(this, "裁剪失败或区域无效", Toast.LENGTH_SHORT)
+                                    .show()
                             }
                         } else {
                             Toast.makeText(this, "无效选区或图片为空", Toast.LENGTH_SHORT).show()
@@ -495,7 +544,8 @@ class ScreenshotActivity : AppCompatActivity() , ModeActions {
                     PointF(rect.right.toFloat(), rect.bottom.toFloat())
                 )
             }
-            findViewById<TextView>(R.id.selectionHint).visibility = if (rect == null || rect.isEmpty) View.VISIBLE else View.GONE
+            findViewById<TextView>(R.id.selectionHint).visibility =
+                if (rect == null || rect.isEmpty) View.VISIBLE else View.GONE
         }
     }
 
@@ -517,25 +567,27 @@ class ScreenshotActivity : AppCompatActivity() , ModeActions {
     }
 
     //水印功能，暂不做拆分
-    private fun toggleWatermarkMode(){
+    private fun toggleWatermarkMode() {
         isWatermarkVisible = !isWatermarkVisible
         val key = intent.getStringExtra(EXTRA_SCREENSHOT_KEY)
         val bitmap = key?.let { BitmapCache.getBitmap(it) }
         if (bitmap != null) {
             val btnWatermark = findViewById<ImageButton>(R.id.btnWatermark)
-            if(isWatermarkVisible){
-                if(watermarkOverlay.isGone){
+            if (isWatermarkVisible) {
+                if (watermarkOverlay.isGone) {
                     watermarkOverlay.setWatermark(
                         config = watermarkConfig
                     )
                 }
                 btnWatermark.setImageResource(R.drawable.ic_watermark_on)
                 watermarkOverlay.visibility = View.VISIBLE
-                Toast.makeText(this, "已添加水印", Toast.LENGTH_SHORT).show()
+                watermarkSettingBar.updateUIState(true)
+//                Toast.makeText(this, "已添加水印", Toast.LENGTH_SHORT).show()
             } else {
                 btnWatermark.setImageResource(R.drawable.ic_watermark)
                 watermarkOverlay.visibility = View.INVISIBLE
-                Toast.makeText(this, "已取消添加水印", Toast.LENGTH_SHORT).show()
+                watermarkSettingBar.updateUIState(false)
+//                Toast.makeText(this, "已取消添加水印", Toast.LENGTH_SHORT).show()
             }
         }
     }
@@ -555,155 +607,18 @@ class ScreenshotActivity : AppCompatActivity() , ModeActions {
                 Toast.makeText(this, "无法获取图片", Toast.LENGTH_SHORT).show()
                 return null
             }
-        if(isWatermarkVisible){
+        if (isWatermarkVisible) {
             val watermarkedBitmap = WatermarkUtil.addWatermark(
                 originalBitmap = bitmap,
                 config = watermarkConfig
             )
             return watermarkedBitmap
-        }else{
+        } else {
             return bitmap
         }
     }
 
-
-    //OCR功能用，绘制OCR识别界面
-    private fun showTextOnScreenshotWithInteraction(visionText: Text) {
-        val textBlocks = visionText.textBlocks
-        val rootView = overlayView.parent as? ViewGroup ?: return
-
-        // 清除旧的 TextView
-        textViews.forEach { rootView.removeView(it) }
-        textViews.clear()
-
-        val imageView = overlayView
-        val imageWidth = imageView.width
-        val imageHeight = imageView.height
-
-        val matrix = imageView.imageMatrix
-        val values = FloatArray(9).also { matrix.getValues(it) }
-
-        for (textBlock in textBlocks) {
-            val text = textBlock.text
-            val boundingBox = textBlock.boundingBox ?: continue
-
-            val mappedLeft = (boundingBox.left * values[Matrix.MSCALE_X] + values[Matrix.MTRANS_X])
-            val mappedTop = (boundingBox.top * values[Matrix.MSCALE_Y] + values[Matrix.MTRANS_Y])
-            val mappedRight = (boundingBox.right * values[Matrix.MSCALE_X] + values[Matrix.MTRANS_X])
-            val mappedBottom = (boundingBox.bottom * values[Matrix.MSCALE_Y] + values[Matrix.MTRANS_Y])
-
-            val scaledLeft = max(0f, mappedLeft).toInt()
-            val scaledTop = max(0f, mappedTop).toInt()
-            val scaledRight = max((scaledLeft + 1).toFloat(), min(mappedRight, imageWidth.toFloat())).toInt()
-            val scaledBottom = max((scaledTop + 1).toFloat(), min(mappedBottom, imageHeight.toFloat())).toInt()
-
-            val paddingHorizontal = 4.dpToPx()
-            val paddingVertical = 2.dpToPx()
-
-            val blockWidth = scaledRight - scaledLeft
-            val blockHeight = scaledBottom - scaledTop
-            val extraHeight = (blockHeight * 0.3f).toInt()
-
-            val layoutWidth = blockWidth
-            val layoutHeight = blockHeight + paddingVertical * 2 + extraHeight
-
-            val textView = TextView(this).apply {
-                this.text = text
-                setTextColor(Color.BLACK)
-                setBackgroundColor(Color.parseColor("#E0F0FF"))
-                setPadding(paddingHorizontal, paddingVertical, paddingHorizontal, paddingVertical)
-                gravity = Gravity.CENTER
-                tag = "ocr_text"
-
-                val area = layoutWidth * layoutHeight
-                val estimatedTextSizePx = sqrt(area.toFloat()) * 0.2f
-                val textSizeSp = estimatedTextSizePx / resources.displayMetrics.scaledDensity
-                textSize = textSizeSp.coerceIn(12f, 36f)
-
-                minimumWidth = 32.dpToPx()
-                minimumHeight = 24.dpToPx()
-
-                setOnClickListener {
-                    viewModel.toggleSelectText(text)
-
-                    // 动态修改背景色（使用最新 ViewModel 状态）
-                    val selected = viewModel.selectedTexts.value.orEmpty()
-                    setBackgroundColor(
-                        if (selected.contains(text))
-                            Color.parseColor("#AA66CCFF")
-                        else
-                            Color.parseColor("#E0F0FF")
-                    )
-                }
-            }
-
-            rootView.addView(textView)
-            textViews.add(textView)
-
-            textView.layoutParams = FrameLayout.LayoutParams(
-                layoutWidth,
-                layoutHeight
-            ).apply {
-                leftMargin = scaledLeft
-                topMargin = scaledTop
-            }
-        }
-
-        addCopyButton()
-    }
-
-    //OCR功能用，添加复制按钮
-    private fun addCopyButton() {
-        val rootView = overlayView.parent as? ViewGroup ?: return
-
-        copyButton = Button(this).apply {
-            text = "复制选中内容"
-
-            background = GradientDrawable().apply {
-                shape = GradientDrawable.RECTANGLE
-                cornerRadius = 16f.dpToPx()
-                setColor(Color.WHITE)
-            }
-
-            setOnClickListener {
-                val selected = viewModel.selectedTexts.value.orEmpty()
-                if (selected.isEmpty()) {
-                    Toast.makeText(this@ScreenshotActivity, "未选中任何内容", Toast.LENGTH_SHORT).show()
-                    finish()
-                }
-
-                val combinedText = selected.joinToString("\n")
-                val clipboardManager = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                val clipData = ClipData.newPlainText("Selected OCR Text", combinedText)
-                clipboardManager.setPrimaryClip(clipData)
-
-                Toast.makeText(this@ScreenshotActivity, "已复制${selected.size}条内容", Toast.LENGTH_SHORT).show()
-
-                // 清空选中
-                viewModel.clearSelectedTexts()
-
-                // 清理 UI 元素
-                (overlayView.parent as? ViewGroup)?.let { parent ->
-                    textViews.forEach { parent.removeView(it) }
-                    parent.removeView(this@apply)
-                }
-                textViews.clear()
-                // 退出截图页面
-                finish()
-            }
-        }
-
-        rootView.addView(copyButton, FrameLayout.LayoutParams(
-            ViewGroup.LayoutParams.WRAP_CONTENT,
-            ViewGroup.LayoutParams.WRAP_CONTENT
-        ).apply {
-            gravity = Gravity.BOTTOM or Gravity.END
-            rightMargin = 30
-            bottomMargin = 30
-        })
-    }
-
-    //复制到剪切板用，这里不用拆分，不涉及数据操作
+    //复制到剪切板用
     private fun copyImageToClipboard() {
         // 创建一个临时文件来存储图片
         val tempFile = File(this.cacheDir, "temp_image.png")
@@ -733,7 +648,8 @@ class ScreenshotActivity : AppCompatActivity() , ModeActions {
                 "image/png",
                 fileProviderUri
             )
-            val clipboardManager = this.getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
+            val clipboardManager =
+                this.getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
             clipboardManager.setPrimaryClip(clipData)
 
             Toast.makeText(this, "图片已复制到剪贴板", Toast.LENGTH_SHORT).show()
@@ -747,10 +663,10 @@ class ScreenshotActivity : AppCompatActivity() , ModeActions {
         }
     }
 
-    //分享图片用，不用拆分
-    private fun shareCurrentImage(){
+    //分享图片用
+    private fun shareCurrentImage() {
         val bitmap = getBitmapWithIsWatermark()
-        if (bitmap == null){
+        if (bitmap == null) {
             Toast.makeText(this, "图片不存在", Toast.LENGTH_SHORT).show()
             return
         }
@@ -786,10 +702,10 @@ class ScreenshotActivity : AppCompatActivity() , ModeActions {
 
     }
 
-    //保存图片，不用拆分
+    //保存图片
     private fun saveCurrentImage() {
         val bitmap = getBitmapWithIsWatermark()
-        if (bitmap == null){
+        if (bitmap == null) {
             Toast.makeText(this, "图片不存在", Toast.LENGTH_SHORT).show()
             return
         }
@@ -832,6 +748,10 @@ class ScreenshotActivity : AppCompatActivity() , ModeActions {
 
                     override fun onSelectSize(size: Int) {
                         graffitiView.setStrokeWidth(size)
+                    }
+
+                    override fun onLineStyleSelected(style: Int) {
+                        graffitiView.setLineStyle(style)
                     }
 
                 })
@@ -880,18 +800,22 @@ class ScreenshotActivity : AppCompatActivity() , ModeActions {
                 exControlFrame.addView(arrowTabView)
 
                 graffitiView.setMosaicMode(false)
-                arrowTabView.setOnArrowStyleSelectedListener(object : ArrowTabView.OnArrowStyleSelectedListener {
+                arrowTabView.setOnArrowStyleSelectedListener(object :
+                    ArrowTabView.OnArrowStyleSelectedListener {
                     override fun onColorSelected(color: Int) {
                         graffitiView.setArrowColor(color)
                     }
+
                     override fun onWidthSelected(width: Float) {
                         graffitiView.setArrowWidth(width)
                     }
+
                     override fun onStyleSelected(style: Int) {
                         graffitiView.setArrowStyle(style)
                     }
                 })
             }
+
             ControlViewStatus.FramingMode.ordinal -> {
                 val currentBitmap = (imageView.drawable as? BitmapDrawable)?.bitmap ?: return
                 frameSelectView.setBitmap(currentBitmap) // 强制刷新为当前 imageView 的 bitmap
@@ -917,6 +841,7 @@ class ScreenshotActivity : AppCompatActivity() , ModeActions {
 
                 })
             }
+
             ControlViewStatus.OtherMode.ordinal -> {
                 graffitiView.visibility = View.GONE
                 frameSelectView.visibility = View.GONE
@@ -929,11 +854,11 @@ class ScreenshotActivity : AppCompatActivity() , ModeActions {
     override fun onDestroy() {
         super.onDestroy()
         // 清理 Bitmap 缓存
-        if (!SettingsConstants.PicIsHangUp){
+        if (!SettingsConstants.PicIsHangUp) {
 
             val currentKey = intent.getStringExtra(EXTRA_SCREENSHOT_KEY)
-        BitmapCache.clearExcept(currentKey)
-        handler.removeCallbacks(updateDotsRunnable)
+            BitmapCache.clearExcept(currentKey)
+            handler.removeCallbacks(updateDotsRunnable)
         }
 
     }
@@ -984,6 +909,14 @@ class ScreenshotActivity : AppCompatActivity() , ModeActions {
     override fun enterMosaic() {
         showControlView(ControlViewStatus.MosaicMode.ordinal)
     }
+    //进入框选模式
+    override fun enterBox() {
+        showControlView(ControlViewStatus.FramingMode.ordinal)
+    }
+    //退出框选模式
+    override fun exitBox() {
+        showControlView(ControlViewStatus.OtherMode.ordinal)
+    }
 
     //关闭马赛克
     override fun exitMosaic() {
@@ -1005,41 +938,35 @@ class ScreenshotActivity : AppCompatActivity() , ModeActions {
         if (event.action == android.view.KeyEvent.ACTION_DOWN) {
             val isCtrlPressed = event.isCtrlPressed
             val isShiftPressed = event.isShiftPressed
-
             when (event.keyCode) {
                 android.view.KeyEvent.KEYCODE_C -> {
                     if (isCtrlPressed) {
-                        Toast.makeText(this, "Ctrl+C 被触发：执行复制", Toast.LENGTH_SHORT).show()
-                        // TODO: 执行复制逻辑
+                        copyImageToClipboard() //复制操作
                         return true
                     }
                 }
+
                 android.view.KeyEvent.KEYCODE_Z -> {
                     if (isCtrlPressed && isShiftPressed) {
-                        // 执行重做逻辑
-                        viewModel.redo()
+                        viewModel.redo()  //重做操作
                         return true
                     } else if (isCtrlPressed) {
-                        // 执行撤销逻辑
-                        viewModel.undo()
+                        viewModel.undo() //撤销操作
                         return true
                     }
                 }
+
                 android.view.KeyEvent.KEYCODE_ESCAPE -> {
-                    Toast.makeText(this, "ESC 被触发：退出页面", Toast.LENGTH_SHORT).show()
-                    // TODO: 可以加确认退出
-                    finish()
+                    finish() //退出截图流程
                     return true
                 }
+
                 android.view.KeyEvent.KEYCODE_ENTER -> {
-                    Toast.makeText(this, "ENTER 被触发：保存图像", Toast.LENGTH_SHORT).show()
-                    // 调用保存逻辑
-                    saveCurrentImage()
+                    saveCurrentImage() //保存操作
                     return true
                 }
             }
         }
-
         return super.dispatchKeyEvent(event)
     }
 

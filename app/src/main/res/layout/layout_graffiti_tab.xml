@@ -36,6 +36,23 @@
         android:padding="8dp"
         android:src="@drawable/bg_oval_white" />
 
+    <ImageView
+        android:id="@+id/iv_straight_line"
+        android:layout_width="30dp"
+        android:layout_height="wrap_content"
+        android:background="@drawable/bg_select_common"
+        android:src="@drawable/ic_straight_line"/>
+
+    <ImageView
+        android:id="@+id/iv_wavy_line"
+        android:layout_width="30dp"
+        android:layout_marginStart="4dp"
+        android:layout_marginEnd="4dp"
+        android:background="@drawable/bg_select_common"
+        android:layout_height="wrap_content"
+        android:src="@drawable/ic_wavy_line"/>
+
+
     <!-- Selected Color Display -->
     <TextView
         android:id="@+id/tv_select_color"
