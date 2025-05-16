@@ -32,26 +32,16 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
 
-
 class MainActivity : BaseActivity() {
 
-    // 缓存 Fragment 实例
-    // （原先逻辑是每次切换选项卡都会新建 Fragment，把他们缓存为一个实例，这样切换的时候不会丢失页面信息）
-    private val fragmentCache = mutableMapOf<Class<*>, Fragment>().apply {
-        // 提前初始化所有 Fragment
-        put(MessageFragment::class.java, MessageFragment())
-        put(DocumentFragment::class.java, DocumentFragment())
-        put(SettingsFragment::class.java, SettingsFragment())
-        put(LibraryFragment::class.java, LibraryFragment())
-    }
+    private val fragmentCache = mutableMapOf<Class<out Fragment>, Fragment>()
+    private var currentFragment: Fragment? = null
 
     private lateinit var navMessage: View
     private lateinit var navDocument: View
     private lateinit var navSettings: View
     private lateinit var navLibrary: View
     private lateinit var sharedPreferences: SharedPreferences
-
-    //用于在启动时检查截图保存路径是否合法
     private lateinit var viewModel: SettingsViewModel
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -65,7 +55,6 @@ class MainActivity : BaseActivity() {
             insets
         }
 
-        // 初始化按钮
         navMessage = findViewById(R.id.navMessage)
         navDocument = findViewById(R.id.navDocument)
         navSettings = findViewById(R.id.navSettings)
@@ -73,15 +62,11 @@ class MainActivity : BaseActivity() {
 
         sharedPreferences = getSharedPreferences(SettingsConstants.PREF_NAME, MODE_PRIVATE)
 
-        // 初始化 ViewModel
-        val repository = SettingsRepository(this)
+        val repository = SettingsRepository(applicationContext)
         viewModel = ViewModelProvider(this, SettingsViewModelFactory(repository))[SettingsViewModel::class.java]
 
-        // 检查保存路径
         checkAndRequestSavePath()
 
-        //初始化COS
-        //这里改为了协程，如果直接调用初始化，会阻塞主线程，且失败就可能导致无响应
         lifecycleScope.launch {
             val cleanOption = sharedPreferences.getString(
                 SettingsConstants.KEY_CLEANUP,
@@ -111,31 +96,24 @@ class MainActivity : BaseActivity() {
         replaceFragment(MessageFragment::class.java)
         highlightNavItem(navMessage)
 
-        // 点击事件
-        // 设置点击监听
         navMessage.setOnClickListener {
-            if(MessageFragment.getMessageSecret()){
-                SecretUtil.setSecret(true)
-            }else{
-                SecretUtil.setSecret(false)
-            }
+            SecretUtil.setSecret(MessageFragment.getMessageSecret())
             replaceFragment(MessageFragment::class.java)
             highlightNavItem(navMessage)
         }
+
         navDocument.setOnClickListener {
-            if(DocumentDetailFragment.getDocumentSecret()){
-                SecretUtil.setSecret(true)
-            }else{
-                SecretUtil.setSecret(false)
-            }
+            SecretUtil.setSecret(DocumentDetailFragment.getDocumentSecret())
             replaceFragment(DocumentFragment::class.java)
             highlightNavItem(navDocument)
         }
+
         navSettings.setOnClickListener {
             SecretUtil.setSecret(false)
             replaceFragment(SettingsFragment::class.java)
             highlightNavItem(navSettings)
         }
+
         navLibrary.setOnClickListener {
             SecretUtil.setSecret(false)
             replaceFragment(LibraryFragment::class.java)
@@ -143,38 +121,33 @@ class MainActivity : BaseActivity() {
         }
     }
 
-
-    // 切换 Fragment 导航栏
     private fun replaceFragment(fragmentClass: Class<out Fragment>) {
-        supportFragmentManager.beginTransaction().apply {
-            // 隐藏所有已添加的 Fragment
-            fragmentCache.values.forEach { fragment ->
-                if (fragment.isAdded) {
-                    hide(fragment)
-                }
-            }
+        val transaction = supportFragmentManager.beginTransaction()
 
-            // 获取目标 Fragment（如果未添加则先添加）
-            val targetFragment = fragmentCache[fragmentClass]!!
-            if (!targetFragment.isAdded) {
-                add(R.id.contentFrame, targetFragment)
-            }
-
-            // 显示目标 Fragment
-            show(targetFragment)
-            commit()
+        // 如果当前已是目标 Fragment，跳过
+        val targetFragment = fragmentCache.getOrPut(fragmentClass) {
+            fragmentClass.newInstance()
         }
+        if (currentFragment === targetFragment) return
+
+        // 隐藏当前
+        currentFragment?.let {
+            if (it.isAdded) transaction.hide(it)
+        }
+
+        if (!targetFragment.isAdded) {
+            transaction.add(R.id.contentFrame, targetFragment)
+        }
+        transaction.show(targetFragment).commit()
+
+        currentFragment = targetFragment
     }
 
-
     private fun highlightNavItem(selectedView: View) {
-        // 先全部设为未选中背景
         navMessage.setBackgroundResource(R.drawable.bg_nav_normal)
         navDocument.setBackgroundResource(R.drawable.bg_nav_normal)
         navSettings.setBackgroundResource(R.drawable.bg_nav_normal)
         navLibrary.setBackgroundResource(R.drawable.bg_nav_normal)
-
-        // 给选中的那个设置选中背景
         selectedView.setBackgroundResource(R.drawable.bg_nav_selected)
     }
 
@@ -195,21 +168,15 @@ class MainActivity : BaseActivity() {
         ScreenshotCleanupService.startService(this)
     }
 
-    // 检查保存路径，如未设置则使用默认路径 /storage/emulated/0/Pictures/LightSnap
     private fun checkAndRequestSavePath() {
         val path = viewModel.savePath.value ?: viewModel.repository.getSavePath()
+        if (path.isNotBlank()) return
 
-        if (path.isNotBlank()) return  // 已设置，跳过
-
-        // 构建默认路径
         val picturesDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES)
         val defaultDir = File(picturesDir, SettingsConstants.DEFAULT_FOLDER_NAME)
-
         if (!defaultDir.exists()) defaultDir.mkdirs()
 
         val defaultPath = defaultDir.absolutePath
-
-        // 持久化到 ViewModel 和 SharedPreferences
         viewModel.setSavePath(defaultPath)
     }
 }
