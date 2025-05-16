@@ -18,7 +18,6 @@ import android.view.Gravity
 import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
-import android.widget.Button
 import android.widget.EditText
 import android.widget.FrameLayout
 import android.widget.ImageButton
@@ -96,8 +95,6 @@ class ScreenshotActivity : AppCompatActivity() , ModeActions {
     private var isWatermarkVisible = false // 水印是否显示
     private var isEditingText = false // 是否正在添加文字
 
-    private var textViews: MutableList<TextView> = mutableListOf()
-    private lateinit var copyButton: Button
     private lateinit var overlayView: ImageView
     private lateinit var croppedBitmap: Bitmap
 
@@ -872,41 +869,32 @@ class ScreenshotActivity : AppCompatActivity() , ModeActions {
         if (event.action == android.view.KeyEvent.ACTION_DOWN) {
             val isCtrlPressed = event.isCtrlPressed
             val isShiftPressed = event.isShiftPressed
-
             when (event.keyCode) {
                 android.view.KeyEvent.KEYCODE_C -> {
                     if (isCtrlPressed) {
-                        Toast.makeText(this, "Ctrl+C 被触发：执行复制", Toast.LENGTH_SHORT).show()
-                        // TODO: 执行复制逻辑
+                        copyImageToClipboard() //复制操作
                         return true
                     }
                 }
                 android.view.KeyEvent.KEYCODE_Z -> {
                     if (isCtrlPressed && isShiftPressed) {
-                        // 执行重做逻辑
-                        viewModel.redo()
+                        viewModel.redo()  //重做操作
                         return true
                     } else if (isCtrlPressed) {
-                        // 执行撤销逻辑
-                        viewModel.undo()
+                        viewModel.undo() //撤销操作
                         return true
                     }
                 }
                 android.view.KeyEvent.KEYCODE_ESCAPE -> {
-                    Toast.makeText(this, "ESC 被触发：退出页面", Toast.LENGTH_SHORT).show()
-                    // TODO: 可以加确认退出
-                    finish()
+                    finish() //退出截图流程
                     return true
                 }
                 android.view.KeyEvent.KEYCODE_ENTER -> {
-                    Toast.makeText(this, "ENTER 被触发：保存图像", Toast.LENGTH_SHORT).show()
-                    // 调用保存逻辑
-                    saveCurrentImage()
+                    saveCurrentImage() //保存操作
                     return true
                 }
             }
         }
-
         return super.dispatchKeyEvent(event)
     }
 
