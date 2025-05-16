@@ -1,7 +1,6 @@
 package com.electroboys.lightsnap.domain.screenshot
 
 import com.electroboys.lightsnap.data.screenshot.ControlViewStatus
-import com.electroboys.lightsnap.ui.main.activity.ScreenshotActivity
 import com.electroboys.lightsnap.ui.main.activity.ScreenshotActivity.Companion.Mode
 
 class ModeManager(private val actions: ModeActions) {
@@ -9,39 +8,57 @@ class ModeManager(private val actions: ModeActions) {
     private var currentMode: Mode = Mode.None
 
     fun enter(mode: Mode) {
-        // 退出上一个模式
+        // 重复点击当前模式，表示“退出模式”
+        if (currentMode == mode) {
+            exitCurrentMode()
+            actions.showControlPanel(ControlViewStatus.OtherMode, Mode.None)
+            return
+        }
+
+        // 否则是进入新模式，先退出原有
         exitCurrentMode()
 
-        // 进入新模式并展示控件
         when (mode) {
-            Mode.AddText -> actions.enterAddText()
+            Mode.AddText -> {
+                actions.enterAddText()
+                actions.showControlPanel(ControlViewStatus.AddTextMode, Mode.AddText)
+            }
             Mode.Graffiti -> {
                 actions.enterGraffiti()
-                actions.showControlPanel(ControlViewStatus.GraffitiMode)
+                actions.showControlPanel(ControlViewStatus.GraffitiMode, Mode.Graffiti)
             }
             Mode.Arrow -> {
                 actions.enterArrow()
-                actions.showControlPanel(ControlViewStatus.ArrowMode)
+                actions.showControlPanel(ControlViewStatus.ArrowMode, Mode.Arrow)
             }
             Mode.Mosaic -> {
                 actions.enterMosaic()
-                actions.showControlPanel(ControlViewStatus.MosaicMode)
+                actions.showControlPanel(ControlViewStatus.MosaicMode, Mode.Mosaic)
+            }
+            Mode.Watermark -> {
+                actions.enterWatermark()
+                actions.showControlPanel(ControlViewStatus.WatermarkMode, Mode.Watermark)
             }
             Mode.Crop -> {
-                if ((actions as? ScreenshotActivity)?.isSelectionEnabled == false) {
-                    actions.toggleCrop()
-                }
-                // Crop 不展示 ControlPanel，不调用
+                actions.enterCrop()
+                actions.showControlPanel(ControlViewStatus.CropMode, Mode.Crop)
             }
             Mode.Framing -> {
-                actions.showControlPanel(ControlViewStatus.FramingMode)
+                actions.showControlPanel(ControlViewStatus.FramingMode, Mode.Framing)
             }
-            Mode.OCR -> actions.onEnterOCR()
-            Mode.None -> actions.showControlPanel(ControlViewStatus.OtherMode)
+            Mode.OCR -> {
+                actions.onEnterOCR()
+                currentMode = Mode.OCR // 不退出，视作临时行为
+                return
+            }
+            Mode.None -> {
+                actions.showControlPanel(ControlViewStatus.OtherMode, Mode.None)
+            }
         }
 
         currentMode = mode
     }
+
 
     private fun exitCurrentMode() {
         when (currentMode) {
@@ -50,9 +67,7 @@ class ModeManager(private val actions: ModeActions) {
             Mode.Arrow -> actions.exitArrow()
             Mode.Mosaic -> actions.exitMosaic()
             Mode.Crop -> {
-                if ((actions as? ScreenshotActivity)?.isSelectionEnabled == true) {
-                    actions.toggleCrop()
-                }
+                actions.exitCrop()
             }
             else -> {}
         }

@@ -58,8 +58,6 @@ class AddTextModeHandler(
 
         exControlFrame.removeAllViews()
         exControlFrame.addView(editAddTextBarView)
-
-        btnText.setImageResource(R.drawable.ic_addtext_textboxfilled)
         editAddTextView.visibility = View.VISIBLE
         editAddTextBarView.visibility = View.VISIBLE
 
@@ -72,7 +70,6 @@ class AddTextModeHandler(
         editAddTextView.visibility = View.GONE
         editAddTextBarView.visibility = View.GONE
         editAddTextBarView.clearState()
-        btnText.setImageResource(R.drawable.ic_addtext_textbox)
         isActive = false
     }
 

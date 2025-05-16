@@ -162,6 +162,10 @@ class ScreenshotViewModel(private val ocrRepository: OcrRepository) : ViewModel(
         isSelectionEnabled.value = !(isSelectionEnabled.value ?: true)
     }
 
+    fun clearSelectionRect() {
+        selectionRect.value = null
+    }
+
     //OCR逻辑用
     fun recognizeAndCallback(bitmap: Bitmap ,callback: OnTextRecognizedListener) {
         viewModelScope.launch {

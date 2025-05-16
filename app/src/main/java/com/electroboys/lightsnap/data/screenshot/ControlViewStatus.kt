@@ -6,5 +6,8 @@ enum class ControlViewStatus {
     MosaicMode,//马赛克模式
     FramingMode,//框选模式
     ArrowMode,//箭头模式
+    WatermarkMode,//水印模式
+    CropMode,//裁剪模式
     OtherMode//其他模式
+
 }

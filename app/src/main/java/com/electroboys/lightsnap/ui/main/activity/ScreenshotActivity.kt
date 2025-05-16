@@ -1,7 +1,6 @@
 package com.electroboys.lightsnap.ui.main.activity
 
 import QRScannerUtil
-import android.annotation.SuppressLint
 import android.app.AlertDialog
 import android.content.ClipData
 import android.content.ClipboardManager
@@ -9,13 +8,11 @@ import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.Color
-import android.graphics.PointF
 import android.graphics.drawable.BitmapDrawable
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.view.Gravity
-import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
 import android.widget.EditText
@@ -26,7 +23,6 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.FileProvider
-import androidx.core.view.isGone
 import androidx.lifecycle.ViewModelProvider
 import com.electroboys.lightsnap.R
 import com.electroboys.lightsnap.data.entity.SettingsConstants
@@ -70,6 +66,16 @@ class ScreenshotActivity : AppCompatActivity(), ModeActions {
     private lateinit var watermarkOverlay: WatermarkOverlayView
     private lateinit var watermarkSettingBar: WatermarkSettingBarView
 
+    //按钮组
+    private lateinit var btnWatermark: ImageButton //水印按钮
+    private lateinit var btnIfCanSelect: ImageButton //二次选择
+    private lateinit var btnText: ImageButton //添加文字
+    private lateinit var btnGraffiti: ImageButton //添加涂鸦
+    private lateinit var btnMosaic: ImageButton //添加马赛克
+    private lateinit var btnArrow: ImageButton //添加箭头
+    private lateinit var btnBox: ImageButton // 添加方框
+
+
     companion object {
         const val EXTRA_SCREENSHOT_KEY = "screenshot_key"
 
@@ -81,6 +87,7 @@ class ScreenshotActivity : AppCompatActivity(), ModeActions {
             Arrow,
             Mosaic,
             Crop,
+            Watermark,
             OCR,
             Framing
         }
@@ -88,7 +95,6 @@ class ScreenshotActivity : AppCompatActivity(), ModeActions {
 
     private lateinit var modeManager: ModeManager//模式管理器
     private var originalBitmapKey: String? = null
-    var isSelectionEnabled = true //框选是否启用,默认开启
     private val watermarkConfig = WatermarkConfig.default() //水印配置
     private var isWatermarkVisible = false // 水印是否显示
     private lateinit var overlayView: ImageView
@@ -144,17 +150,6 @@ class ScreenshotActivity : AppCompatActivity(), ModeActions {
         ocrOverlayView = findViewById(R.id.ocrOverlayView)
         overlayView = imageView
 
-        modeManager = ModeManager(this)
-        controlPanelManager = ControlPanelManager(
-            context = this,
-            imageView = imageView,
-            graffitiView = graffitiView,
-            frameSelectView = frameSelectView,
-            exControlFrame = exControlFrame,
-            intent = intent,
-            container = findViewById(R.id.imageContainer),
-            btnText = findViewById(R.id.btnText)
-        )
 
         // OCR键逻辑
         val btnOcr = findViewById<ImageButton>(R.id.btnOcr)
@@ -198,14 +193,10 @@ class ScreenshotActivity : AppCompatActivity(), ModeActions {
         }
 
         // 添加文字键逻辑
-        val btnText = findViewById<ImageButton>(R.id.btnText)
+        btnText = findViewById<ImageButton>(R.id.btnText)
         btnText.setOnClickListener {
             modeManager.enter(Mode.AddText)
         }
-
-        //设置二次裁剪功能监听器和交互逻辑
-        setupTouchListener()      // 初始化触摸裁剪逻辑
-        setupObservers()          // 观察 ViewModel 的选区状态
 
         //撤回和重做
         viewModel.currentBitmap.observe(this) { bitmap ->
@@ -262,34 +253,31 @@ class ScreenshotActivity : AppCompatActivity(), ModeActions {
         }
 
         //  裁剪开关逻辑
-        val btnIfCanSelect = findViewById<ImageButton>(R.id.btnIsCanSelect)
+        btnIfCanSelect = findViewById<ImageButton>(R.id.btnIsCanSelect)
         btnIfCanSelect.setOnClickListener {
             modeManager.enter(Mode.Crop)
         }
 
         // 涂鸦按钮逻辑
-        val btnGraffiti = findViewById<ImageButton>(R.id.btnDraw)
+        btnGraffiti = findViewById<ImageButton>(R.id.btnDraw)
         btnGraffiti.setOnClickListener {
             modeManager.enter(Mode.Graffiti)
         }
 
         // 马赛克按钮逻辑
-        val btnMosaic = findViewById<ImageButton>(R.id.btnMosaic)
+        btnMosaic = findViewById<ImageButton>(R.id.btnMosaic)
         btnMosaic.setOnClickListener {
             modeManager.enter(Mode.Mosaic)
         }
 
         // 箭头按钮逻辑
-        val btnArrow = findViewById<ImageButton>(R.id.btnArrow)
+        btnArrow = findViewById<ImageButton>(R.id.btnArrow)
         btnArrow.setOnClickListener {
             modeManager.enter(Mode.Arrow)
         }
 
         //钉选逻辑
         findViewById<View>(R.id.btnFixed).setOnClickListener {
-            if (isSelectionEnabled) {
-                toggleSelectionMode()
-            }
             SettingsConstants.PicIsHangUp = true
             val bitmap = (imageView.drawable as? BitmapDrawable)?.bitmap
             val bitmapKey = bitmap?.let { it1 -> BitmapCache.cacheBitmap(it1) }
@@ -299,9 +287,6 @@ class ScreenshotActivity : AppCompatActivity(), ModeActions {
 
         val btnTranslate = findViewById<View>(R.id.btnTranslate)
         btnTranslate.setOnClickListener {
-            if (isSelectionEnabled) {
-                toggleSelectionMode()
-            }
             val bitmap = (imageView.drawable as? BitmapDrawable)?.bitmap
             bitmap?.let { it1 ->
                 viewModel.recognizeAndCallback(
@@ -340,11 +325,8 @@ class ScreenshotActivity : AppCompatActivity(), ModeActions {
 
         }
 
-        val btnBox = findViewById<View>(R.id.btnBox)
+        btnBox = findViewById<ImageButton>(R.id.btnBox)
         btnBox.setOnClickListener {
-            if (isSelectionEnabled) {
-                toggleSelectionMode()
-            }
             modeManager.enter(Mode.Framing)
         }
 
@@ -366,9 +348,9 @@ class ScreenshotActivity : AppCompatActivity(), ModeActions {
         })
 
         // 水印开关逻辑
-        val btnWatermark = findViewById<ImageButton>(R.id.btnWatermark)
+        btnWatermark = findViewById<ImageButton>(R.id.btnWatermark)
         btnWatermark.setOnClickListener {
-            toggleWatermarkMode()
+            modeManager.enter(Mode.Watermark)
         }
         // 水印设置栏初始化
         watermarkSettingBar = WatermarkSettingBarView(this).apply {
@@ -467,114 +449,28 @@ class ScreenshotActivity : AppCompatActivity(), ModeActions {
         }
 
         //  由于裁剪功能默认时开启的，在所有组件完成初始化之后进入裁剪模式
-        modeManager.enter(Mode.Crop)
+        modeManager = ModeManager(this)
+        controlPanelManager = ControlPanelManager(
+            context = this,
+            imageView = imageView,
+            graffitiView = graffitiView,
+            frameSelectView = frameSelectView,
+            exControlFrame = exControlFrame,
+            intent = intent,
+            container = findViewById(R.id.imageContainer),
+            btnText = findViewById(R.id.btnText),
+            watermarkOverlay = watermarkOverlay,
+            watermarkConfig = watermarkConfig,
+            btnWatermark = findViewById(R.id.btnWatermark),
+            watermarkSettingBar = watermarkSettingBar,
+            cropRepository = cropRepository,
+            imageContainer = findViewById(R.id.imageContainer),
+            selectView = selectView,
+            viewModel = viewModel,
+            selectionHintView = findViewById(R.id.selectionHint)
+        )
     }
 
-    //  二次裁剪的框选设置触摸监听器
-    @SuppressLint("ClickableViewAccessibility")
-    private fun setupTouchListener() {
-        val imageContainer = findViewById<View>(R.id.imageContainer)
-        imageContainer.post {
-            imageContainer.setOnTouchListener { _, event ->
-                if (viewModel.isSelectionEnabled.value != true) return@setOnTouchListener false
-
-                when (event.action) {
-                    MotionEvent.ACTION_DOWN -> viewModel.startDrag(event.x, event.y)
-                    MotionEvent.ACTION_MOVE -> if (viewModel.isDragging.value == true) viewModel.updateDrag(
-                        event.x,
-                        event.y
-                    )
-
-                    MotionEvent.ACTION_UP -> {
-                        viewModel.endDrag(event.x, event.y)
-
-                        val drawable = imageView.drawable as? BitmapDrawable
-                        val rect = viewModel.selectionRect.value
-                        if (drawable != null && rect != null && !rect.isEmpty) {
-                            val croppedBitmap = cropRepository.cropBitmap(
-                                drawable.bitmap,
-                                rect,
-                                imageView.imageMatrix
-                            )
-                            if (croppedBitmap != null) {
-                                imageView.setImageBitmap(croppedBitmap)
-                                val newKey = BitmapCache.cacheBitmap(croppedBitmap)
-                                intent.putExtra(EXTRA_SCREENSHOT_KEY, newKey)
-                                ImageHistory.push(newKey)
-                                selectView.clearSelection()
-                                findViewById<TextView>(R.id.selectionHint).visibility = View.VISIBLE
-                                graffitiView.setBitmap(croppedBitmap)
-                                Toast.makeText(this, "已裁剪并更新图像", Toast.LENGTH_SHORT).show()
-                            } else {
-                                Toast.makeText(this, "裁剪失败或区域无效", Toast.LENGTH_SHORT)
-                                    .show()
-                            }
-                        } else {
-                            Toast.makeText(this, "无效选区或图片为空", Toast.LENGTH_SHORT).show()
-                        }
-                    }
-                }
-                true
-            }
-        }
-    }
-
-    //  二次裁剪的框选设置ViewModel监听器
-    private fun setupObservers() {
-        viewModel.selectionRect.observe(this) { rect ->
-            if (::selectView.isInitialized && rect != null) {
-                selectView.setSelection(
-                    PointF(rect.left.toFloat(), rect.top.toFloat()),
-                    PointF(rect.right.toFloat(), rect.bottom.toFloat())
-                )
-            }
-            findViewById<TextView>(R.id.selectionHint).visibility =
-                if (rect == null || rect.isEmpty) View.VISIBLE else View.GONE
-        }
-    }
-
-    //裁剪功能开关
-    private fun toggleSelectionMode() {
-        isSelectionEnabled = !isSelectionEnabled
-        val btnIfCanSelect = findViewById<ImageButton>(R.id.btnIsCanSelect)
-        viewModel.toggleSelectionEnabled()
-        if (viewModel.isSelectionEnabled.value == true) {
-            findViewById<TextView>(R.id.selectionHint).visibility = View.VISIBLE
-            btnIfCanSelect.setImageResource(R.drawable.ic_reselect_on)
-//            Toast.makeText(this, "裁剪功能已开启", Toast.LENGTH_SHORT).show()
-        } else {
-            selectView.clearSelection()
-            findViewById<TextView>(R.id.selectionHint).visibility = View.GONE
-            btnIfCanSelect.setImageResource(R.drawable.ic_reselect)
-//            Toast.makeText(this, "裁剪功能已关闭", Toast.LENGTH_SHORT).show()
-        }
-    }
-
-    //水印功能，暂不做拆分
-    private fun toggleWatermarkMode() {
-        isWatermarkVisible = !isWatermarkVisible
-        val key = intent.getStringExtra(EXTRA_SCREENSHOT_KEY)
-        val bitmap = key?.let { BitmapCache.getBitmap(it) }
-        if (bitmap != null) {
-            val btnWatermark = findViewById<ImageButton>(R.id.btnWatermark)
-            if (isWatermarkVisible) {
-                if (watermarkOverlay.isGone) {
-                    watermarkOverlay.setWatermark(
-                        config = watermarkConfig
-                    )
-                }
-                btnWatermark.setImageResource(R.drawable.ic_watermark_on)
-                watermarkOverlay.visibility = View.VISIBLE
-                watermarkSettingBar.updateUIState(true)
-//                Toast.makeText(this, "已添加水印", Toast.LENGTH_SHORT).show()
-            } else {
-                btnWatermark.setImageResource(R.drawable.ic_watermark)
-                watermarkOverlay.visibility = View.INVISIBLE
-                watermarkSettingBar.updateUIState(false)
-//                Toast.makeText(this, "已取消添加水印", Toast.LENGTH_SHORT).show()
-            }
-        }
-    }
 
     // 水印功能刷新
     private fun refreshWatermark() {
@@ -728,37 +624,70 @@ class ScreenshotActivity : AppCompatActivity(), ModeActions {
     // OnAndOffMode
     // 这里下面都是功能按钮的启动与关闭
 
-    override fun enterGraffiti() {}
-    override fun exitGraffiti() {}
+    override fun enterGraffiti() {
+        updateModeButtonIcons(Mode.Graffiti)
+        showControlPanel(ControlViewStatus.GraffitiMode, Mode.Graffiti)
+    }
+
+    override fun exitGraffiti() {
+        updateModeButtonIcons(Mode.None)
+    }
 
     override fun enterAddText() {
-        showControlPanel(ControlViewStatus.AddTextMode)
+        updateModeButtonIcons(Mode.AddText)
+        showControlPanel(ControlViewStatus.AddTextMode, Mode.AddText)
     }
 
     override fun exitAddText() {
         controlPanelManager.exitAddTextMode()
+        updateModeButtonIcons(Mode.None)
     }
 
-    override fun enterMosaic() {}
-    override fun exitMosaic() {}
-
-    override fun enterArrow() {}
-    override fun exitArrow() {}
-
-
-
-    // 切换裁剪开关
-    override fun toggleCrop() {
-        toggleSelectionMode()
+    override fun enterMosaic() {
+        updateModeButtonIcons(Mode.Mosaic)
+        showControlPanel(ControlViewStatus.MosaicMode, Mode.Mosaic)
     }
 
-    // 启动OCR
+    override fun exitMosaic() {
+        updateModeButtonIcons(Mode.None)
+    }
+
+    override fun enterArrow() {
+        updateModeButtonIcons(Mode.Arrow)
+        showControlPanel(ControlViewStatus.ArrowMode, Mode.Arrow)
+    }
+
+    override fun exitArrow() {
+        updateModeButtonIcons(Mode.None)
+    }
+
+    override fun enterCrop() {
+        updateModeButtonIcons(Mode.Crop)
+        showControlPanel(ControlViewStatus.CropMode, Mode.Crop)
+    }
+
+    override fun exitCrop() {
+        controlPanelManager.exitCropMode()
+        updateModeButtonIcons(Mode.None)
+    }
+
+    override fun enterWatermark() {
+        updateModeButtonIcons(Mode.Watermark)
+        showControlPanel(ControlViewStatus.WatermarkMode, Mode.Watermark)
+    }
+
+    override fun exitWatermark() {
+        updateModeButtonIcons(Mode.None)
+    }
+
     override fun onEnterOCR() {
+        updateModeButtonIcons(Mode.OCR)
         viewModel.recognize(croppedBitmap)
     }
 
-    override fun showControlPanel(mode: ControlViewStatus) {
+    override fun showControlPanel(mode: ControlViewStatus, activeMode: Mode) {
         controlPanelManager.applyMode(mode)
+        updateModeButtonIcons(activeMode)
     }
 
     // 快捷键触发功能
@@ -826,4 +755,41 @@ class ScreenshotActivity : AppCompatActivity(), ModeActions {
             .show()
     }
 
+    //更新按钮状态
+    private fun updateModeButtonIcons(activeMode: Mode) {
+        btnText.setImageResource(
+            if (activeMode == Mode.AddText) R.drawable.ic_text_on
+            else R.drawable.ic_text
+        )
+
+        btnWatermark.setImageResource(
+            if (activeMode == Mode.Watermark) R.drawable.ic_watermark_on
+            else R.drawable.ic_watermark
+        )
+
+        btnIfCanSelect.setImageResource(
+            if (activeMode == Mode.Crop) R.drawable.ic_reselect_on
+            else R.drawable.ic_reselect
+        )
+
+        btnGraffiti.setImageResource(
+            if (activeMode == Mode.Graffiti) R.drawable.ic_draw_on
+            else R.drawable.ic_draw
+        )
+
+        btnMosaic.setImageResource(
+            if (activeMode == Mode.Mosaic) R.drawable.ic_mask_on
+            else R.drawable.ic_mask
+        )
+
+        btnArrow.setImageResource(
+            if (activeMode == Mode.Arrow) R.drawable.ic_arrow_on
+            else R.drawable.ic_arrow
+        )
+
+        btnBox.setImageResource(
+            if (activeMode == Mode.Framing) R.drawable.ic_box_on
+            else R.drawable.ic_box
+        )
+    }
 }
