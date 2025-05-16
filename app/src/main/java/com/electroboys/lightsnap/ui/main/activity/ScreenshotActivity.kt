@@ -84,7 +84,8 @@ class ScreenshotActivity : AppCompatActivity(), ModeActions {
             Arrow,
             Mosaic,
             Crop,
-            OCR
+            OCR,
+            Box
         }
     }
 
@@ -332,7 +333,7 @@ class ScreenshotActivity : AppCompatActivity(), ModeActions {
                                             imageView.post {
                                                 Toast.makeText(
                                                     baseContext,
-                                                    "翻译成功" + translatedText,
+                                                    "翻译成功",
                                                     Toast.LENGTH_SHORT
                                                 ).show()
                                             }
@@ -357,10 +358,11 @@ class ScreenshotActivity : AppCompatActivity(), ModeActions {
         }
         val btnBox = findViewById<View>(R.id.btnBox)
         btnBox.setOnClickListener {
-            if (isSelectionEnabled) {
-                toggleSelectionMode()
+            if (modeManager.getCurrentMode() == Mode.Box) {
+                modeManager.enter(Mode.None)
+            } else {
+                modeManager.enter(Mode.Box)
             }
-            showControlView(ControlViewStatus.FramingMode.ordinal)
         }
         graffitiView.setOnBitmapChangeListener(object : GraffitiView.onBitmapChangeListener {
             override fun onBitmapChange(bitmap: Bitmap) {
@@ -748,6 +750,10 @@ class ScreenshotActivity : AppCompatActivity(), ModeActions {
                         graffitiView.setStrokeWidth(size)
                     }
 
+                    override fun onLineStyleSelected(style: Int) {
+                        graffitiView.setLineStyle(style)
+                    }
+
                 })
             }
 
@@ -902,6 +908,14 @@ class ScreenshotActivity : AppCompatActivity(), ModeActions {
     //启动马赛克
     override fun enterMosaic() {
         showControlView(ControlViewStatus.MosaicMode.ordinal)
+    }
+    //进入框选模式
+    override fun enterBox() {
+        showControlView(ControlViewStatus.FramingMode.ordinal)
+    }
+    //退出框选模式
+    override fun exitBox() {
+        showControlView(ControlViewStatus.OtherMode.ordinal)
     }
 
     //关闭马赛克

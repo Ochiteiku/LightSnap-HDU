@@ -268,7 +268,6 @@ class FloatingView(context: Context, attrs: AttributeSet?, defStyleAttr: Int) :
                     mWindowManager!!.removeViewImmediate(this)
                 }
             }
-            SettingsConstants.PicIsHangUp = false
         } catch (E: Exception) {
         }
         this.isShow = false

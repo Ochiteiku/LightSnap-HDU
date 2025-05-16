@@ -18,7 +18,9 @@ class GraffitiView @JvmOverloads constructor(
     enum class DrawMode {
         GRAFFITI,   // 涂鸦模式
         ARROW,      // 箭头模式
-        MOSAIC      // 马赛克模式
+        MOSAIC,      // 马赛克模式
+        WAVY_LINE   // 新增波浪线模式
+
     }
 
     // 箭头数据类
@@ -32,6 +34,14 @@ class GraffitiView @JvmOverloads constructor(
         val style: Int
     )
 
+    // 波浪线数据类
+    data class WavyLine(
+        val path: Path,
+        var color: Int,
+        val width: Float,
+        val amplitude: Float = 10f, // 波浪幅度
+        val wavelength: Float = 30f   // 波浪周期长度
+    )
     // 当前绘制模式
     private var currentMode = DrawMode.GRAFFITI
 
@@ -50,7 +60,17 @@ class GraffitiView @JvmOverloads constructor(
         strokeCap = Paint.Cap.ROUND
     }
     private val currentPath = Path()
-
+    // 新增波浪线相关属性
+    private val wavyLines = mutableListOf<WavyLine>()
+    private var currentWavyPath: Path? = null
+    private var startWavyPoint: PointF? = null
+    private val wavyPaint = Paint().apply {
+        style = Paint.Style.STROKE
+        strokeCap = Paint.Cap.ROUND
+        isAntiAlias = true
+        color = Color.WHITE
+        strokeWidth = 5f
+    }
     // 箭头相关属性
     private val arrowPaint = Paint().apply {
         style = Paint.Style.STROKE
@@ -74,7 +94,8 @@ class GraffitiView @JvmOverloads constructor(
     private val srcRect = RectF()
     private val dstRect = RectF()
     private val inverseMatrix = Matrix()
-
+    private var currentWavyAmplitude = 10f
+    private var currentWavelength = 30f
     // 初始化
     init {
         setLayerType(LAYER_TYPE_SOFTWARE, null) // 马赛克需要软件渲染
@@ -138,6 +159,106 @@ class GraffitiView @JvmOverloads constructor(
             )
         }
         canvas.drawPath(path, arrowPaint)
+    }
+    // 新增波浪线触摸处理
+    private fun handleWavyLineTouch(event: MotionEvent, x: Float, y: Float) {
+        when (event.action) {
+            MotionEvent.ACTION_DOWN -> {
+                startWavyPoint = PointF(x, y)
+                currentWavyPath = Path().apply { moveTo(x, y) }
+                invalidate()
+            }
+
+            MotionEvent.ACTION_MOVE -> {
+                startWavyPoint?.let { start ->
+                    currentWavyPath?.reset()
+                    currentWavyPath?.moveTo(start.x, start.y)
+                    generateWavyPath(start.x, start.y, x, y)?.let {
+                        currentWavyPath?.addPath(it)
+                    }
+                    invalidate()
+                }
+            }
+
+            MotionEvent.ACTION_UP -> {
+                currentWavyPath?.let {
+                    wavyLines.add(WavyLine(it, wavyPaint.color, wavyPaint.strokeWidth))
+                    drawWavyLineOnBitmap(it)
+                    currentWavyPath = null
+                    startWavyPoint = null
+                    notifyBitmapChanged()
+                }
+            }
+        }
+    }
+
+
+    // 生成波浪路径算法
+    private fun generateWavyPath(startX: Float, startY: Float, endX: Float, endY: Float): Path? {
+        val path = Path()
+        val dx = endX - startX
+        val dy = endY - startY
+        val distance = sqrt(dx * dx + dy * dy)
+        if (distance < 1) return path
+
+        // 替换原有固定参数为：
+        val amplitude = currentWavyAmplitude
+        val wavelength = currentWavelength
+        val waveCount = (distance / wavelength).toInt()
+        val actualWaveLength = distance / waveCount // 动态调整波长保持完整波形
+
+        val angle = atan2(dy, dx)
+        val normalX = -sin(angle) * amplitude // 垂直方向分量X
+        val normalY = cos(angle) * amplitude  // 垂直方向分量Y
+
+        path.moveTo(startX, startY)
+
+        // 每个波长绘制2个贝塞尔曲线组成完整波形
+        for (i in 0 until waveCount) {
+            val progress = i.toFloat() / waveCount
+            val currentX = startX + dx * progress
+            val currentY = startY + dy * progress
+
+            // 第一个控制点（波峰）
+            val cp1x = currentX + normalX * 0.5f
+            val cp1y = currentY + normalY * 0.5f
+
+            // 第二个控制点（波谷）
+            val cp2x = currentX - normalX * 0.5f
+            val cp2y = currentY - normalY * 0.5f
+
+            // 使用三次贝塞尔曲线绘制波形
+            path.cubicTo(
+                currentX + dx * 0.25f / waveCount + normalX,
+                currentY + dy * 0.25f / waveCount + normalY,
+                currentX + dx * 0.5f / waveCount,
+                currentY + dy * 0.5f / waveCount,
+                currentX + dx * 0.5f / waveCount,
+                currentY + dy * 0.5f / waveCount
+            )
+
+            path.cubicTo(
+                currentX + dx * 0.75f / waveCount - normalX,
+                currentY + dy * 0.75f / waveCount - normalY,
+                currentX + dx * 1f / waveCount,
+                currentY + dy * 1f / waveCount,
+                currentX + dx * 1f / waveCount,
+                currentY + dy * 1f / waveCount
+            )
+        }
+
+        // 最终连接到终点
+        path.lineTo(endX, endY)
+        return path
+    }
+
+    // 在Bitmap上绘制最终波浪线
+    private fun drawWavyLineOnBitmap(path: Path) {
+        canvas?.apply {
+            save()
+            drawPath(path, wavyPaint)
+            restore()
+        }
     }
 
     // 处理箭头触摸事件
@@ -254,7 +375,10 @@ class GraffitiView @JvmOverloads constructor(
             canvas.withMatrix(drawMatrix) {
                 // 1. 绘制底层Bitmap
                 drawBitmap(bmp, 0f, 0f, null)
-
+                // 绘制临时波浪线预览
+                currentWavyPath?.let {
+                    drawPath(it, wavyPaint)
+                }
                 // 3. 绘制当前拖拽中的临时箭头
                 currentArrow?.let { drawArrow(this, it) }
             }
@@ -271,6 +395,10 @@ class GraffitiView @JvmOverloads constructor(
         return when (currentMode) {
             DrawMode.ARROW -> {
                 handleArrowTouch(adjustedEvent, x, y)
+                true
+            }
+            DrawMode.WAVY_LINE -> {
+                handleWavyLineTouch(adjustedEvent, x, y)
                 true
             }
             else -> {
@@ -381,14 +509,17 @@ class GraffitiView @JvmOverloads constructor(
         when (style) {
             0 -> {
                 graffitiPaint.strokeWidth = 6f
+                wavyPaint.strokeWidth = 6f
             }
 
             1 -> {
                 graffitiPaint.strokeWidth = 14f
+                wavyPaint.strokeWidth = 14f
             }
 
             2 -> {
                 graffitiPaint.strokeWidth = 24f
+                wavyPaint.strokeWidth = 24f
             }
         }
         invalidate() // 刷新视图以应用新的笔刷大小
@@ -397,7 +528,7 @@ class GraffitiView @JvmOverloads constructor(
     //设置笔刷颜色
     fun setStrokeColor(color: Int) {
         graffitiPaint.color = color
-
+         wavyPaint.color = color
         invalidate()     //刷新视图
     }
 
@@ -476,6 +607,21 @@ class GraffitiView @JvmOverloads constructor(
         bitmap?.eraseColor(Color.TRANSPARENT)
         arrows.forEach { drawArrow(canvas!!, it) }
         invalidate()
+    }
+
+    /**
+     * 设置是直线还是波浪线
+     */
+    fun setLineStyle(style: Int) {
+         when (style) {
+             0 -> {
+                 currentMode = DrawMode.GRAFFITI
+             }
+             1 -> {
+                 currentMode = DrawMode.WAVY_LINE
+             }
+         }
+         invalidate()
     }
 
 }
