@@ -150,7 +150,10 @@ class ScreenshotActivity : AppCompatActivity(), ModeActions {
             imageView = imageView,
             graffitiView = graffitiView,
             frameSelectView = frameSelectView,
-            exControlFrame = exControlFrame
+            exControlFrame = exControlFrame,
+            intent = intent,
+            container = findViewById(R.id.imageContainer),
+            btnText = findViewById(R.id.btnText)
         )
 
         // OCR键逻辑
@@ -720,7 +723,6 @@ class ScreenshotActivity : AppCompatActivity(), ModeActions {
 
     override fun finish() {
         super.finish()
-        //overridePendingTransition(R.anim.fade_out, R.anim.fade_out)
     }
 
     // OnAndOffMode
@@ -729,14 +731,21 @@ class ScreenshotActivity : AppCompatActivity(), ModeActions {
     override fun enterGraffiti() {}
     override fun exitGraffiti() {}
 
-    override fun enterAddText() {}
-    override fun exitAddText() {}
+    override fun enterAddText() {
+        showControlPanel(ControlViewStatus.AddTextMode)
+    }
+
+    override fun exitAddText() {
+        controlPanelManager.exitAddTextMode()
+    }
 
     override fun enterMosaic() {}
     override fun exitMosaic() {}
 
     override fun enterArrow() {}
     override fun exitArrow() {}
+
+
 
     // 切换裁剪开关
     override fun toggleCrop() {

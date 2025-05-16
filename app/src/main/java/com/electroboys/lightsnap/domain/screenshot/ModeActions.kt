@@ -6,6 +6,7 @@ interface ModeActions {
     fun enterAddText()
     fun exitAddText()
 
+
     fun enterGraffiti()
     fun exitGraffiti()
 
