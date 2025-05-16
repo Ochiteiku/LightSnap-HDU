@@ -142,7 +142,7 @@
             <ImageButton
                 android:id="@+id/btnText"
                 style="@style/ToolButtonStyle"
-                android:src="@drawable/ic_addtext_textbox"
+                android:src="@drawable/ic_text"
                 android:contentDescription="文字" />
 
             <ImageButton
