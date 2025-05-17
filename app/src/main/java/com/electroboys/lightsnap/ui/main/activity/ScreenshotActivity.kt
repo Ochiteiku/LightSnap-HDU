@@ -47,6 +47,7 @@ import com.electroboys.lightsnap.utils.ClipboardUtil
 import com.google.mlkit.vision.text.Text
 import androidx.core.view.isVisible
 import com.electroboys.lightsnap.utils.ShareImageUtils
+import com.electroboys.lightsnap.utils.SummaryDialogUtils
 
 
 class ScreenshotActivity : AppCompatActivity(), ModeActions {
@@ -63,6 +64,7 @@ class ScreenshotActivity : AppCompatActivity(), ModeActions {
 
     private lateinit var watermarkOverlay: WatermarkOverlayView
     private lateinit var watermarkSettingBar: WatermarkSettingBarView
+    private var isWatermark = false
 
     //按钮组
     private lateinit var btnWatermark: ImageButton //水印按钮
@@ -228,11 +230,13 @@ class ScreenshotActivity : AppCompatActivity(), ModeActions {
         val btnCopy = findViewById<ImageButton>(R.id.btnCopy)
         btnCopy.setOnClickListener {
             modeManager.enter(Mode.None)
-            val bitmap = getcurrentBitmap()
-            val watermarkedBitmap = bitmap?.let { it1 -> watermarkOverlay.applyWatermarkToBitmap(it1) }
+            var bitmap = getcurrentBitmap()
+            if (isWatermark){
+                bitmap = bitmap?.let { it1 -> watermarkOverlay.applyWatermarkToBitmap(it1) }
+            }
             // 执行复制图片操作
-            if (watermarkedBitmap != null) {
-                ClipboardUtil.copyBitmapToClipboard(this, watermarkedBitmap)
+            if (bitmap != null) {
+                ClipboardUtil.copyBitmapToClipboard(this, bitmap)
             }
             Toast.makeText(this, "截图已复制到剪贴板", Toast.LENGTH_SHORT).show()
             finish()
@@ -344,12 +348,14 @@ class ScreenshotActivity : AppCompatActivity(), ModeActions {
         btnWatermark.setOnClickListener {
             if (watermarkOverlay.isVisible) {
                 // 关闭水印
+                isWatermark = false
                 watermarkSettingBar.updateUIState(false)
                 watermarkOverlay.visibility = View.GONE
                 watermarkSettingBar.updateUIState(false)
                 btnWatermark.setImageResource(R.drawable.ic_watermark)
             } else {
                 // 开启水印
+                isWatermark = true
                 watermarkSettingBar.updateUIState(true)
                 watermarkOverlay.visibility = View.VISIBLE
                 watermarkSettingBar.updateUIState(true)
@@ -474,22 +480,26 @@ class ScreenshotActivity : AppCompatActivity(), ModeActions {
 
     //分享图片用
     private fun shareCurrentImage() {
-        val bitmap = getcurrentBitmap()
-        val watermarkedBitmap = bitmap?.let { watermarkOverlay.applyWatermarkToBitmap(it) }
-        if (watermarkedBitmap != null) {
-            ShareImageUtils.shareBitmap(this, watermarkedBitmap)
+        var bitmap = getcurrentBitmap()
+        if(isWatermark){
+            bitmap = bitmap?.let { watermarkOverlay.applyWatermarkToBitmap(it) }
+        }
+        if (bitmap != null) {
+            ShareImageUtils.shareBitmap(this, bitmap)
         }
     }
 
     //保存图片
     private fun saveCurrentImage() {
-        val bitmap = getcurrentBitmap()
+        var bitmap = getcurrentBitmap()
         if (bitmap == null) {
             Toast.makeText(this, "图片不存在", Toast.LENGTH_SHORT).show()
             return
         }
-        val watermarkedBitmap = watermarkOverlay.applyWatermarkToBitmap(bitmap)
-        setcurrentBitmapandRefreshKey(watermarkedBitmap)
+        if(isWatermark){
+            bitmap = bitmap.let { watermarkOverlay.applyWatermarkToBitmap(it) }
+        }
+        setcurrentBitmapandRefreshKey(bitmap)
 
         val currentKey = intent.getStringExtra(EXTRA_SCREENSHOT_KEY)
             ?: run {
@@ -502,6 +512,11 @@ class ScreenshotActivity : AppCompatActivity(), ModeActions {
         }
         setResult(RESULT_OK, resultIntent)
         finish()
+    }
+
+    // 显示摘要
+    private fun showSummaryDialog(summary: String) {
+        SummaryDialogUtils.showSummaryDialog(this, summary)
     }
 
     private fun getcurrentBitmap(): Bitmap? {
@@ -595,7 +610,6 @@ class ScreenshotActivity : AppCompatActivity(), ModeActions {
         controlPanelManager.applyMode(mode)
         updateModeButtonIcons(activeMode)
     }
-
     // 快捷键触发功能
     override fun dispatchKeyEvent(event: android.view.KeyEvent): Boolean {
         if (event.action == android.view.KeyEvent.ACTION_DOWN) {
@@ -633,32 +647,6 @@ class ScreenshotActivity : AppCompatActivity(), ModeActions {
             }
         }
         return super.dispatchKeyEvent(event)
-    }
-
-    private fun showSummaryDialog(summary: String) {
-        val editText = EditText(this)
-        editText.setText(summary)
-        editText.setTextIsSelectable(true)
-        editText.isFocusable = false
-        editText.isClickable = false
-        editText.setPadding(32, 32, 32, 32)
-        editText.setBackgroundColor(Color.TRANSPARENT)
-
-        AlertDialog.Builder(this)
-            .setTitle("内容摘要")
-            .setView(editText)
-            .setPositiveButton("复制") { dialog, _ ->
-                val clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                val clip = ClipData.newPlainText("摘要", summary)
-                clipboard.setPrimaryClip(clip)
-                Toast.makeText(this, "摘要已复制", Toast.LENGTH_SHORT).show()
-                dialog.dismiss()
-            }
-            .setNegativeButton("关闭") { dialog, _ ->
-                dialog.dismiss()
-            }
-            .create()
-            .show()
     }
 
     //更新按钮状态
