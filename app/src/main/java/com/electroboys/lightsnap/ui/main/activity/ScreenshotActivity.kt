@@ -901,7 +901,6 @@ class ScreenshotActivity : AppCompatActivity(), ModeActions {
             when (event.keyCode) {
                 android.view.KeyEvent.KEYCODE_C -> {
                     if (isCtrlPressed) {
-                        copyImageToClipboard() //复制操作
                         return true
                     }
                 }
