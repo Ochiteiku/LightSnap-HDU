@@ -66,27 +66,22 @@ class ScreenshotViewModel(private val ocrRepository: OcrRepository) : ViewModel(
     }
 
     fun recognizeAndSummarize(bitmap: Bitmap) {
-        // 使用 viewModelScope 来确保是在后台线程执行
         viewModelScope.launch {
-            _isGeneratingSummary.value = true // 开始时设为 true
+            _isGeneratingSummary.value = true
             try {
-                // 识别图片中的文本
                 val result = ocrRepository.recognizeText(bitmap)
-
-                // 成功识别后处理文本
                 result.onSuccess { textResult ->
                     val summary = abstractRepository.getSummary(textResult.text)
                     _summaryText.value = summary
                 }.onFailure {
                     it.printStackTrace()
-                    // 处理 OCR 错误
                     _summaryText.value = "OCR识别失败"
                 }
             } catch (e: Exception) {
                 e.printStackTrace()
                 _summaryText.value = "摘要生成失败"
             } finally {
-                _isGeneratingSummary.value = false // 结束时设为 false
+                _isGeneratingSummary.value = false
             }
         }
     }
