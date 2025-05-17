@@ -280,7 +280,7 @@ class ScreenshotActivity : AppCompatActivity(), ModeActions {
         //钉选逻辑
         findViewById<View>(R.id.btnFixed).setOnClickListener {
             SettingsConstants.PicIsHangUp = true
-            val bitmap = (imageView.drawable as? BitmapDrawable)?.bitmap
+            val bitmap = getcurrentBitmap()
             val bitmapKey = bitmap?.let { it1 -> BitmapCache.cacheBitmap(it1) }
             SettingsConstants.floatBitmapKey = bitmapKey
             finish()
@@ -288,7 +288,7 @@ class ScreenshotActivity : AppCompatActivity(), ModeActions {
 
         val btnTranslate = findViewById<View>(R.id.btnTranslate)
         btnTranslate.setOnClickListener {
-            val bitmap = (imageView.drawable as? BitmapDrawable)?.bitmap
+            val bitmap = getcurrentBitmap()
             bitmap?.let { it1 ->
                 viewModel.recognizeAndCallback(
                     it1,
@@ -333,18 +333,12 @@ class ScreenshotActivity : AppCompatActivity(), ModeActions {
 
         graffitiView.setOnBitmapChangeListener(object : GraffitiView.onBitmapChangeListener {
             override fun onBitmapChange(bitmap: Bitmap) {
-                val newKey = BitmapCache.cacheBitmap(bitmap)
-                intent.putExtra(EXTRA_SCREENSHOT_KEY, newKey)
-                ImageHistory.push(newKey)
-                imageView.setImageBitmap(bitmap)
+                setcurrentBitmapandRefreshKey(bitmap)
             }
         })
         frameSelectView.setOnBitmapChangeListener(object : GraffitiView.onBitmapChangeListener {
             override fun onBitmapChange(bitmap: Bitmap) {
-                val newKey = BitmapCache.cacheBitmap(bitmap)
-                intent.putExtra(EXTRA_SCREENSHOT_KEY, newKey)
-                ImageHistory.push(newKey)
-                imageView.setImageBitmap(bitmap)
+                setcurrentBitmapandRefreshKey(bitmap)
             }
         })
 
@@ -560,6 +554,14 @@ class ScreenshotActivity : AppCompatActivity(), ModeActions {
         return (imageView.drawable as? BitmapDrawable)?.bitmap
     }
 
+    private fun setcurrentBitmapandRefreshKey(bitmap: Bitmap?) {
+        imageView.setImageBitmap(bitmap)
+        val newkey = bitmap?.let { BitmapCache.cacheBitmap(it) }
+        if (newkey != null) {
+            ImageHistory.push(newkey)
+        }
+        intent.putExtra(EXTRA_SCREENSHOT_KEY, newkey)
+    }
     override fun onDestroy() {
         super.onDestroy()
         // 清理 Bitmap 缓存
