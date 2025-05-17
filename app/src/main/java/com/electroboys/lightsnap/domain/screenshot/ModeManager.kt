@@ -67,6 +67,7 @@ class ModeManager(private val actions: ModeActions) {
             Mode.Graffiti -> actions.exitGraffiti()
             Mode.Arrow -> actions.exitArrow()
             Mode.Mosaic -> actions.exitMosaic()
+            Mode.Watermark -> actions.exitWatermark()
             Mode.Crop -> {
                 actions.exitCrop()
             }

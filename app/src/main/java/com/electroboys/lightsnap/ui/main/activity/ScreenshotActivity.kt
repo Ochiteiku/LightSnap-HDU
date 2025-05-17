@@ -44,7 +44,6 @@ import com.electroboys.lightsnap.ui.main.view.WatermarkSettingBarView
 import com.electroboys.lightsnap.ui.main.viewmodel.ScreenshotViewModel
 import com.electroboys.lightsnap.ui.main.viewmodel.factory.ScreenshotViewModelFactory
 import com.electroboys.lightsnap.utils.BaiduTranslator
-import com.electroboys.lightsnap.utils.WatermarkUtil
 import com.google.mlkit.vision.text.Text
 import java.io.File
 import java.io.FileOutputStream
@@ -96,7 +95,6 @@ class ScreenshotActivity : AppCompatActivity(), ModeActions {
     private lateinit var modeManager: ModeManager//模式管理器
     private var originalBitmapKey: String? = null
     private val watermarkConfig = WatermarkConfig.default() //水印配置
-    private var isWatermarkVisible = false // 水印是否显示
     private lateinit var overlayView: ImageView
     private lateinit var croppedBitmap: Bitmap
 
@@ -205,7 +203,7 @@ class ScreenshotActivity : AppCompatActivity(), ModeActions {
             frameSelectView.setBitmap(bitmap)
             selectView.clearSelection()
             btnConfirmSelection.visibility = View.GONE
-            findViewById<TextView>(R.id.selectionHint).visibility = View.VISIBLE
+            //findViewById<TextView>(R.id.selectionHint).visibility = View.VISIBLE
 //            Toast.makeText(this, "图像已更新", Toast.LENGTH_SHORT).show()
         }
 
@@ -348,11 +346,12 @@ class ScreenshotActivity : AppCompatActivity(), ModeActions {
         })
 
         // 水印开关逻辑
-        btnWatermark = findViewById<ImageButton>(R.id.btnWatermark)
+        btnWatermark = findViewById(R.id.btnWatermark)
         btnWatermark.setOnClickListener {
             modeManager.enter(Mode.Watermark)
         }
-        // 水印设置栏初始化
+
+        //水印工具栏初始化
         watermarkSettingBar = WatermarkSettingBarView(this).apply {
             layoutParams = FrameLayout.LayoutParams(
                 ViewGroup.LayoutParams.WRAP_CONTENT,
@@ -360,18 +359,38 @@ class ScreenshotActivity : AppCompatActivity(), ModeActions {
             ).apply {
                 gravity = Gravity.TOP or Gravity.END
             }
-            // 监听器设置
+
+            // 监听文字变化
             onTextChanged = { text ->
                 watermarkConfig.setText(text)
-                refreshWatermark()
+                controlPanelManager.refreshWatermark()
             }
+
+            // 监听透明度变化
             onAlphaChanged = { alpha ->
                 watermarkConfig.setAlpha(alpha)
-                refreshWatermark()
+                controlPanelManager.refreshWatermark()
+            }
+
+            // 添加确认按钮的监听
+            onConfirmWatermark = {
+                val originalBitmap = (imageView.drawable as BitmapDrawable).bitmap
+                val resultBitmap = watermarkOverlay.applyWatermarkToBitmap(originalBitmap)
+
+                val newKey = BitmapCache.cacheBitmap(resultBitmap)
+                intent.putExtra(EXTRA_SCREENSHOT_KEY, newKey)
+                ImageHistory.push(newKey)
+
+                imageView.setImageBitmap(resultBitmap)
+                Toast.makeText(this@ScreenshotActivity, "已将水印添加到图片", Toast.LENGTH_SHORT).show()
+
+                // 自动退出水印模式
+                modeManager.enter(Mode.None)
             }
         }
-        findViewById<FrameLayout>(R.id.imageContainer).addView(watermarkSettingBar)
-        watermarkSettingBar.updateUIState(false)
+
+//        findViewById<FrameLayout>(R.id.imageContainer).addView(watermarkSettingBar)
+//        watermarkSettingBar.updateUIState(false)
 
         // 获取传入的 key
         val key = intent.getStringExtra(EXTRA_SCREENSHOT_KEY)
@@ -470,34 +489,6 @@ class ScreenshotActivity : AppCompatActivity(), ModeActions {
             selectionHintView = findViewById(R.id.selectionHint)
         )
     }
-
-
-    // 水印功能刷新
-    private fun refreshWatermark() {
-        if (isWatermarkVisible) {
-            watermarkOverlay.setWatermark(watermarkConfig)
-        }
-    }
-
-    // 导出图片时将带水印加载到图片上（如果开启了水印功能）
-    private fun getBitmapWithIsWatermark(): Bitmap? {
-        val imageView = findViewById<ImageView>(R.id.imageViewScreenshot)
-        val bitmap = (imageView.drawable as? BitmapDrawable)?.bitmap
-            ?: run {
-                Toast.makeText(this, "无法获取图片", Toast.LENGTH_SHORT).show()
-                return null
-            }
-        if (isWatermarkVisible) {
-            val watermarkedBitmap = WatermarkUtil.addWatermark(
-                originalBitmap = bitmap,
-                config = watermarkConfig
-            )
-            return watermarkedBitmap
-        } else {
-            return bitmap
-        }
-    }
-
     //复制到剪切板用
     private fun copyImageToClipboard() {
         // 创建一个临时文件来存储图片
@@ -545,7 +536,7 @@ class ScreenshotActivity : AppCompatActivity(), ModeActions {
 
     //分享图片用
     private fun shareCurrentImage() {
-        val bitmap = getBitmapWithIsWatermark()
+        val bitmap = (imageView.drawable as? BitmapDrawable)?.bitmap
         if (bitmap == null) {
             Toast.makeText(this, "图片不存在", Toast.LENGTH_SHORT).show()
             return
@@ -584,7 +575,7 @@ class ScreenshotActivity : AppCompatActivity(), ModeActions {
 
     //保存图片
     private fun saveCurrentImage() {
-        val bitmap = getBitmapWithIsWatermark()
+        val bitmap = (imageView.drawable as? BitmapDrawable)?.bitmap
         if (bitmap == null) {
             Toast.makeText(this, "图片不存在", Toast.LENGTH_SHORT).show()
             return
@@ -609,7 +600,6 @@ class ScreenshotActivity : AppCompatActivity(), ModeActions {
         super.onDestroy()
         // 清理 Bitmap 缓存
         if (!SettingsConstants.PicIsHangUp) {
-
             val currentKey = intent.getStringExtra(EXTRA_SCREENSHOT_KEY)
             BitmapCache.clearExcept(currentKey)
             handler.removeCallbacks(updateDotsRunnable)
@@ -686,6 +676,7 @@ class ScreenshotActivity : AppCompatActivity(), ModeActions {
     }
 
     override fun exitWatermark() {
+        controlPanelManager.exitWatermarkMode()
         updateModeButtonIcons(Mode.None)
     }
 

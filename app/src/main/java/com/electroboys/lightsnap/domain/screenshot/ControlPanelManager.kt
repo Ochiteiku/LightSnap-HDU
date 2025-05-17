@@ -66,6 +66,9 @@ class ControlPanelManager(
         exControlFrame.removeAllViews()
 
         modeHandlers[mode]?.apply(context, bitmap, graffitiView, frameSelectView, exControlFrame)
+        if (mode == ControlViewStatus.WatermarkMode) {
+            exControlFrame.addView(watermarkSettingBar)
+        }
     }
 
     fun exitAddTextMode() {
@@ -74,6 +77,10 @@ class ControlPanelManager(
 
     fun exitCropMode() {
         (modeHandlers[ControlViewStatus.CropMode] as? CropModeHandler)?.exit()
+    }
+
+    fun exitWatermarkMode() {
+        (modeHandlers[ControlViewStatus.WatermarkMode] as? WatermarkModeHandler)?.exit()
     }
 
     fun refreshWatermark() {

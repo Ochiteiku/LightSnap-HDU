@@ -25,6 +25,7 @@ class EditAddTextView @JvmOverloads constructor(
     private var currentItem: TextItem? = null  // 当前的编辑文本项（包含颜色、大小等）
 
     var BitmapChangeListener: ((Bitmap) -> Unit)? = null
+    var onCompleteTextEdit: (() -> Unit)? = null
 
     data class TextItem(
         var text: String?,

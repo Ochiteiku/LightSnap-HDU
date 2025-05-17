@@ -6,7 +6,6 @@ import android.graphics.Bitmap
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageButton
-import androidx.core.view.isGone
 import com.electroboys.lightsnap.R
 import com.electroboys.lightsnap.data.screenshot.BitmapCache
 import com.electroboys.lightsnap.domain.screenshot.ControlModeHandler
@@ -35,27 +34,28 @@ class WatermarkModeHandler(
         frameSelectView: FrameSelectView,
         exControlFrame: ViewGroup
     ) {
-        toggleWatermark()
+        showWatermark()
     }
 
-    private fun toggleWatermark() {
-        isWatermarkVisible = !isWatermarkVisible
+    private fun showWatermark() {
+        isWatermarkVisible = true
+
         val key = intent.getStringExtra(ScreenshotActivity.EXTRA_SCREENSHOT_KEY)
-        val bitmap = key?.let { BitmapCache.getBitmap(it) }
-        if (bitmap != null) {
-            if (isWatermarkVisible) {
-                if (watermarkOverlay.isGone) {
-                    watermarkOverlay.setWatermark(config = watermarkConfig)
-                }
-                btnWatermark.setImageResource(R.drawable.ic_watermark_on)
-                watermarkOverlay.visibility = View.VISIBLE
-                watermarkSettingBar.updateUIState(true)
-            } else {
-                btnWatermark.setImageResource(R.drawable.ic_watermark)
-                watermarkOverlay.visibility = View.INVISIBLE
-                watermarkSettingBar.updateUIState(false)
-            }
-        }
+        val bitmap = key?.let { BitmapCache.getBitmap(it) } ?: return
+
+        watermarkOverlay.setWatermark(config = watermarkConfig)
+        watermarkOverlay.visibility = View.VISIBLE
+        watermarkSettingBar.visibility = View.VISIBLE
+        watermarkSettingBar.updateUIState(true)
+        btnWatermark.setImageResource(R.drawable.ic_watermark_on)
+    }
+
+    fun exit() {
+        isWatermarkVisible = false
+        watermarkOverlay.visibility = View.INVISIBLE
+        watermarkSettingBar.visibility = View.GONE
+        watermarkSettingBar.updateUIState(false)
+        btnWatermark.setImageResource(R.drawable.ic_watermark)
     }
 
     fun refreshWatermark() {

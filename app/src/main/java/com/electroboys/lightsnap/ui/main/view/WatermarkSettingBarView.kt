@@ -24,6 +24,7 @@ class WatermarkSettingBarView @JvmOverloads constructor(
 
     var onTextChanged: ((String) -> Unit)? = null
     var onAlphaChanged: ((Int) -> Unit)? = null
+    var onConfirmWatermark: (() -> Unit)? = null
 
     init {
         LayoutInflater.from(context).inflate(R.layout.layout_watermark_setting_bar, this, true)
@@ -48,6 +49,11 @@ class WatermarkSettingBarView @JvmOverloads constructor(
             override fun onStartTrackingTouch(seekBar: SeekBar?) {}
             override fun onStopTrackingTouch(seekBar: SeekBar?) {}
         })
+
+        findViewById<ImageButton>(R.id.btnConfirm).setOnClickListener {
+            onConfirmWatermark?.invoke()
+        }
+
     }
 
     // 更新 UI 状态（显示/隐藏）

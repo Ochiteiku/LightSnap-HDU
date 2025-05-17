@@ -5,6 +5,7 @@ import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.Color
 import android.graphics.Typeface
+import android.graphics.drawable.BitmapDrawable
 import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
@@ -70,6 +71,7 @@ class AddTextModeHandler(
         editAddTextView.visibility = View.GONE
         editAddTextBarView.visibility = View.GONE
         editAddTextBarView.clearState()
+        btnText.setImageResource(R.drawable.ic_text)
         isActive = false
     }
 
@@ -143,10 +145,9 @@ class AddTextModeHandler(
     }
 
     private fun applyTextToBitmap() {
-        val originalKey = intent.getStringExtra(EXTRA_SCREENSHOT_KEY)
-        val originalBitmap = originalKey?.let { BitmapCache.getBitmap(it) }
-        if (originalBitmap != null) {
-            val resultBitmap = editAddTextView.getFinalBitmap(originalBitmap, imageView)
+        val baseBitmap = (imageView.drawable as? BitmapDrawable)?.bitmap
+        if (baseBitmap != null) {
+            val resultBitmap = editAddTextView.getFinalBitmap(baseBitmap, imageView)
             val newKey = BitmapCache.cacheBitmap(resultBitmap)
             intent.putExtra(EXTRA_SCREENSHOT_KEY, newKey)
             ImageHistory.push(newKey)
