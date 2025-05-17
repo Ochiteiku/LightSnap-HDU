@@ -50,6 +50,7 @@ import java.io.File
 import java.io.FileOutputStream
 import java.io.IOException
 import androidx.core.view.isVisible
+import com.electroboys.lightsnap.utils.ShareImageUtils
 
 
 class ScreenshotActivity : AppCompatActivity(), ModeActions {
@@ -306,7 +307,6 @@ class ScreenshotActivity : AppCompatActivity(), ModeActions {
                                                     Toast.LENGTH_SHORT
                                                 ).show()
                                             }
-
                                         }
 
                                         override fun onFailure(error: String) {
@@ -323,7 +323,6 @@ class ScreenshotActivity : AppCompatActivity(), ModeActions {
                         }
                     })
             }
-
         }
 
         btnBox = findViewById<ImageButton>(R.id.btnBox)
@@ -369,19 +368,15 @@ class ScreenshotActivity : AppCompatActivity(), ModeActions {
             ).apply {
                 this.gravity = Gravity.BOTTOM or Gravity.END
             }
-
             // 监听文字变化
             onTextChanged = { text ->
                 watermarkConfig.setText(text)
                 watermarkOverlay.setWatermark(watermarkConfig) // 刷新 overlay
-//                controlPanelManager.refreshWatermark()
             }
-
             // 监听透明度变化
             onAlphaChanged = { alpha ->
                 watermarkConfig.setAlpha(alpha)
                 watermarkOverlay.setWatermark(watermarkConfig) // 刷新 overlay
-//                controlPanelManager.refreshWatermark()
             }
         }
 
@@ -474,10 +469,6 @@ class ScreenshotActivity : AppCompatActivity(), ModeActions {
             intent = intent,
             container = findViewById(R.id.imageContainer),
             btnText = findViewById(R.id.btnText),
-//            watermarkOverlay = watermarkOverlay,
-//            watermarkConfig = watermarkConfig,
-//            btnWatermark = findViewById(R.id.btnWatermark),
-//            watermarkSettingBar = watermarkSettingBar,
             cropRepository = cropRepository,
             imageContainer = findViewById(R.id.imageContainer),
             selectView = selectView,
@@ -489,41 +480,10 @@ class ScreenshotActivity : AppCompatActivity(), ModeActions {
     //分享图片用
     private fun shareCurrentImage() {
         val bitmap = getcurrentBitmap()
-        if (bitmap == null) {
-            Toast.makeText(this, "图片不存在", Toast.LENGTH_SHORT).show()
-            return
+        val watermarkedBitmap = bitmap?.let { watermarkOverlay.applyWatermarkToBitmap(it) }
+        if (watermarkedBitmap != null) {
+            ShareImageUtils.shareBitmap(this, watermarkedBitmap)
         }
-        val watermarkedBitmap = watermarkOverlay.applyWatermarkToBitmap(bitmap)
-
-        // 将 Bitmap 保存到缓存文件
-        val cacheFile = File(cacheDir, "share_temp.png")
-        try {
-            FileOutputStream(cacheFile).use { stream ->
-                watermarkedBitmap.compress(Bitmap.CompressFormat.PNG, 100, stream)
-            }
-        } catch (e: IOException) {
-            Toast.makeText(this, "图片保存失败", Toast.LENGTH_SHORT).show()
-            return
-        }
-
-        // 通过 FileProvider 获取 Uri（适配 Android 7.0+）
-        val contentUri = FileProvider.getUriForFile(
-            this,
-            "${packageName}.fileprovider", // 需在 Manifest 中声明 FileProvider
-            cacheFile
-        )
-
-        // 构建分享 Intent
-        val shareIntent = Intent().apply {
-            action = Intent.ACTION_SEND
-            putExtra(Intent.EXTRA_STREAM, contentUri)
-            type = "image/png"
-            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION) // 临时授权
-        }
-
-        // 显示系统分享弹窗
-        startActivity(Intent.createChooser(shareIntent, "分享截图到"))
-
     }
 
     //保存图片
