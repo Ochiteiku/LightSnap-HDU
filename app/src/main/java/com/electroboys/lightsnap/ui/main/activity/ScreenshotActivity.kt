@@ -22,7 +22,6 @@ import android.widget.ImageView
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.content.FileProvider
 import androidx.lifecycle.ViewModelProvider
 import com.electroboys.lightsnap.R
 import com.electroboys.lightsnap.data.entity.SettingsConstants
@@ -46,9 +45,6 @@ import com.electroboys.lightsnap.ui.main.viewmodel.factory.ScreenshotViewModelFa
 import com.electroboys.lightsnap.utils.BaiduTranslator
 import com.electroboys.lightsnap.utils.ClipboardUtil
 import com.google.mlkit.vision.text.Text
-import java.io.File
-import java.io.FileOutputStream
-import java.io.IOException
 import androidx.core.view.isVisible
 import com.electroboys.lightsnap.utils.ShareImageUtils
 

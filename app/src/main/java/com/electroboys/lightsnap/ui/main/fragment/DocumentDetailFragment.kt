@@ -5,6 +5,7 @@ import android.media.Image
 import android.os.Bundle
 import android.util.Log
 import android.view.View
+import android.widget.Button
 import android.widget.ImageView
 import android.widget.ScrollView
 import android.widget.TextView
@@ -15,6 +16,7 @@ import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import androidx.fragment.app.DialogFragment.STYLE_NO_TITLE
 import androidx.fragment.app.Fragment
+import androidx.lifecycle.findViewTreeViewModelStoreOwner
 import com.electroboys.lightsnap.R
 import com.electroboys.lightsnap.data.entity.Document
 import com.electroboys.lightsnap.data.screenshot.BitmapCache
@@ -69,7 +71,7 @@ class DocumentDetailFragment : Fragment(R.layout.doc_document_detail) {
             isFullscreen = !isFullscreen
         }
 
-        //
+        // 文档内容截图按键
         view.findViewById<ImageView>(R.id.screenshotDocumentButton).setOnClickListener {
             val scrollView = view.findViewById<ScrollView>(R.id.documentScrollView)
             if (scrollView != null) {
@@ -89,14 +91,18 @@ class DocumentDetailFragment : Fragment(R.layout.doc_document_detail) {
                 Toast.makeText(requireContext(), "未找到 ScrollView", Toast.LENGTH_SHORT).show()
             }
         }
+        val scrollviewShot = view.findViewById<ImageView>(R.id.screenshotDocumentButton)
+        scrollviewShot.visibility = if (isDocumentSecret) View.GONE else View.VISIBLE
 
         // 密聊
         val secretImage = view.findViewById<ImageView>(R.id.secretDocumentButton)
         secretImage.setOnClickListener {
             if(!isDocumentSecret){
+                scrollviewShot.visibility = View.GONE
                 SecretUtil.setSecret(true)
                 secretImage.setImageResource(R.drawable.ic_eye_closed)
             }else{
+                scrollviewShot.visibility = View.VISIBLE
                 SecretUtil.setSecret(false)
                 secretImage.setImageResource(R.drawable.ic_eye_open)
             }
