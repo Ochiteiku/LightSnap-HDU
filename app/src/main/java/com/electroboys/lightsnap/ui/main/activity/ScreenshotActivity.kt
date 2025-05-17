@@ -4,7 +4,6 @@ import QRScannerUtil
 import android.app.AlertDialog
 import android.content.ClipData
 import android.content.ClipboardManager
-import android.content.ContentValues.TAG
 import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
@@ -13,9 +12,7 @@ import android.graphics.drawable.BitmapDrawable
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
-import android.util.Log
 import android.view.Gravity
-import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
 import android.widget.EditText
@@ -47,8 +44,7 @@ import com.electroboys.lightsnap.ui.main.view.WatermarkSettingBarView
 import com.electroboys.lightsnap.ui.main.viewmodel.ScreenshotViewModel
 import com.electroboys.lightsnap.ui.main.viewmodel.factory.ScreenshotViewModelFactory
 import com.electroboys.lightsnap.utils.BaiduTranslator
-import com.electroboys.lightsnap.utils.WatermarkUtil
-import com.electroboys.lightsnap.utils.ScreenshotHelper
+import com.electroboys.lightsnap.utils.ClipboardUtil
 import com.google.mlkit.vision.text.Text
 import java.io.File
 import java.io.FileOutputStream
@@ -238,7 +234,7 @@ class ScreenshotActivity : AppCompatActivity(), ModeActions {
         btnCopy.setOnClickListener {
             modeManager.enter(Mode.None)
             // 执行复制图片操作
-            ScreenshotHelper.copyBitmapToClipboard(this, croppedBitmap)
+            ClipboardUtil.copyBitmapToClipboard(this, croppedBitmap)
             Toast.makeText(this, "截图已复制到剪贴板", Toast.LENGTH_SHORT).show()
             finish()
         }

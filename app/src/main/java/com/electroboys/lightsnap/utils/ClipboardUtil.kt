@@ -4,15 +4,14 @@ import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.ContentValues.TAG
 import android.content.Context
-import android.content.Intent
 import android.graphics.Bitmap
 import android.net.Uri
+import android.util.Log
 import androidx.core.content.FileProvider
 import java.io.File
 import java.io.FileOutputStream
-import android.util.Log
 
-object ScreenshotHelper {
+object ClipboardUtil {
 
     /**
      * 将Bitmap保存到缓存目录，并返回对应FileProvider Uri
