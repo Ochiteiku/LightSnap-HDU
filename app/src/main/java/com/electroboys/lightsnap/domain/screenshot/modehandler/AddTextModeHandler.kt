@@ -110,6 +110,7 @@ class AddTextModeHandler(
                 updateTextProps()
             }
             btnAddTextDonelistener = {
+                editAddTextView.addTextDone()
                 applyTextToBitmap()
                 exit()
             }
