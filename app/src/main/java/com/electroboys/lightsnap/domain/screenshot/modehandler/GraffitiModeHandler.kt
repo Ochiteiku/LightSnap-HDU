@@ -35,6 +35,10 @@ class GraffitiModeHandler : ControlModeHandler {
             override fun onSelectSize(size: Int) {
                 graffitiView.setStrokeWidth(size)
             }
+
+            override fun onLineStyleSelected(style: Int) {
+                graffitiView.setLineStyle(style)
+            }
         })
     }
 }

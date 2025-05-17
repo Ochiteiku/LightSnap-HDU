@@ -25,6 +25,10 @@ interface ModeActions {
     fun enterCrop()
     fun exitCrop()
 
+    // 框选模式
+    fun enterBox()
+    fun exitBox()
+
     // 水印模式
     fun enterWatermark()
     fun exitWatermark()

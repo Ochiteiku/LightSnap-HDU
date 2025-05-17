@@ -8,8 +8,12 @@ class ModeManager(private val actions: ModeActions) {
     private var currentMode: Mode = Mode.None
     fun enter(mode: Mode) {
 
-        // 关闭已有模式
-        exitCurrentMode()
+        // 重复点击当前模式，表示“退出模式”
+        if (currentMode == mode) {
+            exitCurrentMode()
+            actions.showControlPanel(ControlViewStatus.OtherMode, Mode.None)
+            return
+        }
 
         // 否则是进入新模式，先退出原有
         exitCurrentMode()
@@ -58,6 +62,7 @@ class ModeManager(private val actions: ModeActions) {
 
     private fun exitCurrentMode() {
         when (currentMode) {
+            Mode.Framing -> actions.exitBox()
             Mode.AddText -> actions.exitAddText()
             Mode.Graffiti -> actions.exitGraffiti()
             Mode.Arrow -> actions.exitArrow()

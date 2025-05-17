@@ -671,6 +671,15 @@ class ScreenshotActivity : AppCompatActivity(), ModeActions {
         updateModeButtonIcons(Mode.None)
     }
 
+    override fun enterBox() {
+        updateModeButtonIcons(Mode.Framing)
+        showControlPanel(ControlViewStatus.FramingMode, Mode.Framing)
+    }
+
+    override fun exitBox() {
+        updateModeButtonIcons(Mode.None)
+    }
+
     override fun enterWatermark() {
         updateModeButtonIcons(Mode.Watermark)
         showControlPanel(ControlViewStatus.WatermarkMode, Mode.Watermark)
