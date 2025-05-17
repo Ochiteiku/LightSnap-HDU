@@ -10,21 +10,31 @@ object KeyUtil {
 
     // 初始化配置
     fun initialize(context: Context) {
+        // 读取配置文件，如果无法读取则不进行初始化
         val jsonString = loadJSONFromAsset(context, "key.json")
-        configJson = JSONObject(jsonString.orEmpty())
+        if (jsonString.isNullOrEmpty()) {
+            // 可以选择在这里打印日志，提醒开发者文件读取失败
+            configJson = JSONObject() // 如果文件为空，初始化为空对象
+        } else {
+            try {
+                configJson = JSONObject(jsonString)
+            } catch (e: Exception) {
+                e.printStackTrace()
+                // 如果 JSON 解析失败，可以在这里记录错误日志
+                configJson = JSONObject() // 解析失败时初始化为空对象
+            }
+        }
     }
 
     // 从 assets 中加载 JSON 配置文件
     private fun loadJSONFromAsset(context: Context, fileName: String): String? {
-        val json: String?
-        try {
+        return try {
             val inputStream: InputStream = context.assets.open(fileName)
-            json = inputStream.bufferedReader().use { it.readText() }
+            inputStream.bufferedReader().use { it.readText() }
         } catch (ex: Exception) {
             ex.printStackTrace()
-            return null
+            null
         }
-        return json
     }
 
     // 获取 DeepSeek API 密钥
