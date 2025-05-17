@@ -1,11 +1,13 @@
 package com.electroboys.lightsnap
 
+import android.content.Context
 import android.content.SharedPreferences
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
 import android.os.Environment
 import android.view.View
+import android.view.inputmethod.InputMethodManager
 import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
 import androidx.core.app.NotificationManagerCompat
@@ -122,15 +124,22 @@ class MainActivity : BaseActivity() {
     }
 
     private fun replaceFragment(fragmentClass: Class<out Fragment>) {
+        // 清除当前焦点并隐藏键盘，防止切换fragment时焦点不重置
+        val currentFocusView = currentFocus
+        currentFocusView?.let { view ->
+            val imm = getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
+            imm.hideSoftInputFromWindow(view.windowToken, 0)
+            view.clearFocus()
+        }
+
         val transaction = supportFragmentManager.beginTransaction()
 
-        // 如果当前已是目标 Fragment，跳过
         val targetFragment = fragmentCache.getOrPut(fragmentClass) {
             fragmentClass.newInstance()
         }
         if (currentFragment === targetFragment) return
 
-        // 隐藏当前
+        //隐藏当前
         currentFragment?.let {
             if (it.isAdded) transaction.hide(it)
         }
