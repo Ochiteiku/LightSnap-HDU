@@ -4,6 +4,7 @@ import android.annotation.SuppressLint
 import android.app.AlertDialog
 import android.content.ClipData
 import android.content.ClipboardManager
+import android.content.ContentValues.TAG
 import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
@@ -15,6 +16,7 @@ import android.graphics.drawable.GradientDrawable
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.util.Log
 import android.view.Gravity
 import android.view.MotionEvent
 import android.view.View
@@ -53,6 +55,7 @@ import com.electroboys.lightsnap.ui.main.view.WatermarkOverlayView
 import com.electroboys.lightsnap.ui.main.viewmodel.ScreenshotViewModel
 import com.electroboys.lightsnap.ui.main.viewmodel.factory.ScreenshotViewModelFactory
 import com.electroboys.lightsnap.utils.WatermarkUtil
+import com.electroboys.lightsnap.utils.ScreenshotHelper
 import com.google.mlkit.vision.text.Text
 import com.electroboys.lightsnap.ui.main.view.WatermarkSettingBarView
 import com.electroboys.lightsnap.utils.BaiduTranslator
@@ -243,7 +246,11 @@ class ScreenshotActivity : AppCompatActivity() , ModeActions {
         btnCopy.setOnClickListener {
             modeManager.enter(Mode.None)
             // 执行复制图片操作
-            copyImageToClipboard()
+            ScreenshotHelper.copyBitmapToClipboard(this, croppedBitmap)
+            Toast.makeText(this, "截图已复制到剪贴板", Toast.LENGTH_SHORT).show()
+//            val intent = Intent(this, ChatActivity::class.java)
+//            startActivity(intent)
+            finish()
         }
 
         // 保存键逻辑
@@ -702,50 +709,6 @@ class ScreenshotActivity : AppCompatActivity() , ModeActions {
             rightMargin = 30
             bottomMargin = 30
         })
-    }
-
-    //复制到剪切板用，这里不用拆分，不涉及数据操作
-    private fun copyImageToClipboard() {
-        // 创建一个临时文件来存储图片
-        val tempFile = File(this.cacheDir, "temp_image.png")
-        try {
-            // 将截图保存到临时文件
-            val outputStream = FileOutputStream(tempFile)
-            croppedBitmap.compress(Bitmap.CompressFormat.PNG, 100, outputStream)
-            outputStream.close()
-
-            // 使用 FileProvider 获取内容 URI
-            val fileProviderUri = FileProvider.getUriForFile(
-                this,
-                "${this.packageName}.fileprovider",
-                tempFile
-            )
-
-            // 授予权限给目标应用
-            this.grantUriPermission(
-                "*",
-                fileProviderUri,
-                Intent.FLAG_GRANT_READ_URI_PERMISSION
-            )
-
-            // 将图片复制到剪贴板
-            val clipData = ClipData.newUri(
-                this.contentResolver,
-                "image/png",
-                fileProviderUri
-            )
-            val clipboardManager = this.getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
-            clipboardManager.setPrimaryClip(clipData)
-
-            Toast.makeText(this, "图片已复制到剪贴板", Toast.LENGTH_SHORT).show()
-            // 退出截图页面
-            finish()
-        } catch (e: IOException) {
-            e.printStackTrace()
-            Toast.makeText(this, "复制失败: ${e.message}", Toast.LENGTH_SHORT).show()
-            // 退出截图页面
-            finish()
-        }
     }
 
     //分享图片用，不用拆分

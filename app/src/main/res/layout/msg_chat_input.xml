@@ -1,16 +1,36 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+android:id="@+id/chatInputContainer"
+android:layout_width="match_parent"
+android:layout_height="wrap_content"
+android:orientation="vertical"
+android:padding="8dp"
+android:background="#F5F5F5">
+
+<!-- 粘贴图片预览区域 -->
+<ImageView
+    android:id="@+id/imagePreview"
+    android:layout_width="match_parent"
+    android:layout_height="120dp"
+    android:scaleType="centerCrop"
+    android:adjustViewBounds="true"
+    android:visibility="gone"
+    android:layout_marginBottom="8dp"
+    android:background="@drawable/bg_image_preview" />
+
+<!-- 输入栏 + 发送按钮 -->
+<LinearLayout
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:background="#F5F5F5"
-    android:orientation="horizontal"
-    android:padding="8dp">
+    android:orientation="horizontal">
 
     <EditText
         android:id="@+id/messageInput"
-        android:layout_width="0dp"
-        android:layout_height="match_parent"
-        android:layout_weight="1"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:scrollbars="vertical"
+        android:maxLines="5"
+        android:padding="12dp"
         android:background="@drawable/bg_edittext"
         android:hint="Type a message"
         android:paddingLeft="10dp"/>
@@ -23,4 +43,5 @@
         android:contentDescription="Send"
         android:padding="12dp"
         android:src="@drawable/ic_textsend" />
+</LinearLayout>
 </LinearLayout>
