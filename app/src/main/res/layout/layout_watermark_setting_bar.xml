@@ -30,10 +30,10 @@
         android:progressTint="@color/white"
         android:thumb="@drawable/seekbar_thumb"/>
 
-    <ImageButton
-        android:id="@+id/btnConfirm"
-        style="@style/AddTextToolButtonStyle"
-        android:src="@drawable/ic_addtext_done"
-        android:contentDescription="@string/AddTextDone"/>
+<!--    <ImageButton-->
+<!--        android:id="@+id/btnConfirm"-->
+<!--        style="@style/AddTextToolButtonStyle"-->
+<!--        android:src="@drawable/ic_addtext_done"-->
+<!--        android:contentDescription="@string/AddTextDone"/>-->
 
 </LinearLayout>

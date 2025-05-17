@@ -50,9 +50,9 @@ class WatermarkSettingBarView @JvmOverloads constructor(
             override fun onStopTrackingTouch(seekBar: SeekBar?) {}
         })
 
-        findViewById<ImageButton>(R.id.btnConfirm).setOnClickListener {
-            onConfirmWatermark?.invoke()
-        }
+//        findViewById<ImageButton>(R.id.btnConfirm).setOnClickListener {
+//            onConfirmWatermark?.invoke()
+//        }
 
     }
 

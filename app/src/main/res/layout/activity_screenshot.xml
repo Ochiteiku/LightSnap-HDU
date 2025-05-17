@@ -164,13 +164,6 @@
                 android:src="@drawable/ic_arrow"
                 android:contentDescription="箭头" />
 
-            <ImageButton
-                android:id="@+id/btnWatermark"
-                style="@style/ToolButtonStyle"
-                android:src="@drawable/ic_watermark"
-                android:contentDescription="水印"/>
-
-
         </LinearLayout>
 
         <!-- 分隔线 -->
@@ -244,6 +237,11 @@
                 android:src="@drawable/ic_reselect_on"
                 android:contentDescription="裁剪开关" />
 
+            <ImageButton
+                android:id="@+id/btnWatermark"
+                style="@style/ToolButtonStyle"
+                android:src="@drawable/ic_watermark"
+                android:contentDescription="水印"/>
 
         </LinearLayout>
 

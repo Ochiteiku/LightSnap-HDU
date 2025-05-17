@@ -49,6 +49,7 @@ import com.google.mlkit.vision.text.Text
 import java.io.File
 import java.io.FileOutputStream
 import java.io.IOException
+import androidx.core.view.isVisible
 
 
 class ScreenshotActivity : AppCompatActivity(), ModeActions {
@@ -87,7 +88,7 @@ class ScreenshotActivity : AppCompatActivity(), ModeActions {
             Arrow,
             Mosaic,
             Crop,
-            Watermark,
+//            Watermark,
             OCR,
             Framing
         }
@@ -233,8 +234,9 @@ class ScreenshotActivity : AppCompatActivity(), ModeActions {
         val btnCopy = findViewById<ImageButton>(R.id.btnCopy)
         btnCopy.setOnClickListener {
             modeManager.enter(Mode.None)
+            val watermarkedBitmap = watermarkOverlay.applyWatermarkToBitmap(croppedBitmap)
             // 执行复制图片操作
-            ClipboardUtil.copyBitmapToClipboard(this, croppedBitmap)
+            ClipboardUtil.copyBitmapToClipboard(this, watermarkedBitmap)
             Toast.makeText(this, "截图已复制到剪贴板", Toast.LENGTH_SHORT).show()
             finish()
         }
@@ -351,49 +353,46 @@ class ScreenshotActivity : AppCompatActivity(), ModeActions {
         // 水印开关逻辑
         btnWatermark = findViewById(R.id.btnWatermark)
         btnWatermark.setOnClickListener {
-            modeManager.enter(Mode.Watermark)
+            if (watermarkOverlay.isVisible) {
+                // 关闭水印
+                watermarkSettingBar.updateUIState(false)
+                watermarkOverlay.visibility = View.GONE
+                R.drawable.ic_watermark
+                watermarkSettingBar.updateUIState(false)
+                btnWatermark.setImageResource(R.drawable.ic_watermark)
+            } else {
+                // 开启水印
+                watermarkSettingBar.updateUIState(true)
+                watermarkOverlay.visibility = View.VISIBLE
+                R.drawable.ic_watermark_on
+                watermarkSettingBar.updateUIState(true)
+                btnWatermark.setImageResource(R.drawable.ic_watermark_on)
+            }
         }
-
         //水印工具栏初始化
         watermarkSettingBar = WatermarkSettingBarView(this).apply {
             layoutParams = FrameLayout.LayoutParams(
                 ViewGroup.LayoutParams.WRAP_CONTENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT
             ).apply {
-                gravity = Gravity.TOP or Gravity.END
+                this.gravity = Gravity.BOTTOM or Gravity.END
             }
 
             // 监听文字变化
             onTextChanged = { text ->
                 watermarkConfig.setText(text)
-                controlPanelManager.refreshWatermark()
+//                controlPanelManager.refreshWatermark()
             }
 
             // 监听透明度变化
             onAlphaChanged = { alpha ->
                 watermarkConfig.setAlpha(alpha)
-                controlPanelManager.refreshWatermark()
-            }
-
-            // 添加确认按钮的监听
-            onConfirmWatermark = {
-                val originalBitmap = (imageView.drawable as BitmapDrawable).bitmap
-                val resultBitmap = watermarkOverlay.applyWatermarkToBitmap(originalBitmap)
-
-                val newKey = BitmapCache.cacheBitmap(resultBitmap)
-                intent.putExtra(EXTRA_SCREENSHOT_KEY, newKey)
-                ImageHistory.push(newKey)
-
-                imageView.setImageBitmap(resultBitmap)
-                Toast.makeText(this@ScreenshotActivity, "已将水印添加到图片", Toast.LENGTH_SHORT).show()
-
-                // 自动退出水印模式
-                modeManager.enter(Mode.None)
+//                controlPanelManager.refreshWatermark()
             }
         }
 
-//        findViewById<FrameLayout>(R.id.imageContainer).addView(watermarkSettingBar)
-//        watermarkSettingBar.updateUIState(false)
+        findViewById<FrameLayout>(R.id.imageContainer).addView(watermarkSettingBar)
+        watermarkSettingBar.updateUIState(false)
 
         // 获取传入的 key
         val key = intent.getStringExtra(EXTRA_SCREENSHOT_KEY)
@@ -481,10 +480,10 @@ class ScreenshotActivity : AppCompatActivity(), ModeActions {
             intent = intent,
             container = findViewById(R.id.imageContainer),
             btnText = findViewById(R.id.btnText),
-            watermarkOverlay = watermarkOverlay,
-            watermarkConfig = watermarkConfig,
-            btnWatermark = findViewById(R.id.btnWatermark),
-            watermarkSettingBar = watermarkSettingBar,
+//            watermarkOverlay = watermarkOverlay,
+//            watermarkConfig = watermarkConfig,
+//            btnWatermark = findViewById(R.id.btnWatermark),
+//            watermarkSettingBar = watermarkSettingBar,
             cropRepository = cropRepository,
             imageContainer = findViewById(R.id.imageContainer),
             selectView = selectView,
@@ -500,12 +499,13 @@ class ScreenshotActivity : AppCompatActivity(), ModeActions {
             Toast.makeText(this, "图片不存在", Toast.LENGTH_SHORT).show()
             return
         }
+        val watermarkedBitmap = watermarkOverlay.applyWatermarkToBitmap(bitmap)
 
         // 将 Bitmap 保存到缓存文件
         val cacheFile = File(cacheDir, "share_temp.png")
         try {
             FileOutputStream(cacheFile).use { stream ->
-                bitmap.compress(Bitmap.CompressFormat.PNG, 100, stream)
+                watermarkedBitmap.compress(Bitmap.CompressFormat.PNG, 100, stream)
             }
         } catch (e: IOException) {
             Toast.makeText(this, "图片保存失败", Toast.LENGTH_SHORT).show()
@@ -539,7 +539,8 @@ class ScreenshotActivity : AppCompatActivity(), ModeActions {
             Toast.makeText(this, "图片不存在", Toast.LENGTH_SHORT).show()
             return
         }
-        val newKey = BitmapCache.cacheBitmap(bitmap)
+        val watermarkedBitmap = watermarkOverlay.applyWatermarkToBitmap(bitmap)
+        val newKey = BitmapCache.cacheBitmap(watermarkedBitmap)
         intent.putExtra(EXTRA_SCREENSHOT_KEY, newKey)
 
         val currentKey = intent.getStringExtra(EXTRA_SCREENSHOT_KEY)
@@ -630,15 +631,15 @@ class ScreenshotActivity : AppCompatActivity(), ModeActions {
         updateModeButtonIcons(Mode.None)
     }
 
-    override fun enterWatermark() {
-        updateModeButtonIcons(Mode.Watermark)
-        showControlPanel(ControlViewStatus.WatermarkMode, Mode.Watermark)
-    }
-
-    override fun exitWatermark() {
-        controlPanelManager.exitWatermarkMode()
-        updateModeButtonIcons(Mode.None)
-    }
+//    override fun enterWatermark() {
+//        updateModeButtonIcons(Mode.Watermark)
+//        showControlPanel(ControlViewStatus.WatermarkMode, Mode.Watermark)
+//    }
+//
+//    override fun exitWatermark() {
+//        controlPanelManager.exitWatermarkMode()
+//        updateModeButtonIcons(Mode.None)
+//    }
 
     override fun onEnterOCR() {
         updateModeButtonIcons(Mode.OCR)
@@ -724,10 +725,10 @@ class ScreenshotActivity : AppCompatActivity(), ModeActions {
             else R.drawable.ic_text
         )
 
-        btnWatermark.setImageResource(
-            if (activeMode == Mode.Watermark) R.drawable.ic_watermark_on
-            else R.drawable.ic_watermark
-        )
+//        btnWatermark.setImageResource(
+//            if (activeMode == Mode.Watermark) R.drawable.ic_watermark_on
+//            else R.drawable.ic_watermark
+//        )
 
         btnIfCanSelect.setImageResource(
             if (activeMode == Mode.Crop) R.drawable.ic_reselect_on

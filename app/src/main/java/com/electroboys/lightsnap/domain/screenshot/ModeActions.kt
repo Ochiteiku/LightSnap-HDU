@@ -29,9 +29,9 @@ interface ModeActions {
     fun enterBox()
     fun exitBox()
 
-    // 水印模式
-    fun enterWatermark()
-    fun exitWatermark()
+//    // 水印模式
+//    fun enterWatermark()
+//    fun exitWatermark()
 
     // OCR 模式（进入后可能立即退出，无需 exit）
     fun onEnterOCR()

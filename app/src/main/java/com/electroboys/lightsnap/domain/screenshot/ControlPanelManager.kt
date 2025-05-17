@@ -34,10 +34,10 @@ class ControlPanelManager(
     private val intent: Intent,
     private val container: ViewGroup,
     private val btnText: ImageButton,
-    private val watermarkOverlay: WatermarkOverlayView,
-    private val watermarkConfig: WatermarkConfig,
-    private val btnWatermark: ImageButton,
-    private val watermarkSettingBar: WatermarkSettingBarView,
+//    private val watermarkOverlay: WatermarkOverlayView,
+//    private val watermarkConfig: WatermarkConfig,
+//    private val btnWatermark: ImageButton,
+//    private val watermarkSettingBar: WatermarkSettingBarView,
     private val cropRepository: ImageCropRepository,
     private val imageContainer: View,
     private val selectView: SelectView,
@@ -45,7 +45,7 @@ class ControlPanelManager(
     private val selectionHintView: View
 ) {
     private val addTextHandler = AddTextModeHandler(context, intent, imageView, exControlFrame, btnText, container)
-    private val watermarkHandler = WatermarkModeHandler(context, intent, watermarkOverlay, watermarkConfig, btnWatermark, watermarkSettingBar)
+//    private val watermarkHandler = WatermarkModeHandler(context, intent, watermarkOverlay, watermarkConfig, btnWatermark, watermarkSettingBar)
     private val cropHandler = CropModeHandler(context, imageView, imageContainer, selectView, graffitiView, cropRepository, viewModel, selectionHintView)
 
     private val modeHandlers = mapOf(
@@ -54,7 +54,7 @@ class ControlPanelManager(
         ControlViewStatus.ArrowMode to ArrowModeHandler(),
         ControlViewStatus.FramingMode to FramingModeHandler(),
         ControlViewStatus.AddTextMode to addTextHandler,
-        ControlViewStatus.WatermarkMode to watermarkHandler,
+//        ControlViewStatus.WatermarkMode to watermarkHandler,
         ControlViewStatus.CropMode to cropHandler
     )
 
@@ -66,9 +66,9 @@ class ControlPanelManager(
         exControlFrame.removeAllViews()
 
         modeHandlers[mode]?.apply(context, bitmap, graffitiView, frameSelectView, exControlFrame)
-        if (mode == ControlViewStatus.WatermarkMode) {
-            exControlFrame.addView(watermarkSettingBar)
-        }
+//        if (mode == ControlViewStatus.WatermarkMode) {
+//            exControlFrame.addView(watermarkSettingBar)
+//        }
     }
 
     fun exitAddTextMode() {
@@ -79,11 +79,11 @@ class ControlPanelManager(
         (modeHandlers[ControlViewStatus.CropMode] as? CropModeHandler)?.exit()
     }
 
-    fun exitWatermarkMode() {
-        (modeHandlers[ControlViewStatus.WatermarkMode] as? WatermarkModeHandler)?.exit()
-    }
+//    fun exitWatermarkMode() {
+//        (modeHandlers[ControlViewStatus.WatermarkMode] as? WatermarkModeHandler)?.exit()
+//    }
 
-    fun refreshWatermark() {
-        (modeHandlers[ControlViewStatus.WatermarkMode] as? WatermarkModeHandler)?.refreshWatermark()
-    }
+//    fun refreshWatermark() {
+//        (modeHandlers[ControlViewStatus.WatermarkMode] as? WatermarkModeHandler)?.refreshWatermark()
+//    }
 }
