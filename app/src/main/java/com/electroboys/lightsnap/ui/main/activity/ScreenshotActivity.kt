@@ -403,6 +403,7 @@ class ScreenshotActivity : AppCompatActivity(), ModeActions {
 
         // 从缓存中取出 Bitmap
         val bitmap = key?.let { BitmapCache.getBitmap(it) }
+        imageView.setImageBitmap(bitmap)
 
         // QR按键逻辑
         val btnQR = findViewById<ImageButton>(R.id.btnQR)
@@ -438,7 +439,6 @@ class ScreenshotActivity : AppCompatActivity(), ModeActions {
 
         if (bitmap != null) {
             croppedBitmap = bitmap
-            imageView.setImageBitmap(bitmap)
             graffitiView.setBitmap(croppedBitmap)
 
             // QR
@@ -494,7 +494,7 @@ class ScreenshotActivity : AppCompatActivity(), ModeActions {
 
     //分享图片用
     private fun shareCurrentImage() {
-        val bitmap = (imageView.drawable as? BitmapDrawable)?.bitmap
+        val bitmap = getcurrentBitmap()
         if (bitmap == null) {
             Toast.makeText(this, "图片不存在", Toast.LENGTH_SHORT).show()
             return
@@ -534,7 +534,7 @@ class ScreenshotActivity : AppCompatActivity(), ModeActions {
 
     //保存图片
     private fun saveCurrentImage() {
-        val bitmap = (imageView.drawable as? BitmapDrawable)?.bitmap
+        val bitmap = getcurrentBitmap()
         if (bitmap == null) {
             Toast.makeText(this, "图片不存在", Toast.LENGTH_SHORT).show()
             return
@@ -554,6 +554,10 @@ class ScreenshotActivity : AppCompatActivity(), ModeActions {
         }
         setResult(RESULT_OK, resultIntent)
         finish()
+    }
+
+    private fun getcurrentBitmap(): Bitmap? {
+        return (imageView.drawable as? BitmapDrawable)?.bitmap
     }
 
     override fun onDestroy() {
