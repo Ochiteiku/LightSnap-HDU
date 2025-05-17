@@ -193,10 +193,10 @@ class SettingsFragment : Fragment(R.layout.fragment_settings) {
     }
 
     private fun setupCleanupTimeOption() {
-        val currentDays = viewModel.cleanupDeadline.value ?: 0
+        val currentDays = viewModel.cleanupDeadline.value ?: 30
         val currentIndex = cleanupValues.indexOf(currentDays).coerceAtLeast(0)
         AlertDialog.Builder(requireContext())
-            .setTitle("清理截图周期")
+            .setTitle("清理截图时间")
             .setSingleChoiceItems(cleanupTimeOptions, currentIndex) { dialog, which ->
                 viewModel.setCleanupDeadline(cleanupValues[which])
                 dialog.dismiss()

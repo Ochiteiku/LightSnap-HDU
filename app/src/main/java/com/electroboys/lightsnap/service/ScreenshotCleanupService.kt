@@ -54,7 +54,7 @@ class ScreenshotCleanupService : Service() {
         serviceScope.launch {
             val sharedPrefs = getSharedPreferences("settings", Context.MODE_PRIVATE)
             val option = sharedPrefs.getString("cleanup", SettingsConstants.CLEANUP_OFF)
-            val daysThreshold = sharedPrefs.getInt("cleanup_deadline", 0)
+            val daysThreshold = sharedPrefs.getInt("cleanup_deadline", 30)
             if (option != SettingsConstants.CLEANUP_OFF) {
                 cleanOldScreenshots(daysThreshold, option.toString())
             }
