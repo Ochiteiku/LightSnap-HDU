@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="horizontal"
+    android:background="#000000">
+
+    <!-- 左侧预览区 -->
+    <FrameLayout
+        android:layout_width="0dp"
+        android:layout_weight="3"
+        android:layout_height="match_parent">
+
+        <ScrollView
+            android:id="@+id/scrollView"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:fillViewport="true">
+
+            <FrameLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content">
+
+                <com.electroboys.lightsnap.ui.main.view.scrollshot.ScrollShotPreviewView
+                    android:id="@+id/preview_crop_view"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:minHeight="400dp" />
+            </FrameLayout>
+        </ScrollView>
+
+        <!-- 右侧滑块 -->
+        <View
+            android:id="@+id/scrollBarThumb"
+            android:layout_width="8dp"
+            android:layout_height="100dp"
+            android:background="#FF8888"
+            android:elevation="4dp"
+            android:layout_gravity="end|center_vertical" />
+    </FrameLayout>
+
+    <!-- 右侧按钮区 -->
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_weight="1"
+        android:layout_height="match_parent"
+        android:gravity="center_vertical"
+        android:padding="16dp"
+        android:orientation="vertical"
+        android:baselineAligned="false">
+
+        <Button
+            android:id="@+id/btn_cancel"
+            android:layout_width="match_parent"
+            android:layout_height="80dp"
+            android:text="取消"
+            android:textColor="#FFFFFF"
+            android:background="@color/blue"
+            android:layout_marginBottom="16dp"/>
+
+        <Button
+            android:id="@+id/btn_confirm"
+            android:layout_width="match_parent"
+            android:layout_height="80dp"
+            android:text="确定"
+            android:textColor="#FFFFFF"
+            android:background="@color/blue"/>
+    </LinearLayout>
+</LinearLayout>
