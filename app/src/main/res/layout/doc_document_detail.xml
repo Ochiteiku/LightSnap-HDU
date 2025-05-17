@@ -6,6 +6,7 @@
     android:background="@color/white">
 
     <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+        android:id="@+id/documentScrollView"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:fitsSystemWindows="false"
@@ -96,6 +97,13 @@
             android:layout_width="0dp"
             android:layout_height="0dp"
             android:layout_weight="1" />
+        <!--文档内容截图按钮-->
+        <ImageView
+            android:id="@+id/screenshotDocumentButton"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:padding="8dp"
+            android:src="@drawable/ic_documentshot" />
         <ImageView
             android:id="@+id/secretDocumentButton"
             android:layout_width="48dp"

@@ -128,7 +128,7 @@ class ScreenshotActivity : AppCompatActivity(), ModeActions {
         textViewSummaryStatus.text = "摘要生成完成"
         handler.postDelayed({
             textViewSummaryStatus.visibility = View.GONE
-        }, 1500) // 可选：延迟隐藏提示
+        }, 1500)
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -167,7 +167,6 @@ class ScreenshotActivity : AppCompatActivity(), ModeActions {
             ) {
                 // 复制成功后回调，可做清理或关闭页面
                 ocrOverlayView.visibility = View.GONE
-                finish()
             }
         }
 
@@ -182,7 +181,6 @@ class ScreenshotActivity : AppCompatActivity(), ModeActions {
                     stopSummaryLoading()
                 }
             }
-            // 监听摘要内容并弹出对话框
             viewModel.summaryText.observe(this) { summary ->
                 if (summary.isNotBlank()) {
                     showSummaryDialog(summary)
@@ -708,11 +706,9 @@ class ScreenshotActivity : AppCompatActivity(), ModeActions {
                 clipboard.setPrimaryClip(clip)
                 Toast.makeText(this, "摘要已复制", Toast.LENGTH_SHORT).show()
                 dialog.dismiss()
-                finish()
             }
             .setNegativeButton("关闭") { dialog, _ ->
                 dialog.dismiss()
-                finish()
             }
             .create()
             .show()

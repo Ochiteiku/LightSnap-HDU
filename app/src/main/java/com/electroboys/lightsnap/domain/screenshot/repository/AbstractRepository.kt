@@ -18,7 +18,6 @@ class AbstractRepository {
             .writeTimeout(30, TimeUnit.SECONDS)
             .build()
 
-        // 构造 messages 数组
         val messagesArray = JSONArray().apply {
             put(JSONObject().apply {
                 put("role", "system")
@@ -30,7 +29,6 @@ class AbstractRepository {
             })
         }
 
-        // 构造完整请求体
         val rootObject = JSONObject().apply {
             put("model", "deepseek-chat")
             put("messages", messagesArray)

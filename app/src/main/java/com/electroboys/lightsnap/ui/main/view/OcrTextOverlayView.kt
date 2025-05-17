@@ -17,6 +17,7 @@ import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.roundToInt
 import kotlin.math.sqrt
+import androidx.core.graphics.toColorInt
 
 class OcrTextOverlayView @JvmOverloads constructor(
     context: Context,
@@ -65,7 +66,7 @@ class OcrTextOverlayView @JvmOverloads constructor(
             val textView = TextView(context).apply {
                 this.text = text
                 setTextColor(Color.BLACK)
-                setBackgroundColor(Color.parseColor("#E0F0FF"))
+                setBackgroundColor("#E0F0FF".toColorInt())
                 setPadding(4.dpToPx(), 2.dpToPx(), 4.dpToPx(), 2.dpToPx())
                 gravity = Gravity.CENTER
                 tag = "ocr_text"
@@ -81,10 +82,10 @@ class OcrTextOverlayView @JvmOverloads constructor(
                 setOnClickListener {
                     if (selectedTexts.contains(text)) {
                         selectedTexts.remove(text)
-                        setBackgroundColor(Color.parseColor("#E0F0FF"))
+                        setBackgroundColor("#E0F0FF".toColorInt())
                     } else {
                         selectedTexts.add(text)
-                        setBackgroundColor(Color.parseColor("#AA66CCFF"))
+                        setBackgroundColor("#AA66CCFF".toColorInt())
                     }
                 }
             }
@@ -112,6 +113,7 @@ class OcrTextOverlayView @JvmOverloads constructor(
             setOnClickListener {
                 if (selectedTexts.isEmpty()) {
                     Toast.makeText(context, "未选中任何内容", Toast.LENGTH_SHORT).show()
+                    onCopied?.invoke()
                     return@setOnClickListener
                 }
 
@@ -123,10 +125,6 @@ class OcrTextOverlayView @JvmOverloads constructor(
 
                 // 清空状态
                 selectedTexts.clear()
-                textViews.forEach {
-                    it.setBackgroundColor(Color.parseColor("#E0F0FF"))
-                }
-
                 onCopied?.invoke()
             }
         }
@@ -137,7 +135,7 @@ class OcrTextOverlayView @JvmOverloads constructor(
         ).apply {
             gravity = Gravity.BOTTOM or Gravity.END
             rightMargin = 30.dpToPx()
-            bottomMargin = 30.dpToPx()
+            bottomMargin = 42.dpToPx()
         })
 
         copyButton = button
