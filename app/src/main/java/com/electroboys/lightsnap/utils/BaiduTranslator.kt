@@ -20,10 +20,10 @@ import java.util.concurrent.TimeUnit
 
 object BaiduTranslator {
     // 百度翻译API的APP_ID，用于标识调用的来源
-    private const val APP_ID = "20250513002356112"
+    private val APP_ID = KeyUtil.getBaiduAppId()
 
     // 百度翻译API的SECRET_KEY，用于生成签名
-    private const val SECRET_KEY = "_mp8Xsp_9f9FrCVAdoO8"
+    private val SECRET_KEY = KeyUtil.getBaiduApiKey()
 
     // 百度翻译API的URL，用于发送翻译请求
     private const val API_URL = "https://fanyi-api.baidu.com/api/trans/vip/translate"

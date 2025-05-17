@@ -1,5 +1,6 @@
 package com.electroboys.lightsnap.domain.screenshot.repository
 
+import com.electroboys.lightsnap.utils.KeyUtil
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.MediaType.Companion.toMediaType
@@ -11,6 +12,8 @@ import org.json.JSONObject
 import java.util.concurrent.TimeUnit
 
 class AbstractRepository {
+
+
     suspend fun getSummary(content: String): String {
         val client = OkHttpClient.Builder()
             .connectTimeout(30, TimeUnit.SECONDS)
@@ -38,9 +41,12 @@ class AbstractRepository {
         val json = rootObject.toString()
         val body = json.toRequestBody("application/json".toMediaType())
 
+        // 获取 DeepSeek API 密钥
+        val apiKey = KeyUtil.getDeepSeekApiKey()
+
         val request = Request.Builder()
             .url("https://api.deepseek.com/v1/chat/completions")
-            .addHeader("Authorization", "Bearer sk-afa4e0109bf74082910c90d46c7b43ea")
+            .addHeader("Authorization", "Bearer $apiKey")
             .post(body)
             .build()
 
