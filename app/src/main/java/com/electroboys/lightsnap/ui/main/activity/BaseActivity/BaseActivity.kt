@@ -28,7 +28,7 @@ open class BaseActivity : AppCompatActivity() {
 
     private val viewModel: MainViewModel by viewModels()
 
-    private lateinit var screenshotResultLauncher: ActivityResultLauncher<Intent>
+    lateinit var screenshotResultLauncher: ActivityResultLauncher<Intent>
     private var floatingView: FloatingView? = null;
 
     // 标志：是否处于截图模式

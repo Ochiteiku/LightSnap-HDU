@@ -1,10 +1,12 @@
 package com.electroboys.lightsnap.ui.main.fragment
 
+import android.content.Intent
 import android.media.Image
 import android.os.Bundle
 import android.util.Log
 import android.view.View
 import android.widget.ImageView
+import android.widget.ScrollView
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.widget.SwitchCompat
@@ -15,6 +17,10 @@ import androidx.fragment.app.DialogFragment.STYLE_NO_TITLE
 import androidx.fragment.app.Fragment
 import com.electroboys.lightsnap.R
 import com.electroboys.lightsnap.data.entity.Document
+import com.electroboys.lightsnap.data.screenshot.BitmapCache
+import com.electroboys.lightsnap.domain.screenshot.scrollshot.ScrollShotHelper
+import com.electroboys.lightsnap.ui.main.activity.BaseActivity.BaseActivity
+import com.electroboys.lightsnap.ui.main.activity.ScreenshotActivity
 import com.electroboys.lightsnap.ui.main.activity.ScreenshotActivityForBase
 import com.electroboys.lightsnap.utils.SecretUtil
 
@@ -61,6 +67,27 @@ class DocumentDetailFragment : Fragment(R.layout.doc_document_detail) {
                 .commit()
 
             isFullscreen = !isFullscreen
+        }
+
+        //
+        view.findViewById<ImageView>(R.id.screenshotDocumentButton).setOnClickListener {
+            val scrollView = view.findViewById<ScrollView>(R.id.documentScrollView)
+            if (scrollView != null) {
+                val bitmap = ScrollShotHelper.captureScrollView(scrollView)
+                if (bitmap != null) {
+                    Toast.makeText(requireContext(), "截图成功", Toast.LENGTH_SHORT).show()
+                    val key = BitmapCache.cacheBitmap(bitmap)
+                    Log.d("DocumentDetailFragment", "Bitmap 缓存 Key: $key")
+                    val intent = Intent(requireContext(), ScreenshotActivity::class.java).apply {
+                        putExtra(ScreenshotActivity.EXTRA_SCREENSHOT_KEY, key)
+                        (requireActivity() as BaseActivity).screenshotResultLauncher.launch(this)
+                    }
+                } else {
+                    Toast.makeText(requireContext(), "截图失败", Toast.LENGTH_SHORT).show()
+                }
+            } else {
+                Toast.makeText(requireContext(), "未找到 ScrollView", Toast.LENGTH_SHORT).show()
+            }
         }
 
         // 密聊
