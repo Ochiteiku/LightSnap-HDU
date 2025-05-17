@@ -63,6 +63,7 @@ class ScreenshotActivity : AppCompatActivity(), ModeActions {
 
     private lateinit var watermarkOverlay: WatermarkOverlayView
     private lateinit var watermarkSettingBar: WatermarkSettingBarView
+    private var isWatermark = false
 
     //按钮组
     private lateinit var btnWatermark: ImageButton //水印按钮
@@ -228,11 +229,13 @@ class ScreenshotActivity : AppCompatActivity(), ModeActions {
         val btnCopy = findViewById<ImageButton>(R.id.btnCopy)
         btnCopy.setOnClickListener {
             modeManager.enter(Mode.None)
-            val bitmap = getcurrentBitmap()
-            val watermarkedBitmap = bitmap?.let { it1 -> watermarkOverlay.applyWatermarkToBitmap(it1) }
+            var bitmap = getcurrentBitmap()
+            if (isWatermark){
+                bitmap = bitmap?.let { it1 -> watermarkOverlay.applyWatermarkToBitmap(it1) }
+            }
             // 执行复制图片操作
-            if (watermarkedBitmap != null) {
-                ClipboardUtil.copyBitmapToClipboard(this, watermarkedBitmap)
+            if (bitmap != null) {
+                ClipboardUtil.copyBitmapToClipboard(this, bitmap)
             }
             Toast.makeText(this, "截图已复制到剪贴板", Toast.LENGTH_SHORT).show()
             finish()
@@ -344,12 +347,14 @@ class ScreenshotActivity : AppCompatActivity(), ModeActions {
         btnWatermark.setOnClickListener {
             if (watermarkOverlay.isVisible) {
                 // 关闭水印
+                isWatermark = false
                 watermarkSettingBar.updateUIState(false)
                 watermarkOverlay.visibility = View.GONE
                 watermarkSettingBar.updateUIState(false)
                 btnWatermark.setImageResource(R.drawable.ic_watermark)
             } else {
                 // 开启水印
+                isWatermark = true
                 watermarkSettingBar.updateUIState(true)
                 watermarkOverlay.visibility = View.VISIBLE
                 watermarkSettingBar.updateUIState(true)
@@ -474,22 +479,26 @@ class ScreenshotActivity : AppCompatActivity(), ModeActions {
 
     //分享图片用
     private fun shareCurrentImage() {
-        val bitmap = getcurrentBitmap()
-        val watermarkedBitmap = bitmap?.let { watermarkOverlay.applyWatermarkToBitmap(it) }
-        if (watermarkedBitmap != null) {
-            ShareImageUtils.shareBitmap(this, watermarkedBitmap)
+        var bitmap = getcurrentBitmap()
+        if(isWatermark){
+            bitmap = bitmap?.let { watermarkOverlay.applyWatermarkToBitmap(it) }
+        }
+        if (bitmap != null) {
+            ShareImageUtils.shareBitmap(this, bitmap)
         }
     }
 
     //保存图片
     private fun saveCurrentImage() {
-        val bitmap = getcurrentBitmap()
+        var bitmap = getcurrentBitmap()
         if (bitmap == null) {
             Toast.makeText(this, "图片不存在", Toast.LENGTH_SHORT).show()
             return
         }
-        val watermarkedBitmap = watermarkOverlay.applyWatermarkToBitmap(bitmap)
-        setcurrentBitmapandRefreshKey(watermarkedBitmap)
+        if(isWatermark){
+            bitmap = bitmap.let { watermarkOverlay.applyWatermarkToBitmap(it) }
+        }
+        setcurrentBitmapandRefreshKey(bitmap)
 
         val currentKey = intent.getStringExtra(EXTRA_SCREENSHOT_KEY)
             ?: run {
