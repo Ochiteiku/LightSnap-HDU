@@ -1,4 +1,4 @@
-package com.electroboys.lightsnap.ui.main.activity
+package com.electroboys.lightsnap.domain.screenshot
 
 import android.annotation.SuppressLint
 import android.graphics.Bitmap
@@ -20,7 +20,7 @@ import com.electroboys.lightsnap.ui.main.adapter.LibraryPictureAdapter
 import com.electroboys.lightsnap.ui.main.view.SelectView
 import com.electroboys.lightsnap.utils.ScreenshotUtil
 
-class ScreenshotActivityForBase(private val activity: AppCompatActivity) {
+class ScreenshotHelper(private val activity: AppCompatActivity) {
 
     private val selectionOverlayView = SelectView(activity)
     private val startTouch = PointF()

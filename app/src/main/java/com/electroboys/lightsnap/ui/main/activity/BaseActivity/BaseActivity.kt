@@ -17,7 +17,7 @@ import com.electroboys.lightsnap.R
 import com.electroboys.lightsnap.data.entity.SettingsConstants
 import com.electroboys.lightsnap.data.screenshot.BitmapCache
 import com.electroboys.lightsnap.ui.main.activity.ScreenshotActivity
-import com.electroboys.lightsnap.ui.main.activity.ScreenshotActivityForBase
+import com.electroboys.lightsnap.domain.screenshot.ScreenshotHelper
 import com.electroboys.lightsnap.ui.main.view.FloatingView
 import com.electroboys.lightsnap.ui.main.viewmodel.MainViewModel
 import com.electroboys.lightsnap.utils.ImageSaveUtil
@@ -33,7 +33,7 @@ open class BaseActivity : AppCompatActivity() {
 
     // 标志：是否处于截图模式
     var isTakingScreenshot = false
-    var currentScreenshotHelper: ScreenshotActivityForBase? = null
+    var currentScreenshotHelper: ScreenshotHelper? = null
 
     // 快捷键监听事件
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
@@ -108,7 +108,7 @@ open class BaseActivity : AppCompatActivity() {
 
                 isTakingScreenshot = true
 
-                val screenshotHelper = ScreenshotActivityForBase(this)
+                val screenshotHelper = ScreenshotHelper(this)
                 currentScreenshotHelper = screenshotHelper
 
                 screenshotHelper.enableBoxSelectOnce { bitmap ->

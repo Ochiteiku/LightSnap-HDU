@@ -1,29 +1,23 @@
 package com.electroboys.lightsnap.ui.main.fragment
 
 import android.content.Intent
-import android.media.Image
 import android.os.Bundle
 import android.util.Log
 import android.view.View
-import android.widget.Button
 import android.widget.ImageView
 import android.widget.ScrollView
 import android.widget.TextView
 import android.widget.Toast
-import androidx.appcompat.widget.SwitchCompat
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
-import androidx.fragment.app.DialogFragment.STYLE_NO_TITLE
 import androidx.fragment.app.Fragment
-import androidx.lifecycle.findViewTreeViewModelStoreOwner
 import com.electroboys.lightsnap.R
 import com.electroboys.lightsnap.data.entity.Document
 import com.electroboys.lightsnap.data.screenshot.BitmapCache
 import com.electroboys.lightsnap.domain.screenshot.scrollshot.ScrollShotHelper
 import com.electroboys.lightsnap.ui.main.activity.BaseActivity.BaseActivity
 import com.electroboys.lightsnap.ui.main.activity.ScreenshotActivity
-import com.electroboys.lightsnap.ui.main.activity.ScreenshotActivityForBase
 import com.electroboys.lightsnap.utils.SecretUtil
 
 
