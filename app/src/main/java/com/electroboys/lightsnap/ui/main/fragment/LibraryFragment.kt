@@ -39,10 +39,6 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import androidx.core.content.edit
-import com.bumptech.glide.Glide
-import com.bumptech.glide.load.resource.drawable.DrawableTransitionOptions
-import com.bumptech.glide.request.RequestListener
-import okhttp3.internal.notify
 
 class LibraryFragment : Fragment(R.layout.fragment_library){
     private lateinit var recyclerImageView: RecyclerView
@@ -192,13 +188,11 @@ class LibraryFragment : Fragment(R.layout.fragment_library){
         // 实现下拉刷新监听
         recyclerImageView.addOnScrollListener(object : RecyclerView.OnScrollListener(){
             override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
-                // dx表示垂直滚动 dy表示上下滚动
-                val gridLayoutManager = recyclerView.layoutManager as GridLayoutManager
-                val firstVisibleItemPos = (gridLayoutManager as LinearLayoutManager).findFirstVisibleItemPosition()  // 需要向上转型才能使用findFristItem方法
-                if(firstVisibleItemPos == 0 && dy < 0){
+                val layoutManager = recyclerView.layoutManager as LinearLayoutManager
+                val firstVisibleItemPos = layoutManager.findFirstVisibleItemPosition()
+                if (firstVisibleItemPos == 0 && dy < 0) {
                     loadOrRefreshImages(true)
-                    recyclerViewAdapter.notifyItemChanged(0) // 刷新头部
-                    Toast.makeText(context,"刷新成功",Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context, "刷新成功", Toast.LENGTH_SHORT).show()
                 }
             }
         })
