@@ -16,6 +16,7 @@ import androidx.core.net.toUri
 import com.electroboys.lightsnap.R
 import com.electroboys.lightsnap.data.entity.SettingsConstants
 import com.electroboys.lightsnap.data.screenshot.BitmapCache
+import com.electroboys.lightsnap.data.screenshot.ImageHistory
 import com.electroboys.lightsnap.ui.main.activity.ScreenshotActivity
 import com.electroboys.lightsnap.domain.screenshot.ScreenshotHelper
 import com.electroboys.lightsnap.ui.main.view.FloatingView
@@ -76,6 +77,7 @@ open class BaseActivity : AppCompatActivity() {
 //                                    Toast.makeText(this, "图片已保存", Toast.LENGTH_SHORT).show()
                                 }
                             }
+                            ImageHistory.clear()
                         } else {
                             Toast.makeText(this, "缓存图片不存在", Toast.LENGTH_SHORT).show()
                         }
