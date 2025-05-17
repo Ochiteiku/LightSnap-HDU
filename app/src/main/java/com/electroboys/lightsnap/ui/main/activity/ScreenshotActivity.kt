@@ -248,8 +248,6 @@ class ScreenshotActivity : AppCompatActivity() , ModeActions {
             // 执行复制图片操作
             ScreenshotHelper.copyBitmapToClipboard(this, croppedBitmap)
             Toast.makeText(this, "截图已复制到剪贴板", Toast.LENGTH_SHORT).show()
-//            val intent = Intent(this, ChatActivity::class.java)
-//            startActivity(intent)
             finish()
         }
 
