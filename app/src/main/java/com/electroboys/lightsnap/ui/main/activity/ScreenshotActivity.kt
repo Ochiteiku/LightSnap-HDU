@@ -942,11 +942,9 @@ class ScreenshotActivity : AppCompatActivity(), ModeActions {
                 clipboard.setPrimaryClip(clip)
                 Toast.makeText(this, "摘要已复制", Toast.LENGTH_SHORT).show()
                 dialog.dismiss()
-                finish()
             }
             .setNegativeButton("关闭") { dialog, _ ->
                 dialog.dismiss()
-                finish()
             }
             .create()
             .show()
