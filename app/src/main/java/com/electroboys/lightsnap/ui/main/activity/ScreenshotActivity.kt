@@ -494,8 +494,7 @@ class ScreenshotActivity : AppCompatActivity(), ModeActions {
             return
         }
         val watermarkedBitmap = watermarkOverlay.applyWatermarkToBitmap(bitmap)
-        val newKey = BitmapCache.cacheBitmap(watermarkedBitmap)
-        intent.putExtra(EXTRA_SCREENSHOT_KEY, newKey)
+        setcurrentBitmapandRefreshKey(watermarkedBitmap)
 
         val currentKey = intent.getStringExtra(EXTRA_SCREENSHOT_KEY)
             ?: run {

@@ -80,17 +80,17 @@
             android:layout_height="match_parent"
             android:visibility="invisible"/>
 
+        <com.electroboys.lightsnap.ui.main.view.FrameSelectView
+            android:id="@+id/frameSelectView"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:visibility="gone"/>
+
         <com.electroboys.lightsnap.ui.main.view.WatermarkOverlayView
             android:id="@+id/watermarkOverlay"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:visibility="gone"/>
-        <com.electroboys.lightsnap.ui.main.view.FrameSelectView
-            android:id="@+id/frameSelectView"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:visibility="gone"
-            />
     </FrameLayout>
 
     <ImageButton
