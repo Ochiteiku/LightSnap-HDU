@@ -176,6 +176,7 @@ class EditAddTextView @JvmOverloads constructor(
                     }else{
                         Typeface.create(Typeface.DEFAULT, Typeface.ITALIC)
                     }
+                item.typeface != null -> item.typeface
                 else -> Typeface.DEFAULT
             }
         }

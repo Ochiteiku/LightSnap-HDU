@@ -301,7 +301,7 @@ class ScreenshotActivity : AppCompatActivity(), ModeActions {
                                             imageView.post {
                                                 Toast.makeText(
                                                     baseContext,
-                                                    "翻译成功" + translatedText,
+                                                    "翻译成功",
                                                     Toast.LENGTH_SHORT
                                                 ).show()
                                             }
