@@ -89,7 +89,6 @@ class ScreenshotActivity : AppCompatActivity(), ModeActions {
             Arrow,
             Mosaic,
             Crop,
-//            Watermark,
             OCR,
             Framing
         }
@@ -99,7 +98,6 @@ class ScreenshotActivity : AppCompatActivity(), ModeActions {
     private var originalBitmapKey: String? = null
     private val watermarkConfig = WatermarkConfig.default() //水印配置
     private lateinit var overlayView: ImageView
-    private lateinit var croppedBitmap: Bitmap
 
     // 初始化 ViewModel
     private lateinit var viewModel: ScreenshotViewModel
@@ -188,7 +186,10 @@ class ScreenshotActivity : AppCompatActivity(), ModeActions {
                 }
             }
             // 传入当前截图 bitmap，执行识别 + 摘要流程
-            viewModel.recognizeAndSummarize(croppedBitmap)
+            val currentBitmap = getcurrentBitmap()
+            if (currentBitmap != null) {
+                viewModel.recognizeAndSummarize(currentBitmap)
+            }
         }
 
         // 添加文字键逻辑
@@ -204,8 +205,6 @@ class ScreenshotActivity : AppCompatActivity(), ModeActions {
             frameSelectView.setBitmap(bitmap)
             selectView.clearSelection()
             btnConfirmSelection.visibility = View.GONE
-            //findViewById<TextView>(R.id.selectionHint).visibility = View.VISIBLE
-//            Toast.makeText(this, "图像已更新", Toast.LENGTH_SHORT).show()
         }
 
         // 撤销键逻辑
@@ -233,9 +232,12 @@ class ScreenshotActivity : AppCompatActivity(), ModeActions {
         val btnCopy = findViewById<ImageButton>(R.id.btnCopy)
         btnCopy.setOnClickListener {
             modeManager.enter(Mode.None)
-            val watermarkedBitmap = watermarkOverlay.applyWatermarkToBitmap(croppedBitmap)
+            val bitmap = getcurrentBitmap()
+            val watermarkedBitmap = bitmap?.let { it1 -> watermarkOverlay.applyWatermarkToBitmap(it1) }
             // 执行复制图片操作
-            ClipboardUtil.copyBitmapToClipboard(this, watermarkedBitmap)
+            if (watermarkedBitmap != null) {
+                ClipboardUtil.copyBitmapToClipboard(this, watermarkedBitmap)
+            }
             Toast.makeText(this, "截图已复制到剪贴板", Toast.LENGTH_SHORT).show()
             finish()
         }
@@ -427,8 +429,7 @@ class ScreenshotActivity : AppCompatActivity(), ModeActions {
         }
 
         if (bitmap != null) {
-            croppedBitmap = bitmap
-            graffitiView.setBitmap(croppedBitmap)
+            graffitiView.setBitmap(bitmap)
 
             // QR
             QRScannerUtil.detectQRCode(
@@ -468,7 +469,7 @@ class ScreenshotActivity : AppCompatActivity(), ModeActions {
             exControlFrame = exControlFrame,
             intent = intent,
             container = findViewById(R.id.imageContainer),
-            btnText = findViewById(R.id.btnText),
+            btnText = btnText,
             cropRepository = cropRepository,
             imageContainer = findViewById(R.id.imageContainer),
             selectView = selectView,
@@ -525,16 +526,11 @@ class ScreenshotActivity : AppCompatActivity(), ModeActions {
         super.onDestroy()
         // 清理 Bitmap 缓存
         if (!SettingsConstants.PicIsHangUp) {
-
             val currentKey = intent.getStringExtra(EXTRA_SCREENSHOT_KEY)
             BitmapCache.clearExcept(currentKey)
             handler.removeCallbacks(updateDotsRunnable)
         }
 
-    }
-
-    override fun finish() {
-        super.finish()
     }
 
     // OnAndOffMode
@@ -596,19 +592,9 @@ class ScreenshotActivity : AppCompatActivity(), ModeActions {
         updateModeButtonIcons(Mode.None)
     }
 
-//    override fun enterWatermark() {
-//        updateModeButtonIcons(Mode.Watermark)
-//        showControlPanel(ControlViewStatus.WatermarkMode, Mode.Watermark)
-//    }
-//
-//    override fun exitWatermark() {
-//        controlPanelManager.exitWatermarkMode()
-//        updateModeButtonIcons(Mode.None)
-//    }
-
     override fun onEnterOCR() {
         updateModeButtonIcons(Mode.OCR)
-        viewModel.recognize(croppedBitmap)
+        getcurrentBitmap()?.let { viewModel.recognize(it) }
     }
 
     override fun showControlPanel(mode: ControlViewStatus, activeMode: Mode) {
@@ -624,7 +610,7 @@ class ScreenshotActivity : AppCompatActivity(), ModeActions {
             when (event.keyCode) {
                 android.view.KeyEvent.KEYCODE_C -> {
                     if (isCtrlPressed) {
-                        ClipboardUtil.copyBitmapToClipboard(this, croppedBitmap)
+                        getcurrentBitmap()?.let { ClipboardUtil.copyBitmapToClipboard(this, it) }
                         Toast.makeText(this, "截图已复制到剪贴板", Toast.LENGTH_SHORT).show()
                         finish()
                         return true
@@ -687,11 +673,6 @@ class ScreenshotActivity : AppCompatActivity(), ModeActions {
             if (activeMode == Mode.AddText) R.drawable.ic_text_on
             else R.drawable.ic_text
         )
-
-//        btnWatermark.setImageResource(
-//            if (activeMode == Mode.Watermark) R.drawable.ic_watermark_on
-//            else R.drawable.ic_watermark
-//        )
 
         btnIfCanSelect.setImageResource(
             if (activeMode == Mode.Crop) R.drawable.ic_reselect_on

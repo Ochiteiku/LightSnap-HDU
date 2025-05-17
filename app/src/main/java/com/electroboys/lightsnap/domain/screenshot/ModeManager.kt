@@ -35,10 +35,6 @@ class ModeManager(private val actions: ModeActions) {
                 actions.enterMosaic()
                 actions.showControlPanel(ControlViewStatus.MosaicMode, Mode.Mosaic)
             }
-//            Mode.Watermark -> {
-//                actions.enterWatermark()
-//                actions.showControlPanel(ControlViewStatus.WatermarkMode, Mode.Watermark)
-//            }
             Mode.Crop -> {
                 actions.enterCrop()
                 actions.showControlPanel(ControlViewStatus.CropMode, Mode.Crop)
@@ -54,7 +50,6 @@ class ModeManager(private val actions: ModeActions) {
             Mode.None -> {
                 actions.showControlPanel(ControlViewStatus.OtherMode, Mode.None)
             }
-            else -> {}
         }
 
         currentMode = mode
@@ -68,7 +63,6 @@ class ModeManager(private val actions: ModeActions) {
             Mode.Graffiti -> actions.exitGraffiti()
             Mode.Arrow -> actions.exitArrow()
             Mode.Mosaic -> actions.exitMosaic()
-//            Mode.Watermark -> actions.exitWatermark()
             Mode.Crop -> {
                 actions.exitCrop()
             }
