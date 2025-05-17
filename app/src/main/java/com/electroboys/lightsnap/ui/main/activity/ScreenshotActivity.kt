@@ -379,12 +379,14 @@ class ScreenshotActivity : AppCompatActivity(), ModeActions {
             // 监听文字变化
             onTextChanged = { text ->
                 watermarkConfig.setText(text)
+                watermarkOverlay.setWatermark(watermarkConfig) // 刷新 overlay
 //                controlPanelManager.refreshWatermark()
             }
 
             // 监听透明度变化
             onAlphaChanged = { alpha ->
                 watermarkConfig.setAlpha(alpha)
+                watermarkOverlay.setWatermark(watermarkConfig) // 刷新 overlay
 //                controlPanelManager.refreshWatermark()
             }
         }
