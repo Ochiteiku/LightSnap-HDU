@@ -47,6 +47,7 @@ import com.electroboys.lightsnap.utils.ClipboardUtil
 import com.google.mlkit.vision.text.Text
 import androidx.core.view.isVisible
 import com.electroboys.lightsnap.utils.ShareImageUtils
+import com.electroboys.lightsnap.utils.SummaryDialogUtils
 
 
 class ScreenshotActivity : AppCompatActivity(), ModeActions {
@@ -513,6 +514,11 @@ class ScreenshotActivity : AppCompatActivity(), ModeActions {
         finish()
     }
 
+    // 显示摘要
+    private fun showSummaryDialog(summary: String) {
+        SummaryDialogUtils.showSummaryDialog(this, summary)
+    }
+
     private fun getcurrentBitmap(): Bitmap? {
         return (imageView.drawable as? BitmapDrawable)?.bitmap
     }
@@ -604,7 +610,6 @@ class ScreenshotActivity : AppCompatActivity(), ModeActions {
         controlPanelManager.applyMode(mode)
         updateModeButtonIcons(activeMode)
     }
-
     // 快捷键触发功能
     override fun dispatchKeyEvent(event: android.view.KeyEvent): Boolean {
         if (event.action == android.view.KeyEvent.ACTION_DOWN) {
@@ -642,32 +647,6 @@ class ScreenshotActivity : AppCompatActivity(), ModeActions {
             }
         }
         return super.dispatchKeyEvent(event)
-    }
-
-    private fun showSummaryDialog(summary: String) {
-        val editText = EditText(this)
-        editText.setText(summary)
-        editText.setTextIsSelectable(true)
-        editText.isFocusable = false
-        editText.isClickable = false
-        editText.setPadding(32, 32, 32, 32)
-        editText.setBackgroundColor(Color.TRANSPARENT)
-
-        AlertDialog.Builder(this)
-            .setTitle("内容摘要")
-            .setView(editText)
-            .setPositiveButton("复制") { dialog, _ ->
-                val clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                val clip = ClipData.newPlainText("摘要", summary)
-                clipboard.setPrimaryClip(clip)
-                Toast.makeText(this, "摘要已复制", Toast.LENGTH_SHORT).show()
-                dialog.dismiss()
-            }
-            .setNegativeButton("关闭") { dialog, _ ->
-                dialog.dismiss()
-            }
-            .create()
-            .show()
     }
 
     //更新按钮状态
