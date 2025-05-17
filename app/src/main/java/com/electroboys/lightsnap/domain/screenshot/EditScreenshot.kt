@@ -1,16 +1,12 @@
 package com.electroboys.lightsnap.domain.screenshot
 
-import android.app.Dialog
 import android.content.Context
 import android.content.Intent
-import android.graphics.Bitmap
 import android.graphics.Color
 import android.graphics.Typeface
-import android.util.Log
 import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
-import android.widget.Button
 import android.widget.FrameLayout
 import android.widget.ImageButton
 import android.widget.ImageView
@@ -102,10 +98,11 @@ class EditScreenshot(
                 btnAddTextDonelistener = {
                     editAddTextView.addTextDone()
                     bitmapChanged(imageView)
-                    clearAllText()
+                    // clearAllText()
                     btnText.setImageResource(R.drawable.ic_addtext_textbox)
-                    editAddTextView.visibility = View.GONE
-                    editAddTextBarView.visibility = View.GONE
+                    exitAddTextMode()
+//                    editAddTextView.visibility = View.GONE
+//                    editAddTextBarView.visibility = View.GONE
                 }
             }
             exControlFrame.addView(editAddTextBarView)

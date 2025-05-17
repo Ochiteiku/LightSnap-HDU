@@ -65,5 +65,5 @@ dependencies {
     implementation("com.google.mlkit:barcode-scanning:17.3.0")
     implementation("androidx.appcompat:appcompat:1.7.0")
     implementation ("com.qcloud.cos:cos-android:5.9.3")
-
+    implementation("com.github.bumptech.glide:glide:4.16.0")
 }

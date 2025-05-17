@@ -5,7 +5,6 @@ import android.graphics.Color
 import android.graphics.drawable.ColorDrawable
 import android.view.Gravity
 import android.view.Window
-import android.view.WindowManager
 import android.widget.Button
 import android.widget.TextView
 import com.electroboys.lightsnap.R

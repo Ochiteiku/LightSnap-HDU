@@ -1,6 +1,5 @@
 package com.electroboys.lightsnap.ui.main.activity.BaseActivity
 
-import QRScannerUtil
 import android.app.ActivityOptions
 import android.content.Context
 import android.content.Intent
@@ -30,7 +29,8 @@ open class BaseActivity : AppCompatActivity() {
     private val viewModel: MainViewModel by viewModels()
 
     private lateinit var screenshotResultLauncher: ActivityResultLauncher<Intent>
-    private  var floatingView: FloatingView? = null;
+    private var floatingView: FloatingView? = null;
+
     // 标志：是否处于截图模式
     var isTakingScreenshot = false
     var currentScreenshotHelper: ScreenshotActivityForBase? = null
@@ -91,10 +91,13 @@ open class BaseActivity : AppCompatActivity() {
 
     private fun observeShortcutEvents() {
         viewModel.shortcutEvent.observe(this) { shortcut ->
+
+            // 检测密聊
             if (SecretUtil.isSecretMode()) {
                 SecretUtil.showSecretToast(this)
                 return@observe
             }
+
             val prefs = getSharedPreferences("settings", Context.MODE_PRIVATE)
             val screenshotEnabled = prefs.getBoolean("screenshot_enabled", false)
 
@@ -181,7 +184,7 @@ open class BaseActivity : AppCompatActivity() {
                 floatingView?.showFloat()
                 floatingView?.setOnClickListener {
                     Toast.makeText(this, "悬浮窗点击", Toast.LENGTH_SHORT).show()
-                    if (SettingsConstants.floatBitmapKey == null)return@setOnClickListener
+                    if (SettingsConstants.floatBitmapKey == null) return@setOnClickListener
                     // 继续原有截图流程
                     val bitmapKey = SettingsConstants.floatBitmapKey
                     val intent = Intent(this, ScreenshotActivity::class.java).apply {
