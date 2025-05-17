@@ -73,9 +73,6 @@ open class BaseActivity : AppCompatActivity() {
                         val bitmap = BitmapCache.getBitmap(bitmapKey)
                         if (bitmap != null) {
                             ImageSaveUtil.saveBitmapWithName(this, bitmap, treeUri) { success ->
-                                if (success) {
-//                                    Toast.makeText(this, "图片已保存", Toast.LENGTH_SHORT).show()
-                                }
                             }
                             ImageHistory.clear()
                         } else {

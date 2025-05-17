@@ -346,14 +346,12 @@ class ScreenshotActivity : AppCompatActivity(), ModeActions {
                 // 关闭水印
                 watermarkSettingBar.updateUIState(false)
                 watermarkOverlay.visibility = View.GONE
-                R.drawable.ic_watermark
                 watermarkSettingBar.updateUIState(false)
                 btnWatermark.setImageResource(R.drawable.ic_watermark)
             } else {
                 // 开启水印
                 watermarkSettingBar.updateUIState(true)
                 watermarkOverlay.visibility = View.VISIBLE
-                R.drawable.ic_watermark_on
                 watermarkSettingBar.updateUIState(true)
                 btnWatermark.setImageResource(R.drawable.ic_watermark_on)
             }
