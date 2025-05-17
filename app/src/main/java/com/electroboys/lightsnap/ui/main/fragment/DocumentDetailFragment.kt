@@ -71,7 +71,7 @@ class DocumentDetailFragment : Fragment(R.layout.doc_document_detail) {
 
         //
         view.findViewById<ImageView>(R.id.screenshotDocumentButton).setOnClickListener {
-            val scrollView = view.findViewById<ScrollView>(R.id.documentScrollView) // 确保为 ScrollView 设置 id
+            val scrollView = view.findViewById<ScrollView>(R.id.documentScrollView)
             if (scrollView != null) {
                 val bitmap = ScrollShotHelper.captureScrollView(scrollView)
                 if (bitmap != null) {
