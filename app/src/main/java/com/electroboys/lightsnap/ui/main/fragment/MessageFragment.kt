@@ -9,7 +9,6 @@ import android.os.Bundle
 import android.text.Spannable
 import android.text.SpannableString
 import android.text.style.ImageSpan
-import android.view.KeyEvent
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup.LayoutParams.MATCH_PARENT
@@ -27,7 +26,6 @@ import com.electroboys.lightsnap.R
 import com.electroboys.lightsnap.data.entity.Contact
 import com.electroboys.lightsnap.domain.message.ChatAdapter
 import com.electroboys.lightsnap.domain.message.ContactAndChatObject
-import com.electroboys.lightsnap.ui.main.activity.ScreenshotActivityForBase
 import com.electroboys.lightsnap.utils.SecretUtil
 import androidx.core.graphics.scale
 
