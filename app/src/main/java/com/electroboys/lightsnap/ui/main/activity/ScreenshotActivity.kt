@@ -539,8 +539,7 @@ class ScreenshotActivity : AppCompatActivity(), ModeActions {
     }
 
     // OnAndOffMode
-    // 这里下面都是功能按钮的启动与关闭
-
+    // 重写ModeActions中的Actions方法以改变模式
     override fun enterGraffiti() {
         updateModeButtonIcons(Mode.Graffiti)
         showControlPanel(ControlViewStatus.GraffitiMode, Mode.Graffiti)
