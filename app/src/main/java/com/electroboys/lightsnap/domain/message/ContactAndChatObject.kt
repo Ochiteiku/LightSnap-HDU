@@ -10,7 +10,7 @@ class ContactAndChatObject {
             Contact(
                 "Mike",  // 运动型朋友
                 R.drawable.ic_contact_1,
-                "他说每周三都会来哦",
+                "我的电话号码是15467832295",
                 false,
                 true,
                 listOf(
