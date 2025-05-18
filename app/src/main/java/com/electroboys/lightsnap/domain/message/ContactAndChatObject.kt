@@ -21,7 +21,9 @@ class ContactAndChatObject {
                     Message("哇，真的假的？！", false, "3:25 PM"),
                     Message("骗你干嘛，他还教我后撤步", true, "3:26 PM"),
                     Message("下次带我去！我要签名！", false, "3:30 PM"),
-                    Message("他说每周三都会来", true, "3:32 PM")
+                    Message("他说每周三都会来", true, "3:32 PM"),
+                    Message("对了，你的电话号码是多少？", false, "3:33 PM"),
+                    Message("我的电话号码是15467832295", true, "3:34 PM")
                 )
             ),
             Contact(

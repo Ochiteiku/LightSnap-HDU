@@ -4,6 +4,7 @@ import android.content.Context
 import android.util.AttributeSet
 import android.view.LayoutInflater
 import android.view.View
+import android.widget.Button
 import android.widget.LinearLayout
 import android.widget.SeekBar
 import com.electroboys.lightsnap.R
@@ -19,6 +20,7 @@ class MosaicTabView @JvmOverloads constructor(
     private var mListener: OnMosaicTabClickListener? = null
     private var ivMosaicStyleOne: View
     private var ivMosaicStyleTwo: View
+    private lateinit var btnSmartBlur: Button
     fun setOnMosaicTabClickListener(listener: OnMosaicTabClickListener) {
         mListener = listener
     }
@@ -33,6 +35,8 @@ class MosaicTabView @JvmOverloads constructor(
         sbMosaicBlur = findViewById(R.id.sb_mosaic_blur)
         ivMosaicStyleOne = findViewById(R.id.iv_mosaic_style_one)
         ivMosaicStyleTwo = findViewById(R.id.iv_mosaic_style_two)
+        // 初始化智能模糊按钮
+        btnSmartBlur = findViewById(R.id.btn_smart_blur)
         ivMosaicOne.isSelected = true
         sbMosaicBlur.progress = 50
         ivMosaicStyleTwo.isSelected = true
@@ -61,6 +65,11 @@ class MosaicTabView @JvmOverloads constructor(
             ivMosaicStyleOne.isSelected = false
             ivMosaicStyleTwo.isSelected = true
         }
+        // 绑定智能模糊按钮点击事件
+        btnSmartBlur.setOnClickListener {
+            mListener?.onSmartBlurClick()
+        }
+
         sbMosaicBlur.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
                if (mListener!= null){
@@ -92,5 +101,6 @@ class MosaicTabView @JvmOverloads constructor(
         fun onMosaicSelectedClick(tabIndex: Int)
         fun onMosaicSettingClick(progress: Float)
         abstract fun onMosaicStyleSelectedClick(i: Int)
+        fun onSmartBlurClick()
     }
 }
