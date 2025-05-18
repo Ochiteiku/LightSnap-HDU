@@ -35,6 +35,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
 
+//梦开始的地方
 class MainActivity : BaseActivity() {
 
     private val fragmentCache = mutableMapOf<Class<out Fragment>, Fragment>()
