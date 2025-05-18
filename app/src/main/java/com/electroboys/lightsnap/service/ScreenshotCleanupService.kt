@@ -91,18 +91,19 @@ class ScreenshotCleanupService : Service() {
         }
     }
 
-    //清理主要逻辑
+    // 清理主要逻辑
     private suspend fun cleanOldScreenshots(daysThreshold: Int, option: String) {
+
+        //从SharedPreferences中获取用户设定的相关参数
         val sharedPrefs = getSharedPreferences("settings", Context.MODE_PRIVATE)
         val savedUriStr = sharedPrefs.getString("screenshot_save_uri", null) ?: return
         val uri = savedUriStr.toUri()
-
         val now = System.currentTimeMillis()
         val thresholdMillis = daysThreshold * 24 * 60 * 60 * 1000L
         val format = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault())
         var deletedCount = 0
 
-        //这里是为了适配两种不同的uri格式，SAF路径和普通路径
+        // 适配两种不同的uri格式，SAF路径和普通路径
         if (uri.scheme == "content") {
             val folder = DocumentFile.fromTreeUri(this, uri) ?: return
             for (file in folder.listFiles()) {
@@ -111,19 +112,16 @@ class ScreenshotCleanupService : Service() {
                     ?: continue
                 try {
                     val date = format.parse(match.groupValues[1]) ?: continue
-                    if (now - date.time > thresholdMillis) {
+                    if (now - date.time > thresholdMillis) {  //判断图片是否过期
                         when (option) {
                             SettingsConstants.CLEANUP_DEL -> {
                                 if (file.delete()) deletedCount++
                             }
                             SettingsConstants.CLEANUP_DELANDUPLOAD -> {
-                                // 上传 -> 成功 -> 删除
-                                val remotePath = "${SimpleDateFormat("yyyyMMdd", Locale.getDefault()).format(Date())}/${file.name}"
+                                // 上传并删除
                                 val tempFile = convertDocumentFileToTempFile(file)
-                                val success = COSUtil.uploadFile(remotePath, tempFile)
-                                if (success && file.delete()) {
-                                    deletedCount++
-                                }
+                                val success = uploadFileAndDelete(tempFile) // 确保上传成功后再删除
+                                if (success) deletedCount++
                             }
                         }
                     }
@@ -133,7 +131,6 @@ class ScreenshotCleanupService : Service() {
         } else {
             val folder = File(uri.path ?: return)
             if (!folder.exists() || !folder.isDirectory) return
-
             for (file in folder.listFiles() ?: emptyArray()) {
                 if (!file.isFile) continue
                 val name = file.name
@@ -146,13 +143,10 @@ class ScreenshotCleanupService : Service() {
                             SettingsConstants.CLEANUP_DEL -> {
                                 if (file.delete()) deletedCount++
                             }
-
                             SettingsConstants.CLEANUP_DELANDUPLOAD -> {
-                                val remotePath = "${SimpleDateFormat("yyyyMMdd", Locale.getDefault()).format(Date())}/${file.name}"
-                                val success = COSUtil.uploadFile(remotePath, file)
-                                if (success && file.delete()) {
-                                    deletedCount++
-                                }
+                                // 上传并删除
+                                val success = uploadFileAndDelete(file) // 确保上传成功后再删除
+                                if (success) deletedCount++
                             }
                         }
                     }
@@ -161,6 +155,7 @@ class ScreenshotCleanupService : Service() {
             }
         }
 
+        // 更新UI
         withContext(Dispatchers.Main) {
             Toast.makeText(
                 applicationContext,
@@ -182,4 +177,13 @@ class ScreenshotCleanupService : Service() {
         return tempFile
     }
 
+    // 封装上传和删除逻辑的挂起函数，确保上传成功后才删除
+    private suspend fun uploadFileAndDelete(file: File): Boolean {
+        val remotePath = "${SimpleDateFormat("yyyyMMdd", Locale.getDefault()).format(Date())}/${file.name}"
+        val success = COSUtil.uploadFile(remotePath, file)
+        if (success) {
+            return file.delete()
+        }
+        return false
+    }
 }

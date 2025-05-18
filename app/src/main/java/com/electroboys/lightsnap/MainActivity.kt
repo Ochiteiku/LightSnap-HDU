@@ -28,6 +28,7 @@ import com.electroboys.lightsnap.ui.main.fragment.SettingsFragment
 import com.electroboys.lightsnap.ui.main.viewmodel.SettingsViewModel
 import com.electroboys.lightsnap.ui.main.viewmodel.factory.SettingsViewModelFactory
 import com.electroboys.lightsnap.utils.COSUtil
+import com.electroboys.lightsnap.utils.KeyUtil
 import com.electroboys.lightsnap.utils.SecretUtil
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -57,6 +58,9 @@ class MainActivity : BaseActivity() {
             insets
         }
 
+        // 初始化配置类获取信息
+        KeyUtil.initialize(applicationContext)
+
         navMessage = findViewById(R.id.navMessage)
         navDocument = findViewById(R.id.navDocument)
         navSettings = findViewById(R.id.navSettings)
@@ -78,10 +82,10 @@ class MainActivity : BaseActivity() {
                 val success = withContext(Dispatchers.IO) {
                     COSUtil.initCOS(
                         context = this@MainActivity,
-                        secretId = "AKIDfDlJiCE9tTDdptvNhpqhSI0VnsjeXK0Z",
-                        secretKey = "hR2Tm25vkU2PYYTLAsRxMpGWbTBi1LQU",
-                        region = "ap-shanghai",
-                        bucket = "lightsnap-1318767045"
+                        secretId = KeyUtil.getQCloudSecretId(),
+                        secretKey = KeyUtil.getQCloudSecretKey(),
+                        region = KeyUtil.getQCloudRegion(),
+                        bucket = KeyUtil.getQCloudBucket(),
                     )
                 }
                 if (success) {
