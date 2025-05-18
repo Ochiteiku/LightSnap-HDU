@@ -66,4 +66,5 @@ dependencies {
     implementation("androidx.appcompat:appcompat:1.7.0")
     implementation ("com.qcloud.cos:cos-android:5.9.3")
     implementation("com.github.bumptech.glide:glide:4.16.0")
+    implementation("com.google.android.material:material:1.9.0")
 }
