@@ -12,6 +12,7 @@ import android.graphics.drawable.BitmapDrawable
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.text.method.ScrollingMovementMethod
 import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
@@ -19,9 +20,11 @@ import android.widget.EditText
 import android.widget.FrameLayout
 import android.widget.ImageButton
 import android.widget.ImageView
+import android.widget.ScrollView
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.ViewModelProvider
 import com.electroboys.lightsnap.R
 import com.electroboys.lightsnap.data.entity.SettingsConstants
@@ -47,6 +50,8 @@ import com.electroboys.lightsnap.utils.ClipboardUtil
 import com.google.mlkit.vision.text.Text
 import androidx.core.view.isVisible
 import com.electroboys.lightsnap.utils.ShareImageUtils
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import androidx.core.graphics.toColorInt
 
 
 class ScreenshotActivity : AppCompatActivity(), ModeActions {
@@ -638,29 +643,48 @@ class ScreenshotActivity : AppCompatActivity(), ModeActions {
     }
 
     private fun showSummaryDialog(summary: String) {
-        val editText = EditText(this)
-        editText.setText(summary)
-        editText.setTextIsSelectable(true)
-        editText.isFocusable = false
-        editText.isClickable = false
-        editText.setPadding(32, 32, 32, 32)
-        editText.setBackgroundColor(Color.TRANSPARENT)
+        val context = this
 
-        AlertDialog.Builder(this)
-            .setTitle("内容摘要")
-            .setView(editText)
-            .setPositiveButton("复制") { dialog, _ ->
-                val clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                val clip = ClipData.newPlainText("摘要", summary)
-                clipboard.setPrimaryClip(clip)
-                Toast.makeText(this, "摘要已复制", Toast.LENGTH_SHORT).show()
-                dialog.dismiss()
+        val scrollView = ScrollView(context).apply {
+            setPadding(dp2px(context, 16), dp2px(context, 12), dp2px(context, 16), dp2px(context, 12))
+            setBackgroundResource(R.drawable.bg_summary_dialog) // 自定义圆角背景
+        }
+
+        val textView = TextView(context).apply {
+            text = summary
+            textSize = 16f
+            setTextColor("#333333".toColorInt())
+            setTextIsSelectable(true)
+            movementMethod = ScrollingMovementMethod.getInstance()
+            isFocusable = true
+            isFocusableInTouchMode = true
+        }
+
+        val customTitle = TextView(context).apply {
+            text = "📄 内容摘要"
+            textSize = 20f
+            setTextColor("#222222".toColorInt())
+            setPadding(
+                dp2px(context, 16), dp2px(context, 12), dp2px(context, 16), dp2px(context, 10)
+            )
+        }
+
+        scrollView.addView(textView)
+        MaterialAlertDialogBuilder(context)
+            .setCustomTitle(customTitle)
+            .setView(scrollView)
+            .setPositiveButton("复制") { _, _ ->
+                val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                val clipData = ClipData.newPlainText("摘要内容", summary)
+                clipboard.setPrimaryClip(clipData)
+                Toast.makeText(context, "摘要已复制", Toast.LENGTH_SHORT).show()
             }
-            .setNegativeButton("关闭") { dialog, _ ->
-                dialog.dismiss()
-            }
-            .create()
+            .setNegativeButton("关闭", null)
             .show()
+    }
+
+    fun dp2px(context: Context, dp: Int): Int {
+        return (dp * context.resources.displayMetrics.density).toInt()
     }
 
     //更新按钮状态
