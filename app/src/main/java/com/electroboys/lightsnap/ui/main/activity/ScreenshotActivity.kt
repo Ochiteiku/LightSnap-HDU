@@ -1,30 +1,24 @@
 package com.electroboys.lightsnap.ui.main.activity
 
 import QRScannerUtil
-import android.app.AlertDialog
 import android.content.ClipData
 import android.content.ClipboardManager
-import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
-import android.graphics.Color
 import android.graphics.drawable.BitmapDrawable
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
-import android.text.method.ScrollingMovementMethod
 import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
-import android.widget.EditText
 import android.widget.FrameLayout
 import android.widget.ImageButton
 import android.widget.ImageView
-import android.widget.ScrollView
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.content.ContextCompat
+import androidx.core.view.isVisible
 import androidx.lifecycle.ViewModelProvider
 import com.electroboys.lightsnap.R
 import com.electroboys.lightsnap.data.entity.SettingsConstants
@@ -47,10 +41,9 @@ import com.electroboys.lightsnap.ui.main.viewmodel.ScreenshotViewModel
 import com.electroboys.lightsnap.ui.main.viewmodel.factory.ScreenshotViewModelFactory
 import com.electroboys.lightsnap.utils.BaiduTranslator
 import com.electroboys.lightsnap.utils.ClipboardUtil
-import com.google.mlkit.vision.text.Text
-import androidx.core.view.isVisible
 import com.electroboys.lightsnap.utils.ShareImageUtils
 import com.electroboys.lightsnap.utils.SummaryDialogUtils
+import com.google.mlkit.vision.text.Text
 
 
 class ScreenshotActivity : AppCompatActivity(), ModeActions {
@@ -546,8 +539,7 @@ class ScreenshotActivity : AppCompatActivity(), ModeActions {
     }
 
     // OnAndOffMode
-    // 这里下面都是功能按钮的启动与关闭
-
+    // 重写ModeActions中的Actions方法以改变模式
     override fun enterGraffiti() {
         updateModeButtonIcons(Mode.Graffiti)
         showControlPanel(ControlViewStatus.GraffitiMode, Mode.Graffiti)

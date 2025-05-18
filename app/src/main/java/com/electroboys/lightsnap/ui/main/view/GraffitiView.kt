@@ -6,7 +6,14 @@ import android.util.AttributeSet
 import android.util.Log
 import android.view.MotionEvent
 import android.view.View
+import android.widget.Toast
 import androidx.core.graphics.withMatrix
+import com.electroboys.lightsnap.domain.screenshot.repository.OcrRepository
+import com.google.mlkit.vision.text.Text
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import kotlin.math.*
 
 
@@ -96,6 +103,9 @@ class GraffitiView @JvmOverloads constructor(
     private val inverseMatrix = Matrix()
     private var currentWavyAmplitude = 10f
     private var currentWavelength = 30f
+
+    private val ocrRepository = OcrRepository()
+    private val coroutineScope = CoroutineScope(Dispatchers.Main)
     // 初始化
     init {
         setLayerType(LAYER_TYPE_SOFTWARE, null) // 马赛克需要软件渲染
@@ -622,6 +632,132 @@ class GraffitiView @JvmOverloads constructor(
              }
          }
          invalidate()
+    }
+
+    // 触发智能模糊
+    fun startSmartBlur() {
+        if (bitmap == null) return
+        coroutineScope.launch {
+
+            val result = withContext(Dispatchers.IO) {
+                ocrRepository.recognizeText(bitmap!!)
+            }
+
+            val visionText = result.getOrNull()
+            if (visionText != null) {
+                val sensitiveRegions = detectSensitiveRegions(visionText)
+                applySmartBlurToRegions(sensitiveRegions)
+            }
+        }
+    }
+
+    private val idCardPattern = Regex("\\d{17}[\\dXx]")
+    private val phonePattern = Regex("1[3-9]\\d{9}")
+    private val bankCardPattern = Regex("\\d{13,19}")
+
+    // 从 OCR 结果中检测敏感区域（返回相对于 Bitmap 的坐标 Rect）
+    private fun detectSensitiveRegions(visionText: Text): List<Rect> {
+        val sensitiveRegions = mutableListOf<Rect>()
+
+        for (textBlock in visionText.textBlocks) {
+            for (line in textBlock.lines) {
+                for (element in line.elements) {
+                    val elementText = element.text
+                    val elementBoundingBox = element.boundingBox ?: continue
+                    // 1. 检测身份证号
+                    val idCardMatch = idCardPattern.find(elementText)
+                    if (idCardMatch != null) {
+                        val idCardRegion = calculateSensitiveRegion(
+                            elementText,
+                            idCardMatch.range,
+                            elementBoundingBox
+                        )
+                        if (idCardRegion != null) {
+                            sensitiveRegions.add(idCardRegion)
+                        }
+                    }
+                    // 2. 检测手机号
+                    val phoneMatch = phonePattern.find(elementText)
+                    if (phoneMatch != null) {
+                        val phoneRegion = calculateSensitiveRegion(
+                            elementText,
+                            phoneMatch.range,
+                            elementBoundingBox
+                        )
+                        if (phoneRegion != null) {
+                            sensitiveRegions.add(phoneRegion)
+                        }
+                    }
+                    // 3. 检测银行卡号
+                    val bankCardMatch = bankCardPattern.find(elementText)
+                    if (bankCardMatch != null) {
+                        val bankCardRegion = calculateSensitiveRegion(
+                            elementText,
+                            bankCardMatch.range,
+                            elementBoundingBox
+                        )
+                        if (bankCardRegion != null) {
+                            sensitiveRegions.add(bankCardRegion)
+                        }
+                    }
+                }
+            }
+        }
+        return sensitiveRegions
+    }
+
+    private fun calculateSensitiveRegion(
+        elementText: String,
+        sensitiveRange: IntRange,
+        elementBox: Rect
+    ): Rect? {
+        val elementWidth = elementBox.right - elementBox.left
+        val charWidth = elementWidth.toFloat() / elementText.length
+
+        val startX = elementBox.left + ((sensitiveRange.first + 2) * charWidth).toInt()
+        val endX = elementBox.left + ((sensitiveRange.last + 1) * charWidth).toInt()
+
+        val startY = elementBox.top
+        val endY = elementBox.bottom
+
+        return Rect(
+            startX.coerceIn(elementBox.left, elementBox.right),
+            startY,
+            endX.coerceIn(elementBox.left, elementBox.right),
+            endY
+        )
+    }
+
+    private fun applySmartBlurToRegions(regions: List<Rect>) {
+        regions.forEach { rect ->
+            val blockSize = mosaicRadius * 1
+
+            for (x in rect.left until rect.right step blockSize) {
+                for (y in rect.top until rect.bottom step blockSize) {
+                    val endX = minOf(x + blockSize, rect.right)
+                    val endY = minOf(y + blockSize, rect.bottom)
+
+                    val avgColor = getAverageColorAroundPoint(
+                        (x + endX) / 2,
+                        (y + endY) / 2,
+                        mosaicRadius * 3
+                    )
+
+                    graffitiPaint.color = avgColor
+                    graffitiPaint.style = Paint.Style.FILL
+                    canvas?.drawRect(
+                        x.toFloat(),
+                        y.toFloat(),
+                        endX.toFloat(),
+                        endY.toFloat(),
+                        graffitiPaint
+                    )
+                }
+            }
+        }
+
+        invalidate()
+        notifyBitmapChanged()
     }
 
 }

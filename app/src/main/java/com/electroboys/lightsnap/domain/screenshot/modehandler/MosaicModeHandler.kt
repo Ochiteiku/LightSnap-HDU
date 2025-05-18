@@ -39,6 +39,10 @@ class MosaicModeHandler : ControlModeHandler {
             override fun onMosaicStyleSelectedClick(style: Int) {
                 graffitiView.setMosaicStyle(style)
             }
+
+            override fun onSmartBlurClick() {
+                graffitiView.startSmartBlur() // 触发智能模糊逻辑
+            }
         })
     }
 }
