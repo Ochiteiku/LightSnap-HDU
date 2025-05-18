@@ -71,10 +71,6 @@ class FloatingView(context: Context, attrs: AttributeSet?, defStyleAttr: Int) :
         }
 
 
-
-
-
-
         if (mContext != null) {
             initFloatBallParams(mContext!!)
             val displayMetrics = DisplayMetrics()
@@ -264,11 +260,17 @@ class FloatingView(context: Context, attrs: AttributeSet?, defStyleAttr: Int) :
                 rotateAnimation!!.cancel()
             }
             if (this.isShow) { //有可能已经关闭了
+                // 清除 ivFloatingView 的 Bitmap 引用
+                ivFloatingView.setImageDrawable(null)
+                ivFloatingView.setImageBitmap(null)
+
+                // 从 WindowManager 中移除 View
                 if (mWindowManager != null) {
                     mWindowManager!!.removeViewImmediate(this)
                 }
             }
-        } catch (E: Exception) {
+        } catch (e: Exception) {
+            e.printStackTrace()
         }
         this.isShow = false
     }
