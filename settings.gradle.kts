@@ -32,5 +32,5 @@ dependencyResolutionManagement {
 }
 
 rootProject.name = "LightSnap"
-include(":app")
+include(":app") 
  
